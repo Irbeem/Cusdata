@@ -35,7 +35,7 @@ auth.onAuthStateChanged(async user => {
 
 function signOut() {
   auth.signOut().then(() => {
-    window.location.href = "CUSTOMERINPUT3login_rule.html";
+    window.location.href = "index.html";
   }).catch((error) => {
     alert("เกิดข้อผิดพลาดในการออกจากระบบ: " + error.message);
   });
