@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>YAPT Robot Viewer</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap" async defer></script>
+  <style>
+    body { margin: 0; font-family: sans-serif; }
+    .container { display: flex; flex-direction: row; height: 100vh; }
+    .right-panel {
+      width: 50%;
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100vh;
+      z-index: 1;
+     }
+
+    .left-panel {
+      width: 50%;
+      padding: 10px 10px 10px 20px; /* ชิดซ้ายน้อยลง  padding: top right bottom left */
+      margin-right: 50%;
+      overflow-y: auto;
+      height: 100vh;
+    }
+    #map { height: 100%; width: 100%; }
+
+    table { width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px; 
+      font-size: 14px; }
+
+    th, td {
+      padding: 8px;
+      border: 1px solid #ccc;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+   
+    select, input[type="number"] {
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .summary {display: flex; flex-wrap: wrap; margin-top: 10px; font-weight: bold; color: #007BFF; }
+    .hidden { display: none; }
+    .button {
+      background-color: #dc3545;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      float: right;
+    }
+   .button2 {background-color: #008CBA;} /* Blue */
+   .button3 {background-color: #f44336;} /* Red */ 
+   .button6 {background-color: #e7e7e7; color: black;} /* Gray */ 
+   .button5 {background-color: #555555;} /* Black */
+   .button4 {
+      background-color: #28a745;
+      color: white;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }   
+   .inline-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    }
+   .row-flex {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="container hidden" id="mainPanel">
+  <div class="left-panel">
+    <button class="button" onclick="signOut()">Sign Out</button>
+    
+    <h2 id="heading-2" style="background-color: #007bff; color: white; padding: 10px; border-radius: 8px; width: 23%;">
+        Robot Viewer
+    </h2>
+
+    <label>Customer Name:</label>
+    <select id="customerFilter"><option value="">All</option></select>
+
+    <div class="row-flex">
+      <label>Controller Model:</label>
+      <select id="controllerFilter"><option value="">All</option></select>
+    </div> 
+
+    <div class="row-flex">
+      <label>Robot Model:</label>
+      <select id="robotFilter"><option value="">All</option></select>
+      <label>Age Min:</label>
+      <input type="number" id="minAge" placeholder="Min" value="0" style="width: 60px;">
+      <label>Max:</label>
+      <input type="number" id="maxAge" placeholder="Max" value="30" style="width: 60px;">
+    </div> 
+
+    <div class="row-flex">    
+    <label>Robot Count per Customer:</label>
+    <select id="countCondition">
+      <option value="none">All</option>
+      <option value="gt">Greater than</option>
+      <option value="lt">Less than</option>
+    </select>
+    <input type="number" id="robotCount" value="1">
+    </div>
+    <div class="row-flex">
+      <label><input type="checkbox" id="option1"> Show Map</label>
+      <button onclick="updateFilteredMarkers()">Display</button>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <label for="searchText">Search:</label>
+      <input type="text" id="searchText" placeholder="keyword" onkeypress="if (event.key === 'Enter') searchByKeyword();" />
+      <button onclick="searchByKeyword()">Search</button>
+    </div>
+
+      <br><a href="#heading-3"><button class="button4">Go to Summary</button></a>
+    
+    <div class="summary">
+      Total Robot: <span id="totalRobotCount">0</span> |
+      Filtered Robots: <span id="filteredRobotCount">0</span> |
+      Customers: <span id="customerCount">0</span> |
+      Match %: <span id="filteredPercent">0</span>%
+    </div>
+
+    <h3>Filtered Data Table</h3>
+    <table id="dataTable">
+      <thead><tr><th>Customer</th><th>Controller</th><th>Robot</th><th>Order</th><th>Application</th><th>Age</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <h3 id="heading-3">Summary Table <a href="#heading-2"><button class="button4">Go to head</button></a></h3>
+    <div id="summaryChart"></div>
+    <br><a href="#heading-2"><button class="button4">Go to head</button></a>
+      <!-- ตารางแสดงลูกค้าที่ไม่พบในแผนที่ -->
+      <h3>Customers Not Found on Map</h3>
+      <table id="missingCustomersTable">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  
+  <div class="right-panel">
+    <div id="map"></div>
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+    authDomain: "custdata-92ebe.firebaseapp.com",
+    databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "custdata-92ebe",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+  const auth = firebase.auth();
+
+  let map;
+  let markers = [];
+  let allData = [];
+
+  function initMap() {
+    map = new google.maps.Map(document.getElementById("map"), {
+      zoom: 6,
+      center: { lat: 13.736717, lng: 100.523186 }
+    });
+  }
+
+  function clearMarkers() {
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+  }
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      //alert("กรุณาเข้าสู่ระบบก่อน");
+      window.location.href = "CUSTOMERINPUT3login_rule.html";
+      return;
+    }
+    document.getElementById("mainPanel").classList.remove("hidden");
+    loadData();
+  });
+
+  function signOut() {
+    auth.signOut().then(() => {
+      //alert("ออกจากระบบสำเร็จ");
+      window.location.href = "CUSTOMERINPUT3login_rule.html";
+    }).catch((error) => {
+      alert("เกิดข้อผิดพลาดในการออกจากระบบ: " + error.message);
+    });
+  }
+
+  function loadData() {
+    db.ref("robot_data").once("value", snapshot => {
+      const data = snapshot.val();
+      if (!data) return;
+      allData = Object.values(data);
+      document.getElementById("totalRobotCount").textContent = allData.length;
+      populateFilters();
+    });
+  }
+
+  function populateFilters() {
+    const controllerSet = new Set();
+    const robotSet = new Set();
+    const customerSet = new Set();
+    allData.forEach(d => {
+      if (d["Controller"]) controllerSet.add(d["Controller"]);
+      if (d["Robot type"]) robotSet.add(d["Robot type"]);
+      if (d["Customer name "]) customerSet.add(d["Customer name "]);
+    });
+
+    const controllerFilter = document.getElementById("controllerFilter");
+    const robotFilter = document.getElementById("robotFilter");
+    const customerFilter = document.getElementById("customerFilter");
+
+    controllerFilter.innerHTML = '<option value="">All</option>';
+    robotFilter.innerHTML = '<option value="">All</option>';
+    customerFilter.innerHTML = '<option value="">All</option>';
+
+    Array.from(controllerSet).sort().forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c; opt.textContent = c;
+      controllerFilter.appendChild(opt);
+    });
+    Array.from(robotSet).sort().forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r; opt.textContent = r;
+      robotFilter.appendChild(opt);
+    });
+    Array.from(customerSet).sort().forEach(cus => {
+      const opt = document.createElement("option");
+      opt.value = cus; opt.textContent = cus;
+      customerFilter.appendChild(opt);
+    });
+  }
+
+  async function updateFilteredMarkers() {
+    const customerSelected = document.getElementById("customerFilter").value;
+    const controllerSelected = document.getElementById("controllerFilter").value;
+    const robotSelected = document.getElementById("robotFilter").value;
+    const minAge = parseInt(document.getElementById("minAge").value);
+    const maxAge = parseInt(document.getElementById("maxAge").value);
+    const countCondition = document.getElementById("countCondition").value;
+    const robotCount = parseInt(document.getElementById("robotCount").value);
+    const showMarkers = document.getElementById("option1").checked;
+    const currentYear = new Date().getFullYear();
+    const missingCustomers = [];  // <== เพิ่มบรรทัดนี้
+
+    clearMarkers();
+    const tbody = document.querySelector("#dataTable tbody");
+    tbody.innerHTML = "";
+
+    let filtered = allData.filter(d => {
+      const year = parseInt(d["Year"]);
+      const age = !isNaN(year) ? currentYear - year : 0;
+      return (!customerSelected || d["Customer name "] === customerSelected) &&
+             (!controllerSelected || d["Controller"] === controllerSelected) &&
+             (!robotSelected || d["Robot type"] === robotSelected) &&
+             age >= minAge && age <= maxAge;
+    });
+
+    const customerCounts = {};
+    filtered.forEach(d => {
+      const name = d["Customer name "];
+      if (!name) return;
+      customerCounts[name] = (customerCounts[name] || 0) + 1;
+    });
+
+    if (countCondition !== "none") {
+      filtered = filtered.filter(d => {
+        const count = customerCounts[d["Customer name "]];
+        return countCondition === "gt" ? count > robotCount : count < robotCount;
+      });
+    }
+
+    filtered.forEach(d => {
+      const year = parseInt(d["Year"]);
+      const age = !isNaN(year) ? currentYear - year : "-";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${d["Customer name "] || "-"}</td>
+        <td>${d["Controller"] || "-"}</td>
+        <td>${d["Robot type"] || "-"}</td>
+        <td>${d["Order Number"] || "-"}</td>
+        <td>${d["System application"] || "-"}</td>
+        <td>${age}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const summary = {};
+    filtered.forEach(d => {
+      const customer = d["Customer name "] || "Unknown";
+      const model = d["Robot type"] || "Unknown";
+      if (!summary[customer]) summary[customer] = {};
+      summary[customer][model] = (summary[customer][model] || 0) + 1;
+    });
+
+    const summaryChart = document.getElementById("summaryChart");
+    summaryChart.innerHTML = "";
+    const table = document.createElement("table");
+    table.innerHTML = `<thead><tr><th>Customer</th><th>Model</th><th>Qty</th><th>Total</th></tr></thead>`;
+    const tbody2 = document.createElement("tbody");
+
+    Object.entries(summary).forEach(([customer, models]) => {
+      const total = Object.values(models).reduce((a, b) => a + b, 0);
+      let first = true;
+      for (const [model, qty] of Object.entries(models)) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${first ? customer : ""}</td>
+          <td>${model}</td>
+          <td>${qty}</td>
+          <td>${first ? total : ""}</td>`;
+        tbody2.appendChild(tr);
+        first = false;
+      }
+    });
+    table.appendChild(tbody2);
+    summaryChart.appendChild(table);
+
+    document.getElementById("filteredRobotCount").textContent = filtered.length;
+    document.getElementById("customerCount").textContent = Object.keys(summary).length;
+    document.getElementById("filteredPercent").textContent = allData.length > 0 ? ((filtered.length / allData.length) * 100).toFixed(1) : 0;
+
+if (!showMarkers) return;
+
+const bounds = new google.maps.LatLngBounds();
+for (const customer in summary) {
+  const models = summary[customer];
+  const count = Object.values(models).reduce((a, b) => a + b, 0);
+
+  let color = "red";
+  if (count > 30) color = "green";
+  else if (count > 20) color = "blue";
+  else if (count > 10) color = "yellow";
+
+  const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+
+  const geocoder = new google.maps.Geocoder();
+  await new Promise(res => setTimeout(res, 300));
+  geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
+    if (status === 'OK' && results[0]) {
+      const loc = results[0].geometry.location;
+
+      const modelInfo = Object.entries(models)
+        .map(([model, qty]) => `${model}: ${qty}`)
+        .join("<br>");
+
+      const infoWindow = new google.maps.InfoWindow({
+        content: `<strong>${customer}</strong><br>${modelInfo}`
+      });
+
+      const marker = new google.maps.Marker({
+        map,
+        position: loc,
+        title: customer,
+        icon: {
+          url: iconUrl,
+          scaledSize: new google.maps.Size(40, 40)
+        }
+      });
+
+      marker.addListener("mouseover", () => {
+        infoWindow.open(map, marker);
+      });
+
+      marker.addListener("mouseout", () => {
+        infoWindow.close();
+      });
+
+      markers.push(marker);
+      bounds.extend(loc);
+    } else {
+      missingCustomers.push(customer); // หากหาไม่เจอด้วย geocoder
+    }
+  });
+}
+
+if (Object.keys(summary).length > 0) {
+  map.fitBounds(bounds);
+}
+
+const missingTable = document.querySelector("#missingCustomersTable tbody");
+missingTable.innerHTML = "";
+missingCustomers.forEach(cus => {
+  const tr = document.createElement("tr");
+  tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
+  missingTable.appendChild(tr);
+});
+
+}
+
+function searchByKeyword() {
+  const keyword = document.getElementById("searchText").value.trim().toLowerCase();
+  if (!keyword) return;
+
+  const tbody = document.querySelector("#dataTable tbody");
+  const rows = tbody.getElementsByTagName("tr");
+
+  let found = false;
+  for (let row of rows) {
+    const cells = row.getElementsByTagName("td");
+    const match = Array.from(cells).some(td => td.textContent.toLowerCase().includes(keyword));
+    if (match) {
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      row.style.backgroundColor = "#ffff99"; // ไฮไลต์แถวที่เจอ
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    alert("ไม่พบข้อมูลที่ค้นหา");
+  }
+}
+
+// ฟังก์ชันสำหรับแสดงข้อมูลในตารางและสรุป summary
+function renderTableAndSummary(filtered) {
+  const tbody = document.querySelector("#dataTable tbody");
+  tbody.innerHTML = "";
+
+  const currentYear = new Date().getFullYear();
+
+  filtered.forEach(d => {
+    const year = parseInt(d["Year"]);
+    const age = !isNaN(year) ? currentYear - year : "-";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${d["Customer name "] || "-"}</td>
+      <td>${d["Controller"] || "-"}</td>
+      <td>${d["Robot type"] || "-"}</td>
+      <td>${d["Order Number"] || "-"}</td>
+      <td>${d["System application"] || "-"}</td>
+      <td>${age}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // สร้าง summary chart
+  const summary = {};
+  filtered.forEach(d => {
+    const customer = d["Customer name "] || "Unknown";
+    const model = d["Robot type"] || "Unknown";
+    if (!summary[customer]) summary[customer] = {};
+    summary[customer][model] = (summary[customer][model] || 0) + 1;
+  });
+
+  const summaryChart = document.getElementById("summaryChart");
+  summaryChart.innerHTML = "";
+  const table = document.createElement("table");
+  table.innerHTML = `<thead><tr><th>Customer</th><th>Model</th><th>Qty</th><th>Total</th></tr></thead>`;
+  const tbody2 = document.createElement("tbody");
+
+  Object.entries(summary).forEach(([customer, models]) => {
+    const total = Object.values(models).reduce((a, b) => a + b, 0);
+    let first = true;
+    for (const [model, qty] of Object.entries(models)) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${first ? customer : ""}</td>
+        <td>${model}</td>
+        <td>${qty}</td>
+        <td>${first ? total : ""}</td>`;
+      tbody2.appendChild(tr);
+      first = false;
+    }
+  });
+  table.appendChild(tbody2);
+  summaryChart.appendChild(table);
+
+  document.getElementById("filteredRobotCount").textContent = filtered.length;
+  document.getElementById("customerCount").textContent = Object.keys(summary).length;
+  document.getElementById("filteredPercent").textContent = allData.length > 0 ? ((filtered.length / allData.length) * 100).toFixed(1) : 0;
+}
+
+// ฟังก์ชันค้นหาโดย keyword แบบแสดงผลทั้งหมดที่เจอ
+function searchByKeyword() {
+  const keyword = document.getElementById("searchText").value.trim().toLowerCase();
+  if (!keyword) {
+    alert("กรุณาใส่คำค้นหา");
+    return;
+  }
+
+  // กรองจาก allData โดยเช็คว่า keyword อยู่ในข้อมูลแถวไหนบ้าง
+  const filtered = allData.filter(d => {
+    return Object.values(d).some(val =>
+      val && val.toString().toLowerCase().includes(keyword)
+    );
+  });
+
+  if (filtered.length === 0) {
+    alert("ไม่พบข้อมูลที่ค้นหา");
+    return;
+  }
+
+  renderTableAndSummary(filtered);
+
+  if (document.getElementById("option1").checked) {
+    updateFilteredMarkersWithData(filtered);
+  }
+
+}
+
+// ฟังก์ชันแบบเดียวกับ updateFilteredMarkers แต่รับ filtered data มาแล้ว (ไม่ต้อง filter ซ้ำ)
+async function updateFilteredMarkersWithData(filtered) {
+  clearMarkers();
+
+  const summary = {};
+  filtered.forEach(d => {
+    const customer = d["Customer name "] || "Unknown";
+    const model = d["Robot type"] || "Unknown";
+    if (!summary[customer]) summary[customer] = {};
+    summary[customer][model] = (summary[customer][model] || 0) + 1;
+  });
+
+  const missingCustomers = [];
+  const bounds = new google.maps.LatLngBounds();
+
+  for (const customer in summary) {
+    const models = summary[customer];
+    const count = Object.values(models).reduce((a, b) => a + b, 0);
+
+    let color = "red";
+    if (count > 30) color = "green";
+    else if (count > 20) color = "blue";
+    else if (count > 10) color = "yellow";
+
+    const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+
+    const geocoder = new google.maps.Geocoder();
+    // หน่วงเวลาเพื่อไม่ให้โดน rate limit
+    await new Promise(res => setTimeout(res, 300));
+    
+    await new Promise(resolve => {
+      geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          const loc = results[0].geometry.location;
+
+          const modelInfo = Object.entries(models)
+            .map(([model, qty]) => `${model}: ${qty}`)
+            .join("<br>");
+
+          const infoWindow = new google.maps.InfoWindow({
+            content: `<strong>${customer}</strong><br>${modelInfo}`
+          });
+
+          const marker = new google.maps.Marker({
+            map,
+            position: loc,
+            title: customer,
+            icon: {
+              url: iconUrl,
+              scaledSize: new google.maps.Size(40, 40)
+            }
+          });
+
+          marker.addListener("mouseover", () => {
+            infoWindow.open(map, marker);
+          });
+
+          marker.addListener("mouseout", () => {
+            infoWindow.close();
+          });
+
+          markers.push(marker);
+          bounds.extend(loc);
+        } else {
+          missingCustomers.push(customer);
+        }
+        resolve();
+      });
+    });
+  }
+
+  if (Object.keys(summary).length > 0) {
+    map.fitBounds(bounds);
+  }
+
+  const missingTable = document.querySelector("#missingCustomersTable tbody");
+  missingTable.innerHTML = "";
+  missingCustomers.forEach(cus => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
+    missingTable.appendChild(tr);
+  });
+}
+
+
+
+
+</script>
+</body>
+</html>

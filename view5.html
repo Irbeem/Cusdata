@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>ALL DATA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+  
+  .controls { margin: 10px 0; width: 200%; }
+  .hidden { display: none; }
+    table { border-collapse: collapse; width: 100%; font-size: 14px; }
+
+    th{
+      background-color: #cce5ff; /* สีฟ้าอ่อน */
+      color: #000;               /* ตัวอักษรสีดำ */
+      position: sticky;
+      top: 135px;
+      z-index: 1;
+    }
+
+    td { border: 1px solid #ccc; padding: 4px; text-align: left; }
+
+    input[type="text"] { width: 200px; }
+
+    .controls { margin: 10px 0; position: sticky; }
+    .hidden { display: none; }
+    .button-group {
+      display: flex;
+      gap: 25px;
+    }
+
+    .btn {
+      background-color: #2563eb; /* สีฟ้า */
+      color: white;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: #1d4ed8;
+    }
+
+  </style>
+</head>
+
+
+<body>
+<!-- แถบควบคุมให้อยู่คงที่ด้านบน -->
+<div style="position: sticky; top: 0; background: white; padding: 10px; z-index: 999; width: 250%; border-bottom: 1px solid #ccc;">
+  <h2>ALL DATA</h2>
+
+  <div class="controls hidden" id="controlPanel">
+    <button class="btn" onclick="resetFilter()">📋 Show All 📋</button>
+    🔍 <input type="text" id="searchInput" placeholder="...Search...">
+    <button class="btn" onclick="searchAndScroll()">🔍 Search 🔍</button>
+    <button class="btn" onclick="filterRows()">🧮 Filter 🧮</button>
+    <button class="btn" id="saveChangesBtn" onclick="saveChanges()">💾&nbsp;Save data 💾</button>
+    <button class="btn" id="exportExcelBtn" onclick="exportToExcel()">💾 Export to Excel</button>
+    <button class="btn" id="exportCsvBtn" onclick="exportToCSV()">💾 Export to CSV</button>
+    <button class="btn" onclick="signOut()">🔒 LogOut 🔒</button>
+    </div>
+  </div>
+
+
+  <table id="dataTable" class="hidden">
+    <thead id="tableHead"></thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+      authDomain: "custdata-92ebe.firebaseapp.com",
+      databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "custdata-92ebe",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const fields = [
+      'Year', 'Month', 'Address', 'Date of Entry', 'Setmaker or EndUser', 'Customer SAP Num', 'Customer name ',
+      'Abbreviation', 'Sale Rep', 'Area', 'in or outside', 'Agency', 'Customer machine name',
+      'Order Number', 'Robot type', '-', 'Type', 'Serial Number of Robot',
+      'Robot Manufacture date', 'Controller', 'Serial Number of Controller',
+      'Controller Manufacture date', 'System application', 'USE application',
+      'SYSTEM', 'PARAM', 'utility name', 'Option', 'machine maker',
+      'Scrap date', 'MSAF', 'Contract Number or PO Number'
+    ];
+
+    const tableHead = document.getElementById("tableHead");
+    const tableBody = document.getElementById("tableBody");
+    const controlPanel = document.getElementById("controlPanel");
+    const dataTable = document.getElementById("dataTable");
+
+    let userRole = "viewer";
+    const editedData = {};
+
+    auth.onAuthStateChanged(async user => {
+      if (!user) {
+        alert("Please Login");
+        window.location.href = "CUSTOMERINPUT3login_rule.html";
+        return;
+      }
+
+      const roleSnap = await db.ref("users/" + user.uid + "/role").get();
+      userRole = roleSnap.val() || "viewer";
+
+      controlPanel.classList.remove("hidden");
+      dataTable.classList.remove("hidden");
+
+      loadData();
+               // ซ่อนปุ่ม export ถ้าเป็น viewer
+      if (userRole === "viewer") {
+    	  document.getElementById("exportExcelBtn").style.display = "none";
+    	  document.getElementById("exportCsvBtn").style.display = "none";
+	  document.getElementById("saveChangesBtn").style.display = "none";
+  	}
+
+    });
+
+
+
+    const createRow = (key, data) => {
+      const tr = document.createElement("tr");
+      fields.forEach(field => {
+        const td = document.createElement("td");
+        td.textContent = data[field] || "";
+        td.dataset.key = key;
+        td.dataset.field = field;
+
+        if (userRole === "admin" || userRole === "editor") {
+          td.contentEditable = true;
+        }
+
+        tr.appendChild(td);
+      });
+
+      const tdDelete = document.createElement("td");
+      if (userRole === "admin") {
+        tdDelete.innerHTML = `<button onclick="deleteData('${key}')">ลบ</button>`;
+      }
+      tr.appendChild(tdDelete);
+      return tr;
+    };
+
+    const loadData = () => {
+      db.ref("robot_data").on("value", snapshot => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        tableHead.innerHTML = "";
+        tableBody.innerHTML = "";
+
+        const headerRow = document.createElement("tr");
+        fields.forEach(f => {
+          const th = document.createElement("th");
+          th.textContent = f;
+          headerRow.appendChild(th);
+        });
+        headerRow.appendChild(document.createElement("th"));
+        tableHead.appendChild(headerRow);
+
+        Object.entries(data).forEach(([key, entry]) => {
+          const row = createRow(key, entry);
+          tableBody.appendChild(row);
+        });
+      });
+    };
+
+    const deleteData = (key) => {
+      if (userRole !== "admin") return;
+      if (confirm("ต้องการลบข้อมูลนี้ใช่หรือไม่?")) {
+        db.ref("robot_data/" + key).remove();
+      }
+    };
+
+    tableBody.addEventListener("blur", (e) => {
+      const td = e.target;
+      if (td.tagName === "TD" && td.dataset.key && td.dataset.field) {
+        if (userRole === "admin" || userRole === "editor") {
+          const key = td.dataset.key;
+          const field = td.dataset.field;
+          const value = td.textContent;
+
+          if (!editedData[key]) editedData[key] = {};
+          editedData[key][field] = value;
+        }
+      }
+    }, true);
+
+    function saveChanges() {
+      const updates = Object.entries(editedData);
+      if (updates.length === 0) {
+        alert("ไม่มีข้อมูลที่ถูกแก้ไข");
+        return;
+      }
+
+      const promises = updates.map(([key, fields]) => {
+        return db.ref("robot_data/" + key).update(fields);
+      });
+
+      Promise.all(promises)
+        .then(() => {
+          alert("Already save!");
+          Object.keys(editedData).forEach(key => delete editedData[key]);
+        })
+        .catch((error) => {
+          alert("Error : " + error.message);
+        });
+    }
+
+
+function searchAndScroll() {
+  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+  const rows = tableBody.querySelectorAll("tr");
+  let found = false;
+
+  rows.forEach(row => {
+    const rowText = row.textContent.toLowerCase();
+
+    // ลบการเน้นก่อน
+    row.style.backgroundColor = "";
+
+    if (!found && rowText.includes(searchTerm)) {
+      // เลื่อนไปยังแถว
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // เน้นแถว
+      row.style.backgroundColor = "#ffff99";
+
+      // ลบสีหลัง 3 วินาที
+      setTimeout(() => row.style.backgroundColor = "", 20000);
+
+      found = true;
+    }
+  });
+
+  if (!found) {
+    alert("No data");
+  }
+}
+
+
+function filterRows() {
+  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+
+  db.ref("robot_data").once("value").then(snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+
+    tableBody.innerHTML = ""; // เคลียร์ข้อมูลเก่า
+
+    let matchCount = 0;
+
+    Object.entries(data).forEach(([key, entry]) => {
+      const rowText = Object.values(entry).join(" ").toLowerCase();
+
+      if (rowText.includes(searchTerm)) {
+        const row = createRow(key, entry);
+        tableBody.appendChild(row);
+        matchCount++;
+      }
+    });
+
+    if (matchCount === 0) {
+      alert("Not found data");
+    }
+  });
+}
+
+
+function resetFilter() {
+  document.getElementById("searchInput").value = ""; // เคลียร์ช่องค้นหา
+  const rows = tableBody.querySelectorAll("tr");
+  rows.forEach(row => {
+    row.style.display = ""; // แสดงทุกแถว
+  });
+loadData();
+}
+
+    function exportToExcel() {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.table_to_sheet(document.getElementById("dataTable"));
+      XLSX.utils.book_append_sheet(wb, ws, "RobotData");
+      XLSX.writeFile(wb, "robot_data.xlsx");
+    }
+
+    function exportToCSV() {
+      const ws = XLSX.utils.table_to_sheet(document.getElementById("dataTable"));
+      const csv = XLSX.utils.sheet_to_csv(ws);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "robot_data.csv";
+      a.click();
+    }
+
+    function signOut() {
+      auth.signOut().then(() => {
+        alert("LogOut complete");
+        window.location.href = "CUSTOMERINPUT3login_rule.html";
+      }).catch((error) => {
+        alert("LogOut Error : " + error.message);
+      });
+    }
+  </script>
+</body>
+</html>

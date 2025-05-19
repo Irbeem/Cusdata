@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YAP ROBOT DATA INPUT FORM</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="main.js" defer></script>
+</head>
+<body>
+  <form id="loginForm">
+    <h2>Login</h2><br>
+    <div><label>Email</label><input type="email" name="email" required></div>
+    <div><label>Password</label><input type="password" name="password" required></div>
+    <div class="full"><br><button class="btn" type="submit">Login</button></div>
+  </form>
+
+  <div id="robotSection">
+    <div id="formHeader">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Input form : </h2>
+        <div class="button-group">
+          <a href="newmapL.html" target="_blank" class="btn">🤖 RobotMap 🤖</a>
+          <a href="view5.html" target="_blank" class="btn">📊 View All Data 📊</a>
+          <button id="logoutBtn" class="btn">🔒 LogOut 🔒</button>
+        </div>
+      </div>
+    </div>
+
+    <form id="robotForm">
+<div class="section">
+  <h3>Customer Information</h3>
+      <!-- กลุ่มทั่วไป -->
+<div>
+  <label>Year</label>
+  <input name="Year" id="yearInput">
+</div>
+
+<div>
+  <label>Month</label>
+  <input name="Month" id="monthInput">
+</div>
+
+<div>
+  <label>Date of Entry</label>
+  <input type="text" name="Date of Entry" id="dateOfEntry">
+</div>
+
+      <!-- ลูกค้า -->
+      <div>
+  	<label>Customer name</label>
+  	<input name="Customer name " list="customerList" id="customerNameInput" autocomplete="off">
+  	<datalist id="customerList"></datalist>
+      </div>
+      <div>
+ 	<label>Abbreviation</label>
+	<input name="Abbreviation" id="abbreviationInput" list="abbreviationList">
+ 	<datalist id="abbreviationList"></datalist>
+      </div>
+      <div>
+  	<label>Customer SAP Number</label>
+  	<input name="Customer SAP Num" id="customerSAPInput" list="sapList">
+  	<datalist id="sapList"></datalist>
+      </div>
+
+	<div>
+ 	 <label>Address</label>
+ 	 <input name="Address" id="addressInput" list="addressList">
+ 	 <datalist id="addressList"></datalist>
+	</div>
+
+	<div>
+  	 <label>Area</label>
+  	 <input name="Area" id="areaInput" list="areaList">
+  	 <datalist id="areaList"></datalist>
+	</div>
+
+<div>
+  <label>In or outside</label>
+  <input name="in or outside" id="inOrOutsideInput" list="inOrOutsideList">
+  <datalist id="inOrOutsideList"></datalist>
+</div>
+    <!-- old <div class="full"><label>Contract Number or PO Number</label><input name="Contract Number or PO Number"></div>-->
+      <div><label>Contract Number or PO Number</label><input name="Contract Number or PO Number"></div>
+      <div><label>Agency</label><input name="Agency"></div>
+      <div><label>Setmaker or EndUser</label><input name="Setmaker or EndUser"></div>
+      <div><label>Sale Rep</label><input name="Sale Rep"></div>
+</div>
+
+
+<div class="section">
+  <h3>Machine & Robot Info</h3>    
+      <!-- เครื่องจักร -->
+      <div><label>Customer machine name</label><input name="Customer machine name"></div>
+      <div><label>Machine maker</label><input name="machine maker"></div>
+
+
+<div>
+  <label>Robot type</label>
+  <input name="Robot type" id="robotTypeInput" list="robotTypeList">
+  <datalist id="robotTypeList"></datalist>
+</div>
+
+      <div><label> - </label><input name="-" value="-" readonly></div>
+
+<div>
+  <label>Type :</label>
+  <input name="Type :" id="typeInput" list="typeList">
+  <datalist id="typeList"></datalist>
+</div>
+
+      <div><label>Serial Number of Robot</label><input name="Serial Number of Robot"></div>
+      <div><label>Robot Manufacture date</label><input name="Robot Manufacture date"></div>
+
+      <!-- Controller -->
+<div>
+  <label>Controller</label>
+  <input name="Controller" id="controllerInput" list="controllerList">
+  <datalist id="controllerList"></datalist>
+</div>
+      <div><label>Order Number / S#</label><input name="Order Number"></div>
+
+      <div><label>Serial Number of Controller</label><input name="Serial Number of Controller"></div>
+      <div><label>Controller Manufacture date</label><input name="Controller Manufacture date"></div>
+
+      <!-- Application -->
+<div>
+  <label>System application</label>
+  <input name="System application" id="sysAppInput" list="sysAppList">
+  <datalist id="sysAppList"></datalist>
+</div>
+
+<div>
+  <label>USE application</label>
+  <input name="USE application" id="useAppInput" list="useAppList">
+  <datalist id="useAppList"></datalist>
+</div>
+
+      <div><label>SYSTEM Version</label><input name="SYSTEM"></div>
+      <div><label>PARAM Version</label><input name="PARAM"></div>
+      <div><label>Utility name</label><input name="utility name"></div>
+      <div><label>Option</label><input name="Option"></div>
+      
+      <div><label>MSAF Presence or absence</label>
+	<select name="MSAF" id="MSAF">
+        <option value="">-- Select --</option>
+  	<option value="Unconfirm">Unconfirm</option>
+  	<option value="Confirm">Confirm</option>
+        <option value="YAPT">YAPT</option>
+	</select>
+      </div>
+      <div><label>Scrap date</label><input name="Scrap date"></div>
+
+
+      <div class="full"><br><button class="btn" type="submit">Save data</button></div>
+</div><! ปิด class >
+    </form>
+  </div>
+</body>
+</html>

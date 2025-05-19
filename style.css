@@ -1,0 +1,90 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+#loginForm {
+  background-color: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 400px;
+}
+
+form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+input, select {
+  width: 100%;
+  padding: 6px;
+}
+
+.full {
+  grid-column: span 2;
+}
+
+#robotForm, #logoutBtn, #robotSection, #robotviewer {
+  display: none;
+}
+
+.section {
+  background-color: #e0f7fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.section:nth-of-type(2), .section:nth-of-type(3) {
+  background-color: #fce4ec;
+}
+
+.section h3 {
+  grid-column: span 2;
+  margin-top: 0;
+}
+
+.button-group {
+  display: flex;
+  gap: 18px;
+}
+
+.btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #1d4ed8;
+}
+
+#formHeader {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding: 10px 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+}
