@@ -240,11 +240,6 @@ if (locations.size === 1) {
           }
     });
 
-    async function getUserRole(uid) {
-      const roleRef = ref(db, `users/${uid}/role`);
-      const snapshot = await get(roleRef);
-      return snapshot.exists() ? snapshot.val() : null;
-    }
 
     onAuthStateChanged(auth, async (user) => {
       if (user) {
