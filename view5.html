@@ -308,7 +308,7 @@ loadData();
     function signOut() {
       auth.signOut().then(() => {
         alert("LogOut complete");
-        window.location.href = "CUSTOMERINPUT3login_rule.html";
+        window.location.href = "index.html";
       }).catch((error) => {
         alert("LogOut Error : " + error.message);
       });
