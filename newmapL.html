@@ -233,7 +233,7 @@
     allData.forEach(d => {
       if (d["Controller"]) controllerSet.add(d["Controller"]);
       if (d["Robot type"]) robotSet.add(d["Robot type"]);
-      if (d["Customer name "]) customerSet.add(d["Customer name "]);
+      if (d["Customer name"]) customerSet.add(d["Customer name"]);
     });
 
     const controllerFilter = document.getElementById("controllerFilter");
@@ -280,7 +280,7 @@
     let filtered = allData.filter(d => {
       const year = parseInt(d["Year"]);
       const age = !isNaN(year) ? currentYear - year : 0;
-      return (!customerSelected || d["Customer name "] === customerSelected) &&
+      return (!customerSelected || d["Customer name"] === customerSelected) &&
              (!controllerSelected || d["Controller"] === controllerSelected) &&
              (!robotSelected || d["Robot type"] === robotSelected) &&
              age >= minAge && age <= maxAge;
@@ -288,14 +288,14 @@
 
     const customerCounts = {};
     filtered.forEach(d => {
-      const name = d["Customer name "];
+      const name = d["Customer name"];
       if (!name) return;
       customerCounts[name] = (customerCounts[name] || 0) + 1;
     });
 
     if (countCondition !== "none") {
       filtered = filtered.filter(d => {
-        const count = customerCounts[d["Customer name "]];
+        const count = customerCounts[d["Customer name"]];
         return countCondition === "gt" ? count > robotCount : count < robotCount;
       });
     }
@@ -305,7 +305,7 @@
       const age = !isNaN(year) ? currentYear - year : "-";
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${d["Customer name "] || "-"}</td>
+        <td>${d["Customer name"] || "-"}</td>
         <td>${d["Controller"] || "-"}</td>
         <td>${d["Robot type"] || "-"}</td>
         <td>${d["Order Number"] || "-"}</td>
@@ -316,7 +316,7 @@
 
     const summary = {};
     filtered.forEach(d => {
-      const customer = d["Customer name "] || "Unknown";
+      const customer = d["Customer name"] || "Unknown";
       const model = d["Robot type"] || "Unknown";
       if (!summary[customer]) summary[customer] = {};
       summary[customer][model] = (summary[customer][model] || 0) + 1;
@@ -453,7 +453,7 @@ function renderTableAndSummary(filtered) {
     const age = !isNaN(year) ? currentYear - year : "-";
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${d["Customer name "] || "-"}</td>
+      <td>${d["Customer name"] || "-"}</td>
       <td>${d["Controller"] || "-"}</td>
       <td>${d["Robot type"] || "-"}</td>
       <td>${d["Order Number"] || "-"}</td>
@@ -465,7 +465,7 @@ function renderTableAndSummary(filtered) {
   // สร้าง summary chart
   const summary = {};
   filtered.forEach(d => {
-    const customer = d["Customer name "] || "Unknown";
+    const customer = d["Customer name"] || "Unknown";
     const model = d["Robot type"] || "Unknown";
     if (!summary[customer]) summary[customer] = {};
     summary[customer][model] = (summary[customer][model] || 0) + 1;
@@ -533,7 +533,7 @@ async function updateFilteredMarkersWithData(filtered) {
 
   const summary = {};
   filtered.forEach(d => {
-    const customer = d["Customer name "] || "Unknown";
+    const customer = d["Customer name"] || "Unknown";
     const model = d["Robot type"] || "Unknown";
     if (!summary[customer]) summary[customer] = {};
     summary[customer][model] = (summary[customer][model] || 0) + 1;
