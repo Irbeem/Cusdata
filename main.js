@@ -107,7 +107,7 @@ const customerNames = new Set();
 if (snapshot.exists()) {
   snapshot.forEach(child => {
     const data = child.val();
-    const name = data["Customer name "]?.trim();
+    const name = data["Customer name"]?.trim();
     if (name) customerNames.add(name);
   });
 }
@@ -141,7 +141,7 @@ datalist.innerHTML = '';
   if (snapshot.exists()) {
     snapshot.forEach(child => {
       const data = child.val();
-      const name = data["Customer name "]?.trim();
+      const name = data["Customer name"]?.trim();
 
       if (name === selectedName) {
         const sap = data["Customer SAP Num"]?.trim();
