@@ -171,6 +171,17 @@
 </div>
 
 <script>
+
+
+
+
+
+
+
+
+
+
+
   const firebaseConfig = {
     apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
     authDomain: "custdata-92ebe.firebaseapp.com",
@@ -212,7 +223,7 @@
       //alert("ออกจากระบบสำเร็จ");
       window.location.href = "index.html";
     }).catch((error) => {
-      alert("เกิดข้อผิดพลาดในการออกจากระบบ: " + error.message);
+      alert("Error: " + error.message);
     });
   }
 
@@ -349,73 +360,93 @@
     document.getElementById("customerCount").textContent = Object.keys(summary).length;
     document.getElementById("filteredPercent").textContent = allData.length > 0 ? ((filtered.length / allData.length) * 100).toFixed(1) : 0;
 
-if (!showMarkers) return;
+    if (!showMarkers) return;
+    const bounds = new google.maps.LatLngBounds();
+    for (const customer in summary) {
+      const models = summary[customer];
+      const count = Object.values(models).reduce((a, b) => a + b, 0);
 
-const bounds = new google.maps.LatLngBounds();
-for (const customer in summary) {
-  const models = summary[customer];
-  const count = Object.values(models).reduce((a, b) => a + b, 0);
+      let color = "red";
+      if (count > 30) color = "green";
+      else if (count > 20) color = "blue";
+      else if (count > 10) color = "yellow";
 
-  let color = "red";
-  if (count > 30) color = "green";
-  else if (count > 20) color = "blue";
-  else if (count > 10) color = "yellow";
+      const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
 
-  const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+      const d = allData.find(entry => entry["Customer name"] === customer);
+      let latlngStr = d?.Address?.split(",");
 
-  const geocoder = new google.maps.Geocoder();
-  await new Promise(res => setTimeout(res, 300));
-  geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
-    if (status === 'OK' && results[0]) {
-      const loc = results[0].geometry.location;
+      if (latlngStr && latlngStr.length === 2) {
+        const lat = parseFloat(latlngStr[0]);
+        const lng = parseFloat(latlngStr[1]);
+        const loc = { lat, lng };
 
-      const modelInfo = Object.entries(models)
-        .map(([model, qty]) => `${model}: ${qty}`)
-        .join("<br>");
+        const modelInfo = Object.entries(models)
+          .map(([model, qty]) => `${model}: ${qty}`)
+          .join("<br>");
 
-      const infoWindow = new google.maps.InfoWindow({
-        content: `<strong>${customer}</strong><br>${modelInfo}`
-      });
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<strong>${customer}</strong><br>${modelInfo}`
+        });
 
-      const marker = new google.maps.Marker({
-        map,
-        position: loc,
-        title: customer,
-        icon: {
-          url: iconUrl,
-          scaledSize: new google.maps.Size(40, 40)
-        }
-      });
+        const marker = new google.maps.Marker({
+          map,
+          position: loc,
+          title: customer,
+          icon: { url: iconUrl, scaledSize: new google.maps.Size(40, 40) }
+        });
 
-      marker.addListener("mouseover", () => {
-        infoWindow.open(map, marker);
-      });
+        marker.addListener("mouseover", () => infoWindow.open(map, marker));
+        marker.addListener("mouseout", () => infoWindow.close());
 
-      marker.addListener("mouseout", () => {
-        infoWindow.close();
-      });
+        markers.push(marker);
+        bounds.extend(loc);
+      } else {
+        const geocoder = new google.maps.Geocoder();
+        await new Promise(res => setTimeout(res, 300));
+        geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
+          if (status === 'OK' && results[0]) {
+            const loc = results[0].geometry.location;
+            const modelInfo = Object.entries(models).map(([m, q]) => `${m}: ${q}`).join("<br>");
 
-      markers.push(marker);
-      bounds.extend(loc);
-    } else {
-      missingCustomers.push(customer); // หากหาไม่เจอด้วย geocoder
+            const infoWindow = new google.maps.InfoWindow({
+              content: `<strong>${customer}</strong><br>${modelInfo}`
+            });
+
+            const marker = new google.maps.Marker({
+              map,
+              position: loc,
+              title: customer,
+              icon: { url: iconUrl, scaledSize: new google.maps.Size(40, 40) }
+            });
+
+            marker.addListener("mouseover", () => infoWindow.open(map, marker));
+            marker.addListener("mouseout", () => infoWindow.close());
+
+            markers.push(marker);
+            bounds.extend(loc);
+          } else {
+            missingCustomers.push(customer);
+          }
+        });
+      }
     }
-  });
-}
 
-if (Object.keys(summary).length > 0) {
-  map.fitBounds(bounds);
-}
+    if (Object.keys(summary).length > 0) map.fitBounds(bounds);
 
-const missingTable = document.querySelector("#missingCustomersTable tbody");
-missingTable.innerHTML = "";
-missingCustomers.forEach(cus => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
-  missingTable.appendChild(tr);
-});
+    const missingTable = document.querySelector("#missingCustomersTable tbody");
+    missingTable.innerHTML = "";
+    missingCustomers.forEach(cus => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
+      missingTable.appendChild(tr);
+    });
+  }
 
-}
+
+
+
+
 
 function searchByKeyword() {
   const keyword = document.getElementById("searchText").value.trim().toLowerCase();
@@ -437,9 +468,10 @@ function searchByKeyword() {
   }
 
   if (!found) {
-    alert("ไม่พบข้อมูลที่ค้นหา");
+    alert("Not found data");
   }
 }
+
 
 // ฟังก์ชันสำหรับแสดงข้อมูลในตารางและสรุป summary
 function renderTableAndSummary(filtered) {
@@ -503,7 +535,7 @@ function renderTableAndSummary(filtered) {
 function searchByKeyword() {
   const keyword = document.getElementById("searchText").value.trim().toLowerCase();
   if (!keyword) {
-    alert("กรุณาใส่คำค้นหา");
+    alert("Please key search word");
     return;
   }
 
@@ -515,7 +547,7 @@ function searchByKeyword() {
   });
 
   if (filtered.length === 0) {
-    alert("ไม่พบข้อมูลที่ค้นหา");
+    alert("Not found that word");
     return;
   }
 
@@ -528,88 +560,107 @@ function searchByKeyword() {
 }
 
 // ฟังก์ชันแบบเดียวกับ updateFilteredMarkers แต่รับ filtered data มาแล้ว (ไม่ต้อง filter ซ้ำ)
-async function updateFilteredMarkersWithData(filtered) {
-  clearMarkers();
 
-  const summary = {};
-  filtered.forEach(d => {
-    const customer = d["Customer name"] || "Unknown";
-    const model = d["Robot type"] || "Unknown";
-    if (!summary[customer]) summary[customer] = {};
-    summary[customer][model] = (summary[customer][model] || 0) + 1;
-  });
+ async function updateFilteredMarkersWithData(filtered) {
+    clearMarkers();
 
-  const missingCustomers = [];
-  const bounds = new google.maps.LatLngBounds();
+    const summary = {};
+    filtered.forEach(d => {
+      const customer = d["Customer name"] || "Unknown";
+      const model = d["Robot type"] || "Unknown";
+      if (!summary[customer]) summary[customer] = {};
+      summary[customer][model] = (summary[customer][model] || 0) + 1;
+    });
 
-  for (const customer in summary) {
-    const models = summary[customer];
-    const count = Object.values(models).reduce((a, b) => a + b, 0);
+    const missingCustomers = [];
+    const bounds = new google.maps.LatLngBounds();
 
-    let color = "red";
-    if (count > 30) color = "green";
-    else if (count > 20) color = "blue";
-    else if (count > 10) color = "yellow";
+    for (const customer in summary) {
+      const models = summary[customer];
+      const count = Object.values(models).reduce((a, b) => a + b, 0);
 
-    const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+      let color = "red";
+      if (count > 30) color = "green";
+      else if (count > 20) color = "blue";
+      else if (count > 10) color = "yellow";
 
-    const geocoder = new google.maps.Geocoder();
-    // หน่วงเวลาเพื่อไม่ให้โดน rate limit
-    await new Promise(res => setTimeout(res, 300));
-    
-    await new Promise(resolve => {
-      geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
-        if (status === 'OK' && results[0]) {
-          const loc = results[0].geometry.location;
+      const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
 
-          const modelInfo = Object.entries(models)
-            .map(([model, qty]) => `${model}: ${qty}`)
-            .join("<br>");
+      const d = filtered.find(entry => entry["Customer name"] === customer);
+      let latlngStr = d?.Address?.split(",");
 
-          const infoWindow = new google.maps.InfoWindow({
-            content: `<strong>${customer}</strong><br>${modelInfo}`
-          });
+      if (latlngStr && latlngStr.length === 2) {
+        const lat = parseFloat(latlngStr[0]);
+        const lng = parseFloat(latlngStr[1]);
+        const loc = { lat, lng };
 
-          const marker = new google.maps.Marker({
-            map,
-            position: loc,
-            title: customer,
-            icon: {
-              url: iconUrl,
-              scaledSize: new google.maps.Size(40, 40)
+        const modelInfo = Object.entries(models)
+          .map(([model, qty]) => `${model}: ${qty}`)
+          .join("<br>");
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `<strong>${customer}</strong><br>${modelInfo}`
+        });
+
+        const marker = new google.maps.Marker({
+          map,
+          position: loc,
+          title: customer,
+          icon: { url: iconUrl, scaledSize: new google.maps.Size(40, 40) }
+        });
+
+        marker.addListener("mouseover", () => infoWindow.open(map, marker));
+        marker.addListener("mouseout", () => infoWindow.close());
+
+        markers.push(marker);
+        bounds.extend(loc);
+      } else {
+        const geocoder = new google.maps.Geocoder();
+        await new Promise(res => setTimeout(res, 300));
+        await new Promise(resolve => {
+          geocoder.geocode({ address: customer + ", Thailand" }, (results, status) => {
+            if (status === 'OK' && results[0]) {
+              const loc = results[0].geometry.location;
+              const modelInfo = Object.entries(models).map(([m, q]) => `${m}: ${q}`).join("<br>");
+
+              const infoWindow = new google.maps.InfoWindow({
+                content: `<strong>${customer}</strong><br>${modelInfo}`
+              });
+
+              const marker = new google.maps.Marker({
+                map,
+                position: loc,
+                title: customer,
+                icon: { url: iconUrl, scaledSize: new google.maps.Size(40, 40) }
+              });
+
+              marker.addListener("mouseover", () => infoWindow.open(map, marker));
+              marker.addListener("mouseout", () => infoWindow.close());
+
+              markers.push(marker);
+              bounds.extend(loc);
+            } else {
+              missingCustomers.push(customer);
             }
+            resolve();
           });
+        });
+      }
+    }
 
-          marker.addListener("mouseover", () => {
-            infoWindow.open(map, marker);
-          });
+    if (Object.keys(summary).length > 0) map.fitBounds(bounds);
 
-          marker.addListener("mouseout", () => {
-            infoWindow.close();
-          });
-
-          markers.push(marker);
-          bounds.extend(loc);
-        } else {
-          missingCustomers.push(customer);
-        }
-        resolve();
-      });
+    const missingTable = document.querySelector("#missingCustomersTable tbody");
+    missingTable.innerHTML = "";
+    missingCustomers.forEach(cus => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
+      missingTable.appendChild(tr);
     });
   }
 
-  if (Object.keys(summary).length > 0) {
-    map.fitBounds(bounds);
-  }
 
-  const missingTable = document.querySelector("#missingCustomersTable tbody");
-  missingTable.innerHTML = "";
-  missingCustomers.forEach(cus => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${cus}</td><td>Not found by geocoder</td>`;
-    missingTable.appendChild(tr);
-  });
-}
+
 </script>
 </body>
 </html>
