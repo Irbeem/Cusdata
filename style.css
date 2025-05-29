@@ -60,6 +60,7 @@ input, select {
 .button-group {
   display: flex;
   gap: 18px;
+  float: right;
 }
 
 .btn {
