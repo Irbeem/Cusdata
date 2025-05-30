@@ -118,10 +118,11 @@
   <br><a href="#heading-3"><button class="button4">Go to All Data</button></a>
 </div>
 
-    <h3> Summary Table <a href="#heading-2"></h3>
+    <h3> Summary Table </h3>
     <div id="summaryChart"></div>
 
-    <h3 id="heading-3">Filtered Data Table </h3><a href="#heading-2"><button class="button4">Top</button></a>
+    <h3 id="heading-3">Filtered Data Table </h3>
+    <a href="#heading-2"><button class="button4">Top</button></a>
     <table id="dataTable">
       <thead><tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr></thead>
       <tbody></tbody>
@@ -129,8 +130,7 @@
 
     <br><a href="#heading-2"><button class="button4">Top</button></a>
 </div>
-  
-<div class="right-panel">
+<div class="right-panel" id="rightPanel" style="display: none;">
   <div style="position: absolute; top: 0; left: 0; right: 0; background-color: white; max-height: 50%; overflow-y: auto; border-top: 1px solid #ccc; padding: 10px;">
     <h4>Purchase Summary by Year</h4>
     <div id="yearlySummaryTable"></div>
@@ -338,7 +338,11 @@ Object.entries(yearlySummary)
 yTable.appendChild(yBody);
 yearTableDiv.appendChild(yTable);
 
-
+if (filtered.length > 0) {
+  document.getElementById("rightPanel").style.display = "block";
+} else {
+  document.getElementById("rightPanel").style.display = "none";
+}
 }
 
 
