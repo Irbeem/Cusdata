@@ -347,6 +347,12 @@ if (filtered.length > 0) {
   document.getElementById("rightPanel").style.display = "none";
 }
 
+
+const summaryByYear = {};
+Object.entries(yearlySummary).forEach(([year, data]) => {
+  summaryByYear[year] = data.totalPrice;
+});
+	  
 	  
 // ล้างกราฟเดิมถ้ามี  ---สร้างกราฟ
 if (window.yearlyChartInstance) {
