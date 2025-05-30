@@ -114,25 +114,20 @@
     <label>Customer:</label>
     <select id="CustomerFilter"><option value="">All</option></select>
     <button class="button2" onclick="updateFilteredMarkers()">Display</button>
-<label><input type="checkbox" id="splitByYear"> Extract Year</label>
-  
+<label><input type="checkbox" id="splitByYear"> Extract Year</label> 
+  <br><a href="#heading-3"><button class="button4">Go to All Data</button></a>
 </div>
 
-
-     <br><a href="#heading-3"><button class="button4">Go to All Data</button></a>
-    
-    <h3> Summary Table <a href="#heading-2"><button class="button4">Go to head</button></a></h3>
+    <h3> Summary Table <a href="#heading-2"></h3>
     <div id="summaryChart"></div>
 
-    <h3 id="heading-3">Filtered Data Table</h3>
+    <h3 id="heading-3">Filtered Data Table </h3><a href="#heading-2"><button class="button4">Top</button></a>
     <table id="dataTable">
       <thead><tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr></thead>
       <tbody></tbody>
     </table>
 
-
-
-    <br><a href="#heading-2"><button class="button4">Go to head</button></a>
+    <br><a href="#heading-2"><button class="button4">Top</button></a>
 </div>
   
 <div class="right-panel">
@@ -142,14 +137,7 @@
   </div>
 </div>
 
-
-
-
-
-
-
 <script>
-
   const firebaseConfig = {
     apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
     authDomain: "custdata-92ebe.firebaseapp.com",
