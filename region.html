@@ -116,12 +116,12 @@
 <div class="container hidden" id="mainPanel">
   <div class="left-panel">
     <button class="button" onclick="signOut()">Sign Out</button>
-    
+    <button class="button" onclick="Customerpart()">CustomerPart</button>
     
     <h2 id="heading-2" style="background-color: #007bff; color: white; padding: 10px; border-radius: 8px; width: 23%;">
         Robot Viewer   
     </h2>
-    <a href="Customerpart4.html" class="btn">CustomerPart</a>
+    
 
     <label>Customer Name:</label>
     <select id="customerFilter"><option value="">All</option></select>
@@ -249,7 +249,11 @@
     document.getElementById("mainPanel").classList.remove("hidden");
     loadData();
   });
+function Customerpart(){
+    window.location.href = "Customerpart4.html";
+}
 
+	
   function signOut() {
     auth.signOut().then(() => {
       //alert("ออกจากระบบสำเร็จ");
