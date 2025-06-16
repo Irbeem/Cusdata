@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Customer Robot Summary</title>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap" async defer></script>
+  <style>
+    body { font-family: sans-serif; margin: 20px; display: flex; flex-direction: column; }
+    .top-panel { display: flex; flex-direction: row; gap: 20px; }
+    .left-panel { width: 50%; }
+    .right-panel { width: 50%; }
+    .hidden { display: none; }
+    select, input[type="text"] {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+    }
+    textarea {
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 95%;
+            resize: vertical;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+            table-layout: auto; /* ให้คอลัมน์ปรับตามเนื้อหา */
+    }
+    th, td {
+      /* padding: 4px; ขนาดกรอบสีฟ้า*/
+            padding: 2px 6px;
+      border: 1px solid #ccc;
+           text-align: left; /* << จัดชิดซ้าย */
+    }
+    th { 
+      background-color: #007bff; 
+      color: white;
+          white-space: nowrap; /* ไม่ตัดบรรทัดทำให้ความกว้างพอดีข้อความ */
+          width: 1%; /* บีบให้กว้างเท่าที่จำเป็น */ 
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      padding: 10px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    h3 { margin-top: 30px; }
+    #map { height: 500px; margin-top: 30px; page-break-before: always; }
+
+    @media print {
+      #map {
+        page-break-before: always;
+      }
+      #routeInfo {
+        page-break-before: avoid;
+      }
+    }
+    }
+  </style>
+</head>
+<body>
+<div id="mainPanel">
+  <div class="top-panel">
+    <div class="left-panel">
+      <h3>Visit Planning</h3>
+      <table>
+        <tr><th>Customer's Situation</th><td><textarea id="situation" rows="2"></textarea></td></tr>
+        <tr><th>Customer Values</th><td><textarea id="values" rows="2"></textarea></td></tr>
+        <tr><th>Measure</th><td><textarea id="measure" rows="2"></textarea></td></tr>
+        <tr><th>Proposal Method</th><td><textarea id="proposal" rows="2"></textarea></td></tr>
+        <tr><th>Target Month</th><td><textarea id="targetMonth" rows="2"> </textarea></td></tr>
+        <tr><th>Remarks</th><td><textarea id="remarks" rows="2"></textarea></td></tr>
+      </table>
+      <button onclick="window.print()">Print Plan</button>
+
+      <div id="partSummaryContainer">
+        <h3>Part Purchase Summary</h3>
+        <div id="partSummaryTable"></div>
+      </div>
+
+
+
+    </div>
+
+    <div class="right-panel">
+      <label for="originSelect">Start from:</label>
+      <select id="originSelect">
+        <option value="13.784431483421942, 100.58041213808076">Yaskawa BKK</option>
+        <option value="13.092777336086302, 101.06298540923027">Yaskawa Chonburi</option>
+        <option value="13.092777336086302, 101.06298540923027">Current Location</option>
+      </select>
+      <h2>Customer Robot Summary</h2>
+      <label for="customerSelect">Customer Name:</label>
+      <select id="customerSelect"><option value="">Select</option></select>
+      <div id="sapNumFromCustomer"></div>
+      <button onclick="loadCustomerData()">Show Summary</button>
+
+      <div id="summaryTable"></div>
+      <div id="controllerTable"></div>
+
+      <label><input type="checkbox" id="showMap"> Show on Map</label>
+      <button onclick="pinToMap()">Pin Marker</button>
+    </div>
+  </div>
+  <div id="routeInfo" style="margin-top: 10px; font-weight: bold;"></div>
+  <div id="map"></div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+  authDomain: "custdata-92ebe.firebaseapp.com",
+  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "custdata-92ebe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let allData = [], map;
+
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 13.736717, lng: 100.523186 },
+    zoom: 6
+  });
+}
+
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return window.location.href = "index.html";
+  document.getElementById("mainPanel").classList.remove("hidden");
+
+  db.ref("robot_data").once("value", snapshot => {
+    allData = Object.values(snapshot.val() || {});
+    const customers = new Set(allData.map(d => d["Customer name"]).filter(Boolean));
+    const sel = document.getElementById("customerSelect");
+    Array.from(customers).sort().forEach(cus => {
+      const opt = document.createElement("option");
+      opt.value = cus;
+      opt.textContent = cus;
+      sel.appendChild(opt);
+    });
+  });
+});
+
+function similarity(a, b) {
+  const clean = s => s.toLowerCase().replace(/[^a-z0-9ก-๙]/gi, '');
+  const sa = clean(a), sb = clean(b);
+  let match = 0;
+  for (let i = 0; i < Math.min(sa.length, sb.length); i++) {
+    if (sa[i] === sb[i]) match++;
+  }
+  return match / Math.max(sa.length, sb.length);
+}
+
+function loadCustomerData() {
+  const customer = document.getElementById("customerSelect").value;
+  if (!customer) return;
+  const filtered = allData.filter(d => d["Customer name"] === customer);
+
+  const models = {}, controllers = {};
+  let sapNumber = "";
+  filtered.forEach(d => {
+    const model = d["Robot type"] || "Unknown";
+    models[model] = (models[model] || 0) + 1;
+    const controller = d["Controller"] || "Unknown";
+    controllers[controller] = (controllers[controller] || 0) + 1;
+    if (d["SAP No"] && !sapNumber) sapNumber = d["SAP No"];
+  });
+
+  
+  // แก้ตรงนี้ให้หา Customer SAP Num จาก allData
+  let bestMatch = "-";
+  let bestScore = 0;
+  allData.forEach(d => {
+    const score = similarity(d["Customer name"] || "", customer);
+    if (score > bestScore && d["Customer SAP Num"]) {
+      bestScore = score;
+      bestMatch = d["Customer SAP Num"];
+    }
+  });
+  document.getElementById("sapNumFromCustomer").innerHTML = `<p><strong>Customer SAP Num:</strong> ${bestMatch}</p>`;
+
+  let html = `<table><thead><tr><th>Robot Model</th><th>Quantity</th></tr></thead><tbody>`;
+  for (const [model, qty] of Object.entries(models).sort()) {
+    html += `<tr><td>${model}</td><td>${qty}</td></tr>`;
+  }
+  html += `</tbody></table>`;
+  document.getElementById("summaryTable").innerHTML = html;
+
+  let ctrlHtml = `<table><thead><tr><th>Controller</th><th>Quantity</th></tr></thead><tbody>`;
+  for (const [ctrl, qty] of Object.entries(controllers).sort()) {
+    ctrlHtml += `<tr><td>${ctrl}</td><td>${qty}</td></tr>`;
+  }
+  ctrlHtml += `</tbody></table>`;
+  document.getElementById("controllerTable").innerHTML = ctrlHtml;
+
+  db.ref("part").once("value", snapshot => {
+    const partData = Object.values(snapshot.val() || {});
+    let bestMatch = null, highestScore = 0;
+    partData.forEach(p => {
+      const score = similarity(p.Customer || '', customer);
+      if (score > highestScore) {
+        highestScore = score;
+        bestMatch = p.Customer;
+      }
+    });
+    const matchedData = partData.filter(p => p.Customer === bestMatch);
+    const yearly = {};
+    matchedData.forEach(d => {
+      const year = d["Year"] || "-";
+      const qt = parseFloat(d["Qt"] || 0);
+      const price = parseFloat((d["Price"] || "0").toString().replace(/,/g, ''));
+      if (!yearly[year]) yearly[year] = { totalQt: 0, totalPrice: 0 };
+      yearly[year].totalQt += qt;
+      yearly[year].totalPrice += price;
+    });
+    let tableHtml = `<table><thead><tr><th>Year</th><th>Total Qt</th><th>Total Price (Baht)</th></tr></thead><tbody>`;
+    Object.entries(yearly).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([y, data]) => {
+      tableHtml += `<tr><td>${y}</td><td>${data.totalQt}</td><td>${data.totalPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`;
+    });
+    tableHtml += `</tbody></table>`;
+    document.getElementById("partSummaryTable").innerHTML = tableHtml;
+  });
+}
+function pinToMap() {
+  const customer = document.getElementById("customerSelect").value;
+  if (!customer || !map) return;
+
+  const matched = allData.find(d => d["Customer name"] === customer);
+  if (!matched || !matched.Address) {
+    alert("ไม่พบตำแหน่งของลูกค้าใน Address");
+    return;
+  }
+
+  const [custLatStr, custLngStr] = matched.Address.split(",");
+  const custLat = parseFloat(custLatStr);
+  const custLng = parseFloat(custLngStr);
+  if (isNaN(custLat) || isNaN(custLng)) {
+    alert("พิกัด Address ไม่ถูกต้อง");
+    return;
+  }
+
+  const originStr = document.getElementById("originSelect").value;
+  const [originLat, originLng] = originStr.split(",").map(parseFloat);
+
+  const origin = new google.maps.LatLng(originLat, originLng);
+  const destination = new google.maps.LatLng(custLat, custLng);
+
+  const directionsService = new google.maps.DirectionsService();
+  const directionsRenderer = new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(map);
+
+  directionsService.route({
+    origin,
+    destination,
+    travelMode: 'DRIVING'
+  }, (result, status) => {
+    if (status === 'OK') {
+      directionsRenderer.setDirections(result);
+      const route = result.routes[0].legs[0];
+      const distanceText = route.distance ? route.distance.text : "";
+      const durationText = route.duration ? route.duration.text : "";
+      document.getElementById("routeInfo").innerText = `Est. Distance: ${distanceText} / Est. Time: ${durationText}`;
+    } else {
+      alert("ไม่สามารถสร้างเส้นทาง: " + status);
+    }
+  });
+}
+
+document.addEventListener('input', function (e) {
+  if (e.target.tagName.toLowerCase() === 'textarea') {
+    e.target.style.height = 'auto'; // รีเซ็ตความสูงก่อน
+    e.target.style.height = (e.target.scrollHeight) + 'px'; // ตั้งความสูงใหม่
+  }
+});
+
+
+</script>
+</body>
+</html>
