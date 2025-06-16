@@ -495,7 +495,7 @@ function saveVisitPlan() {
   const opinion = document.getElementById("opinion").value;
   const customerName = document.getElementById("customerSelect").value;
   const startFrom = document.getElementById("originSelect").options[document.getElementById("originSelect").selectedIndex].text;
-
+  const user = firebase.auth().currentUser;
   if (!visitDate || !bookingStart || !bookingEnd || !customerName) {
     alert("❗ กรุณากรอก Visit Date, Booking Time และ Customer Name");
     return;
@@ -512,7 +512,8 @@ function saveVisitPlan() {
     visitDetail: detail,
     opinion,
     customerName,
-    startFrom
+    startFrom,
+    user
   };
 
   db.ref("visit_plan").push(planData, error => {
