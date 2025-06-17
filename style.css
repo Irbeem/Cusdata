@@ -2,19 +2,6 @@ body {
   font-family: sans-serif;
 }
 
-#loginForm {
-  background-color: white;
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: grid;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  width: 100%;
-  max-width: 400px;
-}
-
 form {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -41,7 +28,7 @@ input, select {
   display: none;
 }
 
-#loginForm,#robotSection {
+#loginForm, #robotSection {
   display: flex;
   justify-content: center;
   align-items: center;
