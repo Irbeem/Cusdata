@@ -177,7 +177,7 @@ firebase.auth().onAuthStateChanged(user => {
     window.location.href = "index.html"; // หากไม่ได้ login ให้กลับไปหน้า index
   }
 });
-
+userSelect.addEventListener("change", renderTable);
   </script>
 </body>
 </html>
