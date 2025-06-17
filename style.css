@@ -38,23 +38,16 @@ input, select {
   grid-column: span 2;
 }
 
-#robotForm, #logoutBtn, #robotSection, #robotviewer {
+#robotForm, #logoutBtn, #robotviewer {
   display: none;
 }
 
-.section {
-  background-color: #e0f7fa;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.section:nth-of-type(2), .section:nth-of-type(3) {
-  background-color: #fce4ec;
-}
-
-.section h3 {
-  grid-column: span 2;
-  margin-top: 0;
+#robotSection {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
 }
 
 .button-group {
@@ -63,7 +56,6 @@ input, select {
   justify-content: center;
   gap: 16px;
   max-width: 600px;
-  margin: 0 auto;
 }
 
 .button-group .btn {
@@ -83,6 +75,22 @@ input, select {
 .btn:hover {
   background-color: #1d4ed8;
 }
+
+.section {
+  background-color: #e0f7fa;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.section:nth-of-type(2), .section:nth-of-type(3) {
+  background-color: #fce4ec;
+}
+
+.section h3 {
+  grid-column: span 2;
+  margin-top: 0;
+}
+
 
 #formHeader {
   position: sticky;
