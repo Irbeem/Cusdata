@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Visit Plan Detail</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: auto; }
+    h2 { margin-bottom: 20px; }
+    .field { margin-bottom: 10px; }
+    .label { font-weight: bold; display: inline-block; width: 150px; }
+    .value { display: inline-block; color: #333; }
+  </style>
+</head>
+<body>
+  <h2>Visit Plan Detail</h2>
+  <div id="detailContainer">Loading...</div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+      authDomain: "custdata-92ebe.firebaseapp.com",
+      databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "custdata-92ebe"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ดึง ID จาก URL
+    const params = new URLSearchParams(window.location.search);
+    const planId = params.get("id");
+
+    if (!planId) {
+      document.getElementById("detailContainer").innerHTML = "❌ ไม่พบข้อมูล ID";
+    } else {
+      db.ref("visit_plan/" + planId).once("value", snapshot => {
+        const data = snapshot.val();
+        if (!data) {
+          document.getElementById("detailContainer").innerHTML = "❌ ไม่พบข้อมูลในฐาน";
+          return;
+        }
+
+        const fields = [
+          ["visitDate", "Visit Date"],
+          ["bookingTimeIn", "Time In"],
+          ["bookingTimeOut", "Time Out"],
+          ["customerName", "Customer"],
+          ["startFrom", "Start From"],
+          ["companion", "Companion"],
+          ["contactName", "Contact"],
+          ["situation", "Situation"],
+          ["visitDetail", "Detail"],
+          ["opinion", "Opinion"],
+          ["loginName", "User Name"],
+          ["loginEmail", "Email"]
+        ];
+
+        const html = fields.map(([key, label]) => `
+          <div class="field">
+            <span class="label">${label}:</span>
+            <span class="value">${data[key] || "-"}</span>
+          </div>
+        `).join("");
+
+        document.getElementById("detailContainer").innerHTML = html;
+      });
+    }
+  </script>
+</body>
+</html>

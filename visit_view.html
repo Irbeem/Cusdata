@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Visit Plan List</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    select, table { margin-top: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; }
+    th { background-color: #007bff; color: white; text-align: left; }
+    a { color: #007bff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <h2>Visit Plan Records</h2>
+  <label for="userFilter">Filter by User:</label>
+  <select id="userFilter">
+    <option value="">All</option>
+  </select>
+<label for="monthFilter">Month:</label>
+<select id="monthFilter">
+  <option value="">All</option>
+</select>
+
+<label for="yearFilter">Year:</label>
+<select id="yearFilter">
+  <option value="">All</option>
+</select>
+
+<label for="pageSizeSelect">Show per page:</label>
+<select id="pageSizeSelect">
+  <option value="10">10</option>
+  <option value="20">20</option>
+  <option value="50">50</option>
+</select>
+
+<div id="paginationControls" style="margin-top: 10px;"></div>
+
+  <table id="visitTable">
+    <thead>
+      <tr>
+        <th>Visit Date</th>
+        <th>Customer</th>
+        <th>User</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+      authDomain: "custdata-92ebe.firebaseapp.com",
+      databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "custdata-92ebe"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const tableBody = document.querySelector("#visitTable tbody");
+    const userSelect = document.getElementById("userFilter");
+    let allPlans = [];
+
+        const monthSelect = document.getElementById("monthFilter");
+        const yearSelect = document.getElementById("yearFilter");
+
+function loadVisitPlans() {
+  db.ref("visit_plan").once("value", snapshot => {
+    const data = snapshot.val() || {};
+    allPlans = Object.entries(data).map(([key, val]) => ({ ...val, key }));
+
+    const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
+    userSelect.innerHTML = '<option value="">All</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+
+    // ดึงปีจาก visitDate
+    const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
+    yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
+
+    renderTable();
+  });
+}
+
+
+let currentPage = 1;
+let pageSize = 10;
+
+const pageSizeSelect = document.getElementById("pageSizeSelect");
+const paginationControls = document.getElementById("paginationControls");
+
+pageSizeSelect.addEventListener("change", () => {
+  pageSize = parseInt(pageSizeSelect.value);
+  currentPage = 1;
+  renderTable();
+});
+
+
+
+function renderTable() {
+  const selectedUser = userSelect.value;
+  const selectedMonth = monthSelect.value;
+  const selectedYear = yearSelect.value;
+
+  const filtered = allPlans.filter(p => {
+    if (selectedUser && p.loginEmail !== selectedUser) return false;
+    if (selectedYear && (!p.visitDate || !p.visitDate.startsWith(selectedYear))) return false;
+    if (selectedMonth && (!p.visitDate || p.visitDate.split("-")[1] !== selectedMonth)) return false;
+    return true;
+  });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const paginatedData = filtered.slice(startIdx, startIdx + pageSize);
+
+  tableBody.innerHTML = paginatedData.map(p => `
+    <tr>
+      <td>${p.visitDate}</td>
+      <td>${p.customerName || '-'}</td>
+      <td>${p.loginEmail || '-'}</td>
+      <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
+    </tr>
+  `).join('');
+
+  renderPaginationControls(totalPages);
+}
+
+function renderPaginationControls(totalPages) {
+  if (totalPages <= 1) {
+    paginationControls.innerHTML = "";
+    return;
+  }
+
+  let html = `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button> `;
+
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button onclick="gotoPage(${i})" ${i === currentPage ? 'style="font-weight:bold;"' : ''}>${i}</button> `;
+  }
+
+  html += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
+  paginationControls.innerHTML = html;
+}
+
+function gotoPage(page) {
+  currentPage = page;
+  renderTable();
+}
+
+
+
+function populateMonthDropdown() {
+const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+for (let i = 0; i < 12; i++) {
+  const opt = document.createElement("option");
+  opt.value = (i+1).toString().padStart(2, '0');
+  opt.textContent = monthNames[i];
+  monthSelect.appendChild(opt);
+   }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  populateMonthDropdown();
+});
+
+monthSelect.addEventListener("change", renderTable);
+yearSelect.addEventListener("change", renderTable);
+
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    loadVisitPlans();
+  } else {
+    window.location.href = "index.html"; // หากไม่ได้ login ให้กลับไปหน้า index
+  }
+});
+
+  </script>
+</body>
+</html>
