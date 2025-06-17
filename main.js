@@ -37,32 +37,48 @@ async function getUserRole(uid) {
 }
 
 // Login state handler
+
 onAuthStateChanged(auth, async (user) => {
+  const loginForm = document.getElementById('loginForm');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const robotForm = document.getElementById('robotForm');
+  const robotSection = document.getElementById('robotSection');
+
+  const isInputFormPage = location.pathname.includes("input_form.html");
+
   if (user) {
-    loginForm.style.display = 'none';
-    logoutBtn.style.display = 'inline';
+    if (loginForm) loginForm.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline';
+    if (robotSection) robotSection.style.display = 'block';
 
     const role = await getUserRole(user.uid);
+
     if (role === 'admin') {
-      robotSection.style.display = 'block';
-      robotForm.style.display = 'grid';
+      if (robotForm) robotForm.style.display = 'grid';
       await populateCustomerList();
       await populateUniqueOptions();
     } else if (role === 'viewer') {
-      robotSection.style.display = 'block';
-      robotForm.style.display = 'none';
+      if (robotForm) robotForm.style.display = 'none';
       alert("Viewer permission can not fill data");
     } else {
       alert("no permission");
       await signOut(auth);
     }
   } else {
-    loginForm.style.display = 'block';
-    robotSection.style.display = 'none';
-    robotForm.style.display = 'none';
-    logoutBtn.style.display = 'none';
+    // ถ้าไม่ login แต่เป็นหน้า input_form ให้เปิด robotSection ได้
+    if (isInputFormPage) {
+      if (robotSection) robotSection.style.display = 'block';
+      if (robotForm) robotForm.style.display = 'grid';
+    } else {
+      if (loginForm) loginForm.style.display = 'block';
+      if (robotSection) robotSection.style.display = 'none';
+      if (robotForm) robotForm.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+    }
   }
 });
+
+
 
 // Form submission
 loginForm.addEventListener('submit', async (e) => {
