@@ -1,4 +1,8 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 import {
   getDatabase, ref, push, get
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
@@ -16,105 +20,246 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 const db = getDatabase(app);
 
-// DOM Elements
+// Elements
+const loginForm = document.getElementById('loginForm');
 const robotForm = document.getElementById('robotForm');
+const logoutBtn = document.getElementById('logoutBtn');
+const robotSection = document.getElementById('robotSection');
 
-// ========== Form Submit ==========
+// ดึง role
+async function getUserRole(uid) {
+  const roleRef = ref(db, `users/${uid}/role`);
+  const snapshot = await get(roleRef);
+  return snapshot.exists() ? snapshot.val() : null;
+}
+
+// Login state handler
+
+onAuthStateChanged(auth, async (user) => {
+  const loginForm = document.getElementById('loginForm');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const robotForm = document.getElementById('robotForm');
+  const robotSection = document.getElementById('robotSection');
+
+  const isInputFormPage = location.pathname.includes("input_form.html");
+
+  if (user) {
+    if (loginForm) loginForm.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline';
+    if (robotSection) robotSection.style.display = 'block';
+
+    const role = await getUserRole(user.uid);
+
+    if (role === 'admin') {
+      if (robotForm) robotForm.style.display = 'grid';
+      await populateCustomerList();
+      await populateUniqueOptions();
+    } else if (role === 'viewer') {
+      if (robotForm) robotForm.style.display = 'none';
+      alert("Viewer permission can not fill data");
+    } else {
+      alert("no permission");
+      await signOut(auth);
+    }
+  } else {
+    // ถ้าไม่ login แต่เป็นหน้า input_form ให้เปิด robotSection ได้
+    if (isInputFormPage) {
+      if (robotSection) robotSection.style.display = 'block';
+      if (robotForm) robotForm.style.display = 'grid';
+    } else {
+      if (loginForm) loginForm.style.display = 'block';
+      if (robotSection) robotSection.style.display = 'none';
+      if (robotForm) robotForm.style.display = 'none';
+      if (logoutBtn) logoutBtn.style.display = 'none';
+    }
+  }
+});
+
+
+
+// Form submission
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = loginForm.email.value;
+  const password = loginForm.password.value;
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    alert("Login error " + err.message);
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  await signOut(auth);
+});
+
 robotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let formData = Object.fromEntries(new FormData(robotForm).entries());
-
-  // แก้ key ที่มี dot
   for (let key in formData) {
     if (key.includes('.')) {
       formData[key.replace(/\./g, '_')] = formData[key];
       delete formData[key];
     }
   }
-
   try {
     await push(ref(db, 'robot_data'), formData);
-    alert('✅ Data saved successfully');
+    alert('data send complete');
     robotForm.reset();
   } catch (err) {
     console.error(err);
-    alert('❌ Error saving data');
+    alert('data send error');
   }
 });
 
-// ========== Auto-fill Customer Lists ==========
+// ---  Customer SAP list ---    
 async function populateCustomerList() {
   const snapshot = await get(ref(db, 'robot_data'));
-  const customerNames = new Set();
+const customerNames = new Set();
 
-  if (snapshot.exists()) {
-    snapshot.forEach(child => {
-      const name = child.val()["Customer name"]?.trim();
-      if (name) customerNames.add(name);
-    });
-  }
-
-  const datalist = document.getElementById('customerList');
-  datalist.innerHTML = '';
-  [...customerNames].sort().forEach(name => {
-    datalist.appendChild(new Option(name, name));
+if (snapshot.exists()) {
+  snapshot.forEach(child => {
+    const data = child.val();
+    const name = data["Customer name"]?.trim();
+    if (name) customerNames.add(name);
   });
 }
 
-await populateCustomerList();
+const datalist = document.getElementById('customerList');
+datalist.innerHTML = '';
 
-// ========== Fill SAP/Address/... เมื่อเลือกชื่อ ==========
-document.getElementById('customerNameInput').addEventListener('input', async (e) => {
+[...customerNames].sort().forEach(name => {
+  const option = document.createElement('option');
+  option.value = name;
+  datalist.appendChild(option);
+});
+
+}
+
+
+// ---  Customer name ---   
+  document.getElementById('customerNameInput').addEventListener('input', async (e) => {
   const selectedName = e.target.value.trim();
   if (!selectedName) return;
 
   const snapshot = await get(ref(db, 'robot_data'));
+
+  // Sets forแต่ละช่อง
   const sapNumbers = new Set();
   const abbreviations = new Set();
   const addresses = new Set();
   const areas = new Set();
-  const locations = new Set();
+  const locations = new Set(); // in or outside
 
   if (snapshot.exists()) {
     snapshot.forEach(child => {
       const data = child.val();
-      if (data["Customer name"]?.trim() === selectedName) {
-        if (data["Customer SAP Num"]) sapNumbers.add(data["Customer SAP Num"].trim());
-        if (data["Abbreviation"]) abbreviations.add(data["Abbreviation"].trim());
-        if (data["Address"]) addresses.add(data["Address"].trim());
-        if (data["Area"]) areas.add(data["Area"].trim());
-        if (data["in or outside"]) locations.add(data["in or outside"].trim());
+      const name = data["Customer name"]?.trim();
+
+      if (name === selectedName) {
+        const sap = data["Customer SAP Num"]?.trim();
+        const abb = data["Abbreviation"]?.trim();
+        const addr = data["Address"]?.trim();
+        const area = data["Area"]?.trim();
+        const loc = data["in or outside"]?.trim();
+
+        if (sap) sapNumbers.add(sap);
+        if (abb) abbreviations.add(abb);
+        if (addr) addresses.add(addr);
+        if (area) areas.add(area);
+        if (loc) locations.add(loc);
       }
     });
   }
 
-  const fill = (inputId, listId, dataSet) => {
-    const input = document.getElementById(inputId);
-    const datalist = document.getElementById(listId);
-    datalist.innerHTML = '';
+  // ===== Customer SAP Number =====
+  const sapInput = document.getElementById('customerSAPInput');
+  const sapDatalist = document.getElementById('sapList');
+  sapDatalist.innerHTML = '';
+  if (sapNumbers.size === 1) {
+    sapInput.value = [...sapNumbers][0];
+  } else {
+    sapInput.value = '';
+    sapNumbers.sort().forEach(val => {
+      sapDatalist.appendChild(new Option(val, val));
+    });
+  }
 
-    if (dataSet.size === 1) {
-      input.value = [...dataSet][0];
-    } else {
-      input.value = '';
-      [...dataSet].sort().forEach(val => {
-        datalist.appendChild(new Option(val, val));
-      });
-    }
-  };
+  // ===== Abbreviation =====
+  const abbInput = document.getElementById('abbreviationInput');
+  const abbDatalist = document.getElementById('abbreviationList');
+  abbDatalist.innerHTML = '';
+  if (abbreviations.size === 1) {
+    abbInput.value = [...abbreviations][0];
+  } else {
+    abbInput.value = '';
+    abbreviations.sort().forEach(val => {
+      abbDatalist.appendChild(new Option(val, val));
+    });
+  }
 
-  fill('customerSAPInput', 'sapList', sapNumbers);
-  fill('abbreviationInput', 'abbreviationList', abbreviations);
-  fill('addressInput', 'addressList', addresses);
-  fill('areaInput', 'areaList', areas);
-  fill('inOrOutsideInput', 'inOrOutsideList', locations.size ? locations : new Set(["Thailand", "Abroad"]));
+  // ===== Address =====
+  const addrInput = document.getElementById('addressInput');
+  const addrDatalist = document.getElementById('addressList');
+  addrDatalist.innerHTML = '';
+  if (addresses.size === 1) {
+    addrInput.value = [...addresses][0];
+  } else {
+    addrInput.value = '';
+    addresses.sort().forEach(val => {
+      addrDatalist.appendChild(new Option(val, val));
+    });
+  }
+
+  // ===== Area =====
+  const areaInput = document.getElementById('areaInput');
+  const areaDatalist = document.getElementById('areaList');
+  areaDatalist.innerHTML = '';
+  if (areas.size === 1) {
+    areaInput.value = [...areas][0];
+  } else {
+    areaInput.value = '';
+    areas.sort().forEach(val => {
+      areaDatalist.appendChild(new Option(val, val));
+    });
+  }
+
+  // ===== In or outside =====
+const locationInput = document.getElementById('inOrOutsideInput');
+const locationList = document.getElementById('inOrOutsideList');
+locationList.innerHTML = '';
+
+if (locations.size === 1) {
+  locationInput.value = [...locations][0];
+} else if (locations.size > 1) {
+  locationInput.value = '';
+  locations.forEach(loc => {
+    locationList.appendChild(new Option(loc, loc));
+  });
+} else {
+  locationInput.value = '';
+  ['Thailand', 'Abroad'].sort().forEach(loc => {
+    locationList.appendChild(new Option(loc, loc));
+  });
+}
+
 });
+// ===== In or outside =====
 
-// ========== Auto-fill Datalist Options ==========
+
+    robotForm.addEventListener('keydown', (e) => {
+       if (e.key === 'Enter') {
+          e.preventDefault();
+          }
+    });
+
+
 async function populateUniqueOptions() {
   const snapshot = await get(ref(db, 'robot_data'));
+
   const robotTypes = new Set();
   const types = new Set();
   const controllers = new Set();
@@ -132,6 +277,7 @@ async function populateUniqueOptions() {
     });
   }
 
+  // Helper function
   const fillDatalist = (listId, items) => {
     const datalist = document.getElementById(listId);
     datalist.innerHTML = '';
@@ -147,33 +293,41 @@ async function populateUniqueOptions() {
   fillDatalist('sysAppList', sysApps);
 }
 
-await populateUniqueOptions();
 
-// ========== ป้องกัน Enter ส่งฟอร์ม ==========
-robotForm.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-  }
-});
+// คืนค่าในรูปแบบ YYYY-MM-DD
+function getTodayDateString() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
-// ========== เติมวัน เดือน ปี ปัจจุบัน ==========
 document.addEventListener('DOMContentLoaded', () => {
   const today = new Date();
 
+  // Year
   const yearInput = document.getElementById('yearInput');
-  if (yearInput && !yearInput.value) yearInput.value = today.getFullYear();
+  if (yearInput && !yearInput.value) {
+    yearInput.value = today.getFullYear();
+  }
+  // Month
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
 
   const monthInput = document.getElementById('monthInput');
   if (monthInput && !monthInput.value) {
-    const monthNames = [
-      "January", "February", "March", "April", "May", "June",
-      "July", "August", "September", "October", "November", "December"
-    ];
-    monthInput.value = monthNames[today.getMonth()];
+    const currentMonthName = monthNames[today.getMonth()];
+    monthInput.value = currentMonthName;
   }
 
+  // Date of Entry
   const dateInput = document.getElementById('dateOfEntry');
+
   if (dateInput && !dateInput.value) {
-    dateInput.value = String(today.getDate()).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0'); // แค่วันที่ (เช่น 16)
+    dateInput.value = day;
   }
 });
