@@ -2,101 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>YAPT CS</title>
+  <title>YAP ROBOT DATA INPUT FORM</title>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="main_index.js" defer></script>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: sans-serif;
-      background-color: #f4f6f8;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #loginForm {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      padding: 30px;
-      border-radius: 8px;
-      background: white;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      min-width: 300px;
-    }
-
-    #robotSection {
-      display: none;
-      width: 100%;
-      max-width: 800px;
-      padding: 20px;
-    }
-
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      justify-items: center;
-    }
-
-    .btn {
-      background-color: #1e88e5;
-      color: white;
-      font-weight: bold;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      text-decoration: none;
-      font-size: 16px;
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-      transition: all 0.2s ease;
-      min-width: 180px;
-      text-align: center;
-    }
-
-    .btn:hover {
-      background-color: #1565c0;
-      transform: translateY(-2px);
-      cursor: pointer;
-    }
-
-    @media (max-width: 768px) {
-      .menu-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 480px) {
-      .menu-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
+  <script type="module" src="main.js" defer></script>
 </head>
 <body>
-
-  <!-- Login Form -->
   <form id="loginForm">
-    <h2>Login</h2>
+    <h2>Login</h2><br>
     <div><label>Email</label><input type="email" name="email" required></div>
     <div><label>Password</label><input type="password" name="password" required></div>
-    <div><button class="btn" type="submit">Login</button></div>
+    <div class="full"><br><button class="btn" type="submit">Login</button></div>
   </form>
 
-  <!-- Robot Section After Login -->
   <div id="robotSection">
-    <div class="menu-grid">
-      <a href="input_form_new.html" class="btn">📝 Robot Data Input</a>
-      <a href="region.html" class="btn">🤖 Robot Map</a>
-      <a href="view5.html" class="btn">📊 View All Data</a>
-      <a href="VisitCustomer.html" class="btn">🗓️ Create Visit Plan</a>
-      <a href="visit_view.html" class="btn">🗓️ View Visit Plan</a>
-      <button id="logoutBtn" class="btn">🔒 Log Out</button>
-    </div>
-  </div>
+    <div id="formHeader">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        
+        <div class="button-group">
+          <a href="input_form_new.html" target="_blank" class="btn">📝 Robot Data Input 📝</a>
+          <a href="region.html" target="_blank" class="btn">🤖 RobotMap 🤖</a>
+	  <a href="view5.html" target="_blank" class="btn">📊 View All Data 📊</a>
+		
+	  <a href="VisitCustomer.html" target="_blank" class="btn">🗓️Create Visit plan 🗓️</a>
+	  <a href="visit_view.html" target="_blank" class="btn">🗓️View Visit plan 🗓️</a>
+          
 
+          <button id="logoutBtn" class="btn">🔒 LogOut 🔒</button><br>
+        </div>
+	
+      </div>
+
+    </div>
+
+    </form>
+  </div>
 </body>
 </html>
