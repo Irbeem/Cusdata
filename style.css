@@ -1,6 +1,7 @@
 body {
   margin: 0;
   font-family: sans-serif;
+  overflow-y: hidden;
 }
 
 /* HEADER ด้านบน */
@@ -139,3 +140,13 @@ input, select {
     flex: 0 1 100%;
   }
 }
+
+const group = document.querySelector('.button-group');
+const screenHeight = window.innerHeight;
+
+if (group.offsetHeight + 160 < screenHeight) {
+  document.body.style.overflowY = 'hidden';
+} else {
+  document.body.style.overflowY = 'auto';
+}
+
