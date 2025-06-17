@@ -46,11 +46,13 @@ input, select {
 #robotForm, #logoutBtn, #robotviewer {
   display: none;
 }
+
 #robotSection {
   display: flex;
   justify-content: center;
-  align-items: center;
-  height: 100vh;
+  align-items: flex-start;
+  padding-top: 60px;
+  min-height: 100vh;
   flex-direction: column;
 }
 
@@ -58,7 +60,6 @@ input, select {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
   gap: 16px;
   max-width: 600px;
 }
