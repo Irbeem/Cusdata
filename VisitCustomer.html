@@ -498,7 +498,6 @@ function saveVisitPlan() {
   const user = firebase.auth().currentUser;
   const uid = user.uid;
   const email = user.email;
-  //const name = user.displayName || "Unknown";
   db.ref("users/" + user.uid).once("value", snap => {
   const userData = snap.val();
   const name = userData?.name || "Unknown";
