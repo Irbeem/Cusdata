@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Create Visit Plan</title>
+  <title>Customer Robot Summary</title>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -498,9 +498,7 @@ function saveVisitPlan() {
   const user = firebase.auth().currentUser;
   const uid = user.uid;
   const email = user.email;
-  db.ref("users/" + user.uid).once("value", snap => {
-  const userData = snap.val();
-  const name = userData?.name || "Unknown";
+  const name = user.displayName || "Unknown";
 
   if (!visitDate || !bookingStart || !bookingEnd || !customerName) {
     alert("❗ กรุณากรอก Visit Date, Booking Time และ Customer Name");
@@ -526,9 +524,9 @@ function saveVisitPlan() {
 
   db.ref("visit_plan").push(planData, error => {
     if (error) {
-      alert("❌ Can't save");
+      alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     } else {
-      alert("✅ Save finished");
+      alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
     }
   });
 }
