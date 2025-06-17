@@ -18,7 +18,7 @@ body {
 #robotSection {
   display: flex;
   justify-content: center;
-  padding-top: 160px; /* เผื่อพื้นที่ให้ปุ่มลอยอยู่ด้านบน */
+  padding-top: 260px; /* เผื่อพื้นที่ให้ปุ่มลอยอยู่ด้านบน */
   padding-bottom: 32px;
   min-height: 100vh;
   background-color: #f9fafb;
@@ -26,7 +26,7 @@ body {
 
 .button-group {
   position: fixed;
-  top: 80px; /* อยู่ใต้ header */
+  top: 160px; /* อยู่ใต้ header */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
