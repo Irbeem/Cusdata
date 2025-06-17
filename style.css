@@ -1,6 +1,5 @@
 body {
   font-family: sans-serif;
-  padding: 20px;
 }
 
 #loginForm {
@@ -42,7 +41,7 @@ input, select {
   display: none;
 }
 
-#robotSection {
+#loginForm,#robotSection {
   display: flex;
   justify-content: center;
   align-items: center;
