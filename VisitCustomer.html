@@ -482,8 +482,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-
-
 function saveVisitPlan() {
   const visitDate = document.getElementById("visitDateInput").value;
   const bookingStart = document.getElementById("visitTimeInput1").value;
@@ -495,44 +493,47 @@ function saveVisitPlan() {
   const opinion = document.getElementById("opinion").value;
   const customerName = document.getElementById("customerSelect").value;
   const startFrom = document.getElementById("originSelect").options[document.getElementById("originSelect").selectedIndex].text;
+
   const user = firebase.auth().currentUser;
   const uid = user.uid;
   const email = user.email;
-  const name = user.displayName || "Unknown";
 
   if (!visitDate || !bookingStart || !bookingEnd || !customerName) {
     alert("❗ กรุณากรอก Visit Date, Booking Time และ Customer Name");
     return;
   }
 
-  const planData = {
-    timestamp: Date.now(),
-    visitDate,
-    bookingTimeIn: bookingStart,
-    bookingTimeOut: bookingEnd,
-    companion,
-    contactName: contact,
-    situation,
-    visitDetail: detail,
-    opinion,
-    customerName,
-    startFrom,
-    uid: uid,
-    loginName: name,
-    loginEmail: email
-  };
+  // ดึงชื่อจาก database ที่ users/{uid}/name
+  db.ref("users/" + uid).once("value", (snapshot) => {
+    const userData = snapshot.val();
+    const name = userData?.name || "Unknown";
 
-  db.ref("visit_plan").push(planData, error => {
-    if (error) {
-      alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
-    } else {
-      alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
-    }
+    const planData = {
+      timestamp: Date.now(),
+      visitDate,
+      bookingTimeIn: bookingStart,
+      bookingTimeOut: bookingEnd,
+      companion,
+      contactName: contact,
+      situation,
+      visitDetail: detail,
+      opinion,
+      customerName,
+      startFrom,
+      uid: uid,
+      loginName: name,
+      loginEmail: email
+    };
+
+    db.ref("visit_plan").push(planData, error => {
+      if (error) {
+        alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+      } else {
+        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
+      }
+    });
   });
 }
-
-
-
 
 </script>
 </body>
