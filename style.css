@@ -62,27 +62,26 @@ input, select {
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  max-width: 800px;
-  margin: 20px auto;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
 .button-group .btn {
-  flex: 0 1 calc(33.333% - 16px);
+  flex: 0 1 calc(33.333% - 16px); /* 3 ปุ่มต่อแถว + gap */
   box-sizing: border-box;
   text-align: center;
-  padding: 12px;
-  border: 1px solid #ccc;
-  background-color: white;
-  color: #4B0082;
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
   text-decoration: none;
   font-weight: bold;
-  border-radius: 6px;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s ease;
 }
 
-.button-group .btn:hover {
-  background-color: #e0e7ff;
-  color: #1d4ed8;
+.btn:hover {
+  background-color: #1d4ed8;
 }
 
 #formHeader {
