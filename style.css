@@ -62,16 +62,21 @@ input, select {
   gap: 18px;
 }
 
-.btn {
-  background-color: #2563eb;
-  color: white;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: background-color 0.2s ease;
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
 }
+
+.button-group .btn {
+  flex: 0 1 calc(33.333% - 16px); /* 3 ปุ่มต่อแถว + gap */
+  box-sizing: border-box;
+  text-align: center;
+}
+
 
 .btn:hover {
   background-color: #1d4ed8;
@@ -87,4 +92,17 @@ input, select {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #ddd;
+}
+
+/* หากจอเล็กลง ให้ปรับเหลือ 2 หรือ 1 */
+@media (max-width: 768px) {
+  .button-group .btn {
+    flex: 0 1 calc(50% - 16px);
+  }
+}
+
+@media (max-width: 480px) {
+  .button-group .btn {
+    flex: 0 1 100%;
+  }
 }
