@@ -18,7 +18,7 @@ body {
 #robotSection {
   display: flex;
   justify-content: center;
-  padding-top: 100px; /* เผื่อพื้นที่ให้ปุ่มลอยอยู่ด้านบน */
+  padding-top: 160px; /* เผื่อพื้นที่ให้ปุ่มลอยอยู่ด้านบน */
   padding-bottom: 32px;
   min-height: 100vh;
   background-color: #f9fafb;
