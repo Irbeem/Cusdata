@@ -216,10 +216,9 @@ function renderSummaries() {
 
 function initMap() {
   map = new google.maps.Map(document.getElementById("map"), {center: { lat: 13.736717, lng: 100.523186 }, zoom: 6 });
-
-}
   directionsRenderer = new google.maps.DirectionsRenderer();
   directionsRenderer.setMap(map);
+}
 
 function generateMap() {
   const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
