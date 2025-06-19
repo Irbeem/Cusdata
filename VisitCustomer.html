@@ -246,32 +246,6 @@ function generateMap() {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
       generateRouteSummary(result, waypoints);
-
-      // วาดหมุดลูกค้า
-      waypoints.forEach(point => {
-        new google.maps.Marker({
-          position: point.location,
-          map: map,
-          label: {
-            text: point.name,
-            color: "white",
-            fontSize: "12px",
-            fontWeight: "bold"
-          },
-          icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 12,
-            fillColor: "#007bff",
-            fillOpacity: 1,
-            strokeColor: "white",
-            strokeWeight: 2
-          }
-        });
-      });
-    } else {
-      alert("Failed to generate map: " + status);
-    }
-  });
 }
 
 function generateRouteSummary(result, waypoints) {
