@@ -1,9 +1,15 @@
-body {
+html, body {
   margin: 0;
+  padding: 0;
+  height: 100%;
   font-family: sans-serif;
-  overflow-y: hidden;
 }
-
+#wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh; /* ใช้ viewport จริง */
+}
 /* HEADER ด้านบน */
 #mainHeader {
   position: sticky;
@@ -15,15 +21,7 @@ body {
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-#wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh; /* ใช้ viewport จริง */
-}
-
-/* ส่วนปุ่มต่าง ๆ */
-/* content ด้านล่าง header */
+/* ส่วนเนื้อหา */
 #robotSection {
   flex: 1;
   display: flex;
@@ -32,9 +30,8 @@ body {
   background-color: #f9fafb;
 }
 
+/* ปุ่มทั้งหมด */
 .button-group {
-  
-  top: 160px; /* อยู่ใต้ header */
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -43,7 +40,6 @@ body {
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  z-index: 500;
 }
 
 #loginWrapper {
@@ -147,13 +143,3 @@ input, select {
     flex: 0 1 100%;
   }
 }
-
-const group = document.querySelector('.button-group');
-const screenHeight = window.innerHeight;
-
-if (group.offsetHeight + 160 < screenHeight) {
-  document.body.style.overflowY = 'hidden';
-} else {
-  document.body.style.overflowY = 'auto';
-}
-
