@@ -289,7 +289,7 @@ function prepareMapForPrint() {
     // รอให้ fitBounds เสร็จก่อนแล้วค่อยลด zoom
     google.maps.event.addListenerOnce(map, 'idle', function() {
         const currentZoom = map.getZoom();
-        map.setZoom(currentZoom + 1);  // <<< เพิ่ม 1 ระดับ 
+        map.setZoom(currentZoom - 1);  // <<< ขยาย 1 ระดับ 
     });
 
   if (typeof window.onbeforeprint === 'function') {
