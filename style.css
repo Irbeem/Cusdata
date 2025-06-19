@@ -4,14 +4,13 @@ html, body {
   padding: 0;
   height: 100vh;
   font-family: sans-serif;
-  overflow: hidden;
 }
 
 /* --- Layout wrapper --- */
 #wrapper {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
 }
 
 /* --- Header ด้านบนเต็ม 100% --- */
@@ -24,21 +23,22 @@ html, body {
   box-sizing: border-box;
 }
 
-/* --- ส่วน content (พื้นที่กลางจอ) --- */
+/* --- ส่วนเนื้อหา --- */
 #contentArea {
   flex: 1;
   display: flex;
   justify-content: center;
   align-items: center;
-  position: relative;
+  padding: 24px;
+  overflow: auto;
 }
 
-/* --- Login อยู่กลาง content --- */
+/* --- Login Form --- */
 #loginWrapper {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 #loginForm {
@@ -68,33 +68,30 @@ input {
   grid-column: span 2;
 }
 
-/* --- Robot Section (ปุ่มทั้งหมด) --- */
+/* --- Robot Section --- */
 #robotSection {
-  width: 100%;
-  max-width: 1200px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   background-color: #f9fafb;
   padding: 24px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  max-width: 1200px;
+  width: 90%;
+  margin: auto;
 }
 
-/* --- ปุ่ม --- */
+/* --- ปุ่มกลุ่ม --- */
 .button-group {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  max-width: 1200px; /* เพิ่มตรงนี้เท่านั้น */
   margin: auto;
 }
 
 .button-group .btn {
-  flex: 1 1 280px; /* แต่ละปุ่มพยายามกว้าง 280px */
+  flex: 0 0 300px;  /* ขนาดแน่นอน 300px ต่อปุ่ม */
   max-width: 300px;
+  min-width: 300px;
   background-color: #2563eb;
   color: white;
   padding: 10px 14px;
@@ -109,14 +106,15 @@ input {
   background-color: #1d4ed8;
 }
 
-/* --- Responsive เพิ่มเติม --- */
-@media (max-width: 900px) {
+/* --- Responsive --- */
+@media (max-width: 1000px) {
   .button-group .btn {
     flex: 1 1 45%;
+    min-width: unset;
   }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 600px) {
   .button-group .btn {
     flex: 1 1 100%;
   }
