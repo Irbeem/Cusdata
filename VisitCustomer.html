@@ -231,6 +231,16 @@ function generateMap() {
   }).filter(Boolean);
   if (!waypoints.length) return alert("No valid addresses found");
   const ds = new google.maps.DirectionsService();
+  
+  let request = {
+  origin,
+  destination: waypoints[waypoints.length-1].location,
+  travelMode: 'DRIVING'
+};
+
+if (waypoints.length > 1) {
+  request.waypoints = waypoints.slice(0,-1).map(w => ({ location: w.location, stopover: true }));
+}
   ds.route({ origin, destination: waypoints[waypoints.length-1].location, waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), travelMode: 'DRIVING' }, (result, status) => {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
