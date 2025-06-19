@@ -65,12 +65,12 @@
 
     const tableBody = document.querySelector("#visitTable tbody");
     const userSelect = document.getElementById("userFilter");
-    let allPlans = [];
+    
 
         const monthSelect = document.getElementById("monthFilter");
         const yearSelect = document.getElementById("yearFilter");
-
-function loadVisitPlans() {
+// let allPlans = [];
+function loadVisitPlansold() {
   db.ref("visit_plan").once("value", snapshot => {
     const data = snapshot.val() || {};
     allPlans = Object.entries(data).map(([key, val]) => ({ ...val, key }));
@@ -85,7 +85,38 @@ function loadVisitPlans() {
     renderTable();
   });
 }
+// new load visit plan
+let allPlans = []; // เก็บแถวที่ flatten แล้ว
 
+function loadVisitPlans() {
+  db.ref("visit_plan").once("value", snapshot => {
+    const data = snapshot.val() || {};
+
+    // แปลงข้อมูลทั้งหมดให้เป็นแบบ flatten (1 ลูกค้า = 1 row)
+    allPlans = [];
+    Object.entries(data).forEach(([key, val]) => {
+      (val.customers || []).forEach(cust => {
+        allPlans.push({
+          key,
+          visitDate: val.visitDate,
+          loginEmail: val.loginEmail,
+          customerName: cust.customerName,
+          loginName: val.loginName
+        });
+      });
+    });
+
+    // ดึง users
+    const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
+    userSelect.innerHTML = '<option value="">All</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+
+    // ดึงปี
+    const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
+    yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
+
+    renderTable();
+  });
+}
 
 let currentPage = 1;
 let pageSize = 10;
@@ -99,9 +130,37 @@ pageSizeSelect.addEventListener("change", () => {
   renderTable();
 });
 
-
-
 function renderTable() {
+  const selectedUser = userSelect.value;
+  const selectedMonth = monthSelect.value;
+  const selectedYear = yearSelect.value;
+
+  const filtered = allPlans.filter(p => {
+    if (selectedUser && p.loginEmail !== selectedUser) return false;
+    if (selectedYear && (!p.visitDate || !p.visitDate.startsWith(selectedYear))) return false;
+    if (selectedMonth && (!p.visitDate || p.visitDate.split("-")[1] !== selectedMonth)) return false;
+    return true;
+  });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const paginatedData = filtered.slice(startIdx, startIdx + pageSize);
+
+  tableBody.innerHTML = paginatedData.map(p => `
+    <tr>
+      <td>${p.visitDate}</td>
+      <td>${p.customerName || '-'}</td>
+      <td>${p.loginEmail || '-'}</td>
+      <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
+    </tr>
+  `).join('');
+
+  renderPaginationControls(totalPages);
+}
+
+function renderTableold () {
   const selectedUser = userSelect.value;
   const selectedMonth = monthSelect.value;
   const selectedYear = yearSelect.value;
