@@ -62,6 +62,23 @@ input, select {
   gap: 18px;
 }
 
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.button-group .btn {
+  flex: 0 1 calc(33.333% - 16px); /* 3 ปุ่มต่อแถว + gap */
+  box-sizing: border-box;
+  text-align: center;
+}
+
+
+
 .btn {
   background-color: #2563eb;
   color: white;
@@ -88,4 +105,3 @@ input, select {
   align-items: center;
   border-bottom: 1px solid #ddd;
 }
-
