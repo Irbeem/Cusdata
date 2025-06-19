@@ -23,7 +23,7 @@
 
 /* ปุ่มทั้งหมด */
 .button-group {
-  max-width: 1200px;
+  max-width: 2000px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
