@@ -86,7 +86,7 @@ input {
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
-  max-width: 1000px;
+  max-width: 1200px; /* เพิ่มตรงนี้เท่านั้น */
   margin: auto;
 }
 
