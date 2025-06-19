@@ -1,15 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate">
-  <title>Visit Summary Advanced</title>
+  <title>Visit Summary (By Customer - Select User)</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; max-width: 1000px; margin: auto; }
     select, button { margin: 5px 10px 15px 0; padding: 6px; }
@@ -20,19 +21,24 @@
 <body>
 
 <div id="mainContent">
-  <h2>📊 Visit Plan Summary (Advanced)</h2>
+  <h2>📊 Visit Plan Summary (By Customer)</h2>
 
-<label for="fromDate">From Date:</label>
-<input type="date" id="fromDate">
+  <label for="fromDate">From:</label>
+  <input type="date" id="fromDate">
 
-<label for="toDate">To Date:</label>
-<input type="date" id="toDate">
+  <label for="toDate">To:</label>
+  <input type="date" id="toDate">
+
+  <label for="userFilter">User:</label>
+  <select id="userFilter">
+    <option value="">All Users</option>
+  </select>
 
   <label for="viewType">View:</label>
   <select id="viewType">
-    <option value="monthly_total">Monthly (All Users)</option>
+    <option value="monthly_total">Monthly (All)</option>
     <option value="monthly_by_user">Monthly (Per User)</option>
-    <option value="yearly_total">Yearly (All Users)</option>
+    <option value="yearly_total">Yearly (All)</option>
     <option value="yearly_by_user">Yearly (Per User)</option>
   </select>
 
@@ -53,10 +59,7 @@ firebase.initializeApp(firebaseConfig);
 
 let allData = [];
 let chart;
-
-const fromDate = document.getElementById("fromDate");
-const toDate = document.getElementById("toDate");
-const viewType = document.getElementById("viewType");
+const userNameMap = {};  // email => name
 
 firebase.auth().onAuthStateChanged(user => {
   if (!user) return window.location.href = "index.html";
@@ -64,103 +67,104 @@ firebase.auth().onAuthStateChanged(user => {
 
   firebase.database().ref("visit_plan").once("value", snapshot => {
     const raw = snapshot.val() || {};
-    allData = Object.values(raw).filter(p => p.visitDate && p.loginEmail);
+
+    allData = Object.entries(raw).flatMap(([key, plan]) => 
+      (plan.customers || []).map(cust => {
+        if (plan.loginEmail && plan.loginName) {
+          userNameMap[plan.loginEmail] = plan.loginName;
+        }
+        return {
+          visitDate: plan.visitDate,
+          loginEmail: plan.loginEmail,
+          loginName: plan.loginName,
+          customerName: cust.customerName
+        };
+      })
+    ).filter(row => row.customerName);
+
+    populateUserFilter();
     renderChart();
   });
 });
 
-[fromDate, toDate, viewType].forEach(e => e.addEventListener("change", renderChart));
+function populateUserFilter() {
+  const userSelect = document.getElementById("userFilter");
+  const users = [...new Set(allData.map(p => p.loginEmail))];
+  userSelect.innerHTML = '<option value="">All Users</option>' +
+    users.map(u => `<option value="${u}">${userNameMap[u] || u}</option>`).join('');
+}
 
-document.getElementById("fromDate").addEventListener("change", renderChart);
-document.getElementById("toDate").addEventListener("change", renderChart);
+document.querySelectorAll("#fromDate, #toDate, #viewType, #userFilter").forEach(e => e.addEventListener("change", renderChart));
 
 function renderChart() {
   const type = viewType.value;
+  const fd = fromDate.value;
+  const td = toDate.value;
+  const selectedUser = document.getElementById("userFilter").value;
 
-const fd = fromDate.value;
-const td = toDate.value;
-
-const filtered = allData.filter(p => {
-  if (!p.visitDate) return false;
-  const date = p.visitDate;
-  if (fd && date < fd) return false;
-  if (td && date > td) return false;
-  return true;
-});
-
-
-
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  let labels = [], datasets = [];
-
-if (type === "monthly_total" || type === "monthly_by_user") {
-  const monthMap = {}; // key = YYYY-MM
-  const users = [...new Set(filtered.map(p => p.loginEmail))];
-
-  // รวบรวมข้อมูลแบบ key = YYYY-MM
-  filtered.forEach(p => {
-    const d = new Date(p.visitDate);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    if (!monthMap[key]) monthMap[key] = {};
-    const user = p.loginEmail;
-    monthMap[key][user] = (monthMap[key][user] || 0) + 1;
+  let filtered = allData.filter(p => {
+    if (!p.visitDate) return false;
+    if (fd && p.visitDate < fd) return false;
+    if (td && p.visitDate > td) return false;
+    if (selectedUser && p.loginEmail !== selectedUser) return false;
+    return true;
   });
 
-  // เรียงเดือนแบบมีปี
-  labels = Object.keys(monthMap).sort();
+  let labels = [], datasets = [];
 
-  if (type === "monthly_total") {
-    const totals = labels.map(label => {
-      const monthlyData = monthMap[label];
-      return Object.values(monthlyData).reduce((sum, v) => sum + v, 0);
-    });
-    datasets = [{
-      label: "Total Visits",
-      data: totals,
-      backgroundColor: "#007bff"
-    }];
-  }
-
-  else if (type === "monthly_by_user") {
-    datasets = users.map(user => {
-      const data = labels.map(label => monthMap[label][user] || 0);
-      return {
-        label: user,
-        data,
-        backgroundColor: getRandomColor()
-      };
-    });
-  }
-}
-
-
-  else if (type === "yearly_total") {
-    const yearMap = {};
-    filtered.forEach(p => {
-      const y = p.visitDate.split('-')[0];
-      yearMap[y] = (yearMap[y] || 0) + 1;
-    });
-    labels = Object.keys(yearMap).sort();
-    datasets = [{
-      label: "Total Visits",
-      data: labels.map(y => yearMap[y]),
-      backgroundColor: "#28a745"
-    }];
-  }
-
-  else if (type === "yearly_by_user") {
-    const years = [...new Set(filtered.map(p => p.visitDate.split('-')[0]))].sort();
+  if (type.startsWith("monthly")) {
+    const monthMap = {};
     const users = [...new Set(filtered.map(p => p.loginEmail))];
-    labels = years;
-    datasets = users.map(user => {
-      const counts = years.map(y => filtered.filter(p => p.loginEmail === user && p.visitDate.startsWith(y)).length);
-      return {
-        label: user,
-        data: counts,
-        backgroundColor: getRandomColor()
-      };
+
+    filtered.forEach(p => {
+      const d = new Date(p.visitDate);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if (!monthMap[key]) monthMap[key] = {};
+      monthMap[key][p.loginEmail] = (monthMap[key][p.loginEmail] || 0) + 1;
     });
+
+    labels = Object.keys(monthMap).sort();
+
+    if (type === "monthly_total") {
+      datasets = [{
+        label: "Total Customers Visited",
+        data: labels.map(l => Object.values(monthMap[l]).reduce((a,b)=>a+b,0)),
+        backgroundColor: "#007bff"
+      }];
+    } else {
+      datasets = users.map(user => ({
+        label: userNameMap[user] || user,
+        data: labels.map(l => monthMap[l][user] || 0),
+        backgroundColor: getRandomColor()
+      }));
+    }
+  }
+
+  if (type.startsWith("yearly")) {
+    const yearMap = {};
+    const users = [...new Set(filtered.map(p => p.loginEmail))];
+
+    filtered.forEach(p => {
+      const year = p.visitDate.split('-')[0];
+      if (!yearMap[year]) yearMap[year] = {};
+      yearMap[year][p.loginEmail] = (yearMap[year][p.loginEmail] || 0) + 1;
+    });
+
+    labels = Object.keys(yearMap).sort();
+
+    if (type === "yearly_total") {
+      datasets = [{
+        label: "Total Customers Visited",
+        data: labels.map(l => Object.values(yearMap[l]).reduce((a,b)=>a+b,0)),
+        backgroundColor: "#28a745"
+      }];
+    } else {
+      datasets = users.map(user => ({
+        label: userNameMap[user] || user,
+        data: labels.map(l => yearMap[l][user] || 0),
+        backgroundColor: getRandomColor()
+      }));
+    }
   }
 
   if (chart) chart.destroy();
@@ -178,19 +182,16 @@ if (type === "monthly_total" || type === "monthly_by_user") {
         },
         legend: { position: 'top' }
       },
-      scales: {
-        y: { beginAtZero: true }
-      }
+      scales: { y: { beginAtZero: true } }
     }
   });
 }
 
 function getRandomColor() {
   const letters = '89ABCDEF';
-  return '#' + Array(6).fill().map(() => letters[Math.floor(Math.random() * letters.length)]).join('');
+  return '#' + Array(6).fill().map(() => letters[Math.floor(Math.random()*letters.length)]).join('');
 }
 
-// 🖼 Export PNG
 function exportPNG() {
   const link = document.createElement('a');
   link.download = "visit_chart.png";
@@ -198,7 +199,6 @@ function exportPNG() {
   link.click();
 }
 
-// 📄 Export PDF
 function exportPDF() {
   html2canvas(document.getElementById("visitChart")).then(canvas => {
     const imgData = canvas.toDataURL("image/png");
