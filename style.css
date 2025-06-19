@@ -70,6 +70,8 @@ input {
 
 /* --- Robot Section (ปุ่มทั้งหมด) --- */
 #robotSection {
+  width: 100%;
+  max-width: 1200px;
   position: absolute;
   top: 50%;
   left: 50%;
