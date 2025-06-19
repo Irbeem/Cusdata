@@ -1,8 +1,12 @@
-#wrapper {
-  position: relative;
+html, body {
+  margin: 0;
+  padding: 0;
   height: 100vh;
+  font-family: sans-serif;
+  overflow: hidden;
 }
 
+/* Header */
 #mainHeader {
   background-color: #1e40af;
   color: white;
@@ -10,6 +14,48 @@
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
+/* Layout wrapper */
+#wrapper {
+  position: relative;
+  height: 100vh;
+}
+
+/* Login Section */
+#loginWrapper {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#loginForm {
+  background-color: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 4px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+}
+
+.full {
+  grid-column: span 2;
+}
+
+/* Robot Section */
 #robotSection {
   position: absolute;
   top: 50%;
@@ -21,7 +67,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* ปุ่มทั้งหมด */
+/* ปุ่ม */
 .button-group {
   max-width: 700px;
   display: flex;
@@ -33,100 +79,6 @@
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
-#loginWrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
-
-#loginForm {
-  background-color: white;
-  padding: 32px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
-}
-
-
-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-label {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: bold;
-}
-
-input, select {
-  width: 100%;
-  padding: 6px;
-}
-
-.full {
-  grid-column: span 2;
-}
-
-#robotForm, #logoutBtn, #robotviewer {
-  display: none;
-}
-
-
-.section {
-  background-color: #e0f7fa;
-  padding: 16px;
-  border-radius: 8px;
-}
-
-.section:nth-of-type(2), .section:nth-of-type(3) {
-  background-color: #fce4ec;
-}
-
-.section h3 {
-  grid-column: span 2;
-  margin-top: 0;
-}
-
-
-#formHeader {
-  position: sticky;
-  top: 0;
-  background-color: white;
-  padding: 10px 0;
-  z-index: 1000;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #ddd;
-}
-
-/* หากจอเล็กลง ให้ปรับเหลือ 2 หรือ 1 */
-@media (max-width: 768px) {
-  .button-group .btn {
-    flex: 0 1 calc(50% - 16px);
-  }
-}
-
-@media (max-width: 480px) {
-  .button-group .btn {
-    flex: 0 1 100%;
-  }
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  font-family: sans-serif;
-  overflow: hidden; /* ปิด scroll ไปเลย */
-}
-
 
 .button-group .btn {
   flex: 0 1 calc(33.333% - 16px);
@@ -144,3 +96,14 @@ html, body {
   background-color: #1d4ed8;
 }
 
+/* Responsive */
+@media (max-width: 768px) {
+  .button-group .btn {
+    flex: 0 1 calc(50% - 16px);
+  }
+}
+@media (max-width: 480px) {
+  .button-group .btn {
+    flex: 0 1 100%;
+  }
+}
