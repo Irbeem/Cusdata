@@ -1,44 +1,6 @@
-#wrapper {
-  position: relative;
-  height: 100vh;
-}
-
-#mainHeader {
-  background-color: #1e40af;
-  color: white;
-  padding: 16px 32px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-}
-
-#robotSection {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: #f9fafb;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* ปุ่มทั้งหมด */
-.button-group {
-  max-width: 2000px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  background-color: #f9fafb;
+body {
+  font-family: sans-serif;
   padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-
-#loginWrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
 }
 
 #loginForm {
@@ -46,10 +8,13 @@
   padding: 32px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
   width: 100%;
   max-width: 400px;
 }
-
 
 form {
   display: grid;
@@ -73,10 +38,9 @@ input, select {
   grid-column: span 2;
 }
 
-#robotForm, #logoutBtn, #robotviewer {
+#robotForm, #logoutBtn, #robotSection, #robotviewer {
   display: none;
 }
-
 
 .section {
   background-color: #e0f7fa;
@@ -93,6 +57,42 @@ input, select {
   margin-top: 0;
 }
 
+.button-group {
+  display: flex;
+  gap: 18px;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.button-group .btn {
+  flex: 0 1 calc(33.333% - 16px); /* 3 ปุ่มต่อแถว + gap */
+  box-sizing: border-box;
+  text-align: center;
+}
+
+
+
+.btn {
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+}
+
+.btn:hover {
+  background-color: #1d4ed8;
+}
 
 #formHeader {
   position: sticky;
@@ -104,42 +104,4 @@ input, select {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #ddd;
-}
-
-/* หากจอเล็กลง ให้ปรับเหลือ 2 หรือ 1 */
-@media (max-width: 768px) {
-  .button-group .btn {
-    flex: 0 1 calc(50% - 16px);
-  }
-}
-
-@media (max-width: 480px) {
-  .button-group .btn {
-    flex: 0 1 100%;
-  }
-}
-
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100vh;
-  font-family: sans-serif;
-  overflow: hidden; /* ปิด scroll ไปเลย */
-}
-
-
-.button-group .btn {
-  flex: 1 1 300px; /* ทุกปุ่มพยายามกิน 300px ก่อน ถ้าเต็มค่อย wrap */
-  background-color: #2563eb;
-  color: white;
-  padding: 10px 14px;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: bold;
-  text-align: center;
-  transition: background-color 0.2s ease;
-}
-
-.button-group .btn:hover {
-  background-color: #1d4ed8;
 }
