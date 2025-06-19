@@ -269,6 +269,29 @@ document.getElementById("printBtn").addEventListener("click", () => {
 
 function prepareMapForPrint() {
   // Trigger onbeforeprint (simulate mouseout)
+  // map.setZoom(4);  // <<< ใส่ตรงนี้เลย ปรับตามที่คุณต้องการ
+  const bounds = new google.maps.LatLngBounds();
+    
+    // รวม origin ด้วย
+    const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
+    bounds.extend(new google.maps.LatLng(originCoords[0], originCoords[1]));
+
+    customers.forEach(cust => {
+        const data = allData.find(d => d["Customer name"] === cust.name);
+        if (data && data.Address) {
+            const [lat, lng] = data.Address.split(",").map(parseFloat);
+            bounds.extend(new google.maps.LatLng(lat, lng));
+        }
+    });
+
+    map.fitBounds(bounds);  // ให้ Google คำนวณขอบเขตก่อน
+
+    // รอให้ fitBounds เสร็จก่อนแล้วค่อยลด zoom
+    google.maps.event.addListenerOnce(map, 'idle', function() {
+        const currentZoom = map.getZoom();
+        map.setZoom(currentZoom + 1);  // <<< เพิ่ม 1 ระดับ 
+    });
+
   if (typeof window.onbeforeprint === 'function') {
     window.onbeforeprint();
   }
