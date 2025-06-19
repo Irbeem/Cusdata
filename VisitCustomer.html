@@ -235,34 +235,7 @@ function generateMap() {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
       
-      // ตรงนี้ใช้ปรับหมุดที่ปัก หลังจากวาด route เสร็จ เราสร้างหมุดชื่อเอง
-      waypoints.forEach(point => {
-        new google.maps.Marker({
-           position: point.location,
-           map: map,
-           label: {
-            text: point.name, // ชื่อลูกค้า
-            color: "white",
-            fontSize: "12px",  // ปรับขนาดอักษรตามความเหมาะสม
-            fontWeight: "bold"
-           },
-           icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 12, // ขนาดวงกลม
-            fillColor: "#007bff",
-            fillOpacity: 1,
-            strokeColor: "white",
-            strokeWeight: 2
-          }
-       });
-    });
-      generateRouteSummary(result, waypoints);
-    } else {
-      alert("Failed to generate map: "+status);
-    }
-  });
-}
-
+     
 function generateRouteSummary(result, waypoints) {
   const legs = result.routes[0].legs;
   let html = `<h3>Route Summary</h3><table><tr><th>Customer</th><th>Distance</th><th>Time</th></tr>`;
