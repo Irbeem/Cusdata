@@ -1,22 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="google" content="notranslate">
+  <meta charset="UTF-8">
   <title>Visit Plan Detail</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; max-width: 700px; margin: auto; }
-    h2 { margin-bottom: 20px; }
-    .field { margin-bottom: 10px; }
-    .label { font-weight: bold; display: inline-block; width: 150px; }
-    .value { display: inline-block; color: #333; }
+    .block { margin-bottom: 25px; border: 1px solid #ccc; border-radius: 8px; padding: 15px; }
+    h2 { color: #007bff; }
+    .title { font-weight: bold; margin-top: 10px; }
   </style>
 </head>
 <body>
+
   <h2>Visit Plan Detail</h2>
-  <div id="detailContainer">Loading...</div>
+
+  <div id="generalInfo"></div>
+
+  <div id="customerBlocks"></div>
 
   <script>
     const firebaseConfig = {
@@ -28,45 +31,65 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // ดึง ID จาก URL
     const params = new URLSearchParams(window.location.search);
-    const planId = params.get("id");
+    const id = params.get('id');
+    if (!id) {
+      alert("No ID provided.");
+      throw new Error("No ID");
+    }
 
-    if (!planId) {
-      document.getElementById("detailContainer").innerHTML = "❌ ไม่พบข้อมูล ID";
-    } else {
-      db.ref("visit_plan/" + planId).once("value", snapshot => {
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) {
+        window.location.href = "index.html";
+        return;
+      }
+      loadVisitPlan();
+    });
+
+    function loadVisitPlan() {
+      db.ref("visit_plan/" + id).once("value", snapshot => {
         const data = snapshot.val();
         if (!data) {
-          document.getElementById("detailContainer").innerHTML = "❌ ไม่พบข้อมูลในฐาน";
+          alert("No data found");
           return;
         }
 
-        const fields = [
-          ["visitDate", "Visit Date"],
-          ["bookingTimeIn", "Time In"],
-          ["bookingTimeOut", "Time Out"],
-          ["customerName", "Customer"],
-          ["startFrom", "Start From"],
-          ["companion", "Companion"],
-          ["contactName", "Contact"],
-          ["situation", "Situation"],
-          ["visitDetail", "Detail"],
-          ["opinion", "Opinion"],
-          ["loginName", "User Name"],
-          ["loginEmail", "Email"]
-        ];
-
-        const html = fields.map(([key, label]) => `
-          <div class="field">
-            <span class="label">${label}:</span>
-            <span class="value">${data[key] || "-"}</span>
+        // แสดง General Info
+        document.getElementById("generalInfo").innerHTML = `
+          <div class="block">
+            <div class="title">Visit Date:</div> ${data.visitDate || '-'}
+            <div class="title">User Name:</div> ${data.loginName || '-'}
+            <div class="title">Email:</div> ${data.loginEmail || '-'}
           </div>
-        `).join("");
+        `;
 
-        document.getElementById("detailContainer").innerHTML = html;
+        const container = document.getElementById("customerBlocks");
+        container.innerHTML = "";
+
+        let startFrom = data.startFrom || "-";
+        (data.customers || []).forEach((cust, index) => {
+          const block = document.createElement("div");
+          block.className = "block";
+          block.innerHTML = `
+            <div class="title">No. ${index + 1}</div>
+            <div class="title">Start From:</div> ${startFrom}
+            <div class="title">Customer:</div> ${cust.customerName || '-'}
+            <div class="title">Time In:</div> ${cust.bookingTimeIn || '-'}
+            <div class="title">Time Out:</div> ${cust.bookingTimeOut || '-'}
+            <div class="title">Companion:</div> ${cust.companion || '-'}
+            <div class="title">Contact:</div> ${cust.contactName || '-'}
+            <div class="title">Situation:</div> ${cust.situation || '-'}
+            <div class="title">Detail:</div> ${cust.visitDetail || '-'}
+            <div class="title">Opinion:</div> ${cust.opinion || '-'}
+          `;
+          container.appendChild(block);
+
+          // เตรียม Start From สำหรับลูกค้าถัดไป
+          startFrom = cust.customerName || startFrom;
+        });
       });
     }
   </script>
+
 </body>
 </html>
