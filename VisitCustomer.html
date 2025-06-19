@@ -234,6 +234,28 @@ function generateMap() {
   ds.route({ origin, destination: waypoints[waypoints.length-1].location, waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), travelMode: 'DRIVING' }, (result, status) => {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
+      
+      // ตรงนี้ใช้ปรับหมุดที่ปัก หลังจากวาด route เสร็จ เราสร้างหมุดชื่อเอง
+      waypoints.forEach(point => {
+        new google.maps.Marker({
+           position: point.location,
+           map: map,
+           label: {
+            text: point.name, // ชื่อลูกค้า
+            color: "white",
+            fontSize: "12px",  // ปรับขนาดอักษรตามความเหมาะสม
+            fontWeight: "bold"
+           },
+           icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 12, // ขนาดวงกลม
+            fillColor: "#007bff",
+            fillOpacity: 1,
+            strokeColor: "white",
+            strokeWeight: 2
+          }
+       });
+    });
       generateRouteSummary(result, waypoints);
     } else {
       alert("Failed to generate map: "+status);
