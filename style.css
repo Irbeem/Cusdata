@@ -129,7 +129,7 @@ html, body {
 
 
 .button-group .btn {
-  flex: 0 1 calc(33.333% - 16px);
+  flex: 1 1 300px; /* ทุกปุ่มพยายามกิน 300px ก่อน ถ้าเต็มค่อย wrap */
   background-color: #2563eb;
   color: white;
   padding: 10px 14px;
