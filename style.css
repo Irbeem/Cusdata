@@ -33,7 +33,7 @@ body {
 }
 
 .button-group {
-  position: fixed;
+  
   top: 160px; /* อยู่ใต้ header */
   display: flex;
   flex-wrap: wrap;
