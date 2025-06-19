@@ -1,37 +1,29 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: sans-serif;
-}
 #wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh; /* ใช้ viewport จริง */
+  position: relative;
+  height: 100vh;
 }
-/* HEADER ด้านบน */
+
 #mainHeader {
-  position: sticky;
-  top: 0;
   background-color: #1e40af;
   color: white;
   padding: 16px 32px;
-  z-index: 1000;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* ส่วนเนื้อหา */
 #robotSection {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background-color: #f9fafb;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* ปุ่มทั้งหมด */
 .button-group {
+  max-width: 700px;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -85,23 +77,6 @@ input, select {
   display: none;
 }
 
-.button-group .btn {
-  flex: 0 1 calc(33.333% - 16px); /* 3 ปุ่มต่อแถว + gap */
-  box-sizing: border-box;
-  text-align: center;
-  background-color: #2563eb;
-  color: white;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: bold;
-  transition: background-color 0.2s ease;
-}
-
-.btn:hover {
-  background-color: #1d4ed8;
-}
 
 .section {
   background-color: #e0f7fa;
@@ -143,3 +118,29 @@ input, select {
     flex: 0 1 100%;
   }
 }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  font-family: sans-serif;
+  overflow: hidden; /* ปิด scroll ไปเลย */
+}
+
+
+.button-group .btn {
+  flex: 0 1 calc(33.333% - 16px);
+  background-color: #2563eb;
+  color: white;
+  padding: 10px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: bold;
+  text-align: center;
+  transition: background-color 0.2s ease;
+}
+
+.button-group .btn:hover {
+  background-color: #1d4ed8;
+}
+
