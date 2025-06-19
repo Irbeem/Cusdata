@@ -7,31 +7,44 @@
   <script type="module" src="main.js" defer></script>
 </head>
 <body>
+
+  <!-- ส่วน Wrapper ทั้งหมด -->
+  <div id="wrapper">
+
+    <!-- ส่วน Header ด้านบน -->
     <header id="mainHeader">
-    <h1>🤖 YAPT Customer Service Portal</h1>
-  </header>
-  <div id="loginWrapper">
-    <form id="loginForm">
-      <h2>Login</h2><br>
-      <div><label>Email</label><input type="email" name="email" required></div>
-      <div><label>Password</label><input type="password" name="password" required></div>
-      <div class="full"><br><button class="btn" type="submit">Login</button></div>
-    </form>
-  </div>
-<div id="wrapper">
-  <div id="robotSection">
-    <div class="button-group">
-      <a href="input_form_new.html" class="btn" target="_blank">📝 Robot Data Input</a>
-      <a href="region.html" class="btn" target="_blank">🤖 RobotMap</a>
-      <a href="view5.html" class="btn" target="_blank">📊 View All Data</a>
-      <a href="VisitCustomer.html" class="btn" target="_blank">🗓️Create Visit plan</a>
-      <a href="visit_view.html" class="btn" target="_blank">🗓️View Visit plan</a>
-      <a href="visit_summary.html" class="btn" target="_blank">🗓️View summary</a>
-      <button id="logoutBtn" class="btn">🔒 LogOut</button>
-    </div>
-  </div>
-</div>  
+      <h1>🤖 YAPT Customer Service Portal</h1>
+    </header>
+
+    <!-- ส่วน Content หลัก -->
+    <div id="contentArea">
+      
+      <!-- Login Section -->
+      <div id="loginWrapper">
+        <form id="loginForm">
+          <h2>Login</h2><br>
+          <div><label>Email</label><input type="email" name="email" required></div>
+          <div><label>Password</label><input type="password" name="password" required></div>
+          <div class="full"><br><button class="btn" type="submit">Login</button></div>
+        </form>
+      </div>
+
+      <!-- Robot Section -->
+      <div id="robotSection">
+        <div class="button-group">
+          <a href="input_form_new.html" class="btn" target="_blank">📝 Robot Data Input</a>
+          <a href="region.html" class="btn" target="_blank">🤖 RobotMap</a>
+          <a href="view5.html" class="btn" target="_blank">📊 View All Data</a>
+          <a href="VisitCustomer.html" class="btn" target="_blank">🗓️Create Visit plan</a>
+          <a href="visit_view.html" class="btn" target="_blank">🗓️View Visit plan</a>
+          <a href="visit_summary.html" class="btn" target="_blank">🗓️View summary</a>
+          <button id="logoutBtn" class="btn">🔒 LogOut</button>
+        </div>
+      </div>
+
+    </div> <!-- contentArea -->
+
+  </div> <!-- wrapper -->
+
 </body>
-
-
 </html>
