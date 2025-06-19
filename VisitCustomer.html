@@ -214,16 +214,12 @@ function renderSummaries() {
   });
 }
 
-  function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 13.736717, lng: 100.523186 },
-    zoom: 6
-  });
-  directionsRenderer = new google.maps.DirectionsRenderer({
-    map: map   
-  });
-}
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {center: { lat: 13.736717, lng: 100.523186 }, zoom: 6 });
 
+}
+  directionsRenderer = new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(map);
 
 function generateMap() {
   const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
@@ -235,17 +231,15 @@ function generateMap() {
     return { name: cust.name, location: { lat, lng } };
   }).filter(Boolean);
   if (!waypoints.length) return alert("No valid addresses found");
-
   const ds = new google.maps.DirectionsService();
-  ds.route({
-    origin, 
-    destination: waypoints[waypoints.length-1].location, 
-    waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), 
-    travelMode: 'DRIVING' 
-  }, (result, status) => {
+  ds.route({ origin, destination: waypoints[waypoints.length-1].location, waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), travelMode: 'DRIVING' }, (result, status) => {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
       generateRouteSummary(result, waypoints);
+    } else {
+      alert("Failed to generate map: "+status);
+    }
+  });
 }
 
 function generateRouteSummary(result, waypoints) {
