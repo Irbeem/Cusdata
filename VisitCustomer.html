@@ -1,387 +1,270 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="google" content="notranslate">
-  <title>Customer Robot Summary</title>
+  <title>Multi-Customer Visit Plan - FINAL FULL PRINTABLE</title>
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap&language=en" async defer></script>
   <style>
-    body { font-family: sans-serif; margin: 20px; display: flex; flex-direction: column; }
-    .top-panel { display: flex; flex-direction: row; gap: 20px; }
-    .left-panel { width: 50%; }
-    .right-panel { width: 50%; }
-    .hidden { display: none; }
-    select, input[type="text"] {
-      padding: 8px;
-      margin: 5px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: 100%;
-    }
-    textarea {
-      padding: 8px;
-      margin: 5px 0;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      width: 95%;
-            resize: vertical;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 20px;
-            table-layout: auto; /* ให้คอลัมน์ปรับตามเนื้อหา */
-    }
-    th, td {
-      /* padding: 4px; ขนาดกรอบสีฟ้า*/
-            padding: 2px 6px;
-      border: 1px solid #ccc;
-           text-align: left; /* << จัดชิดซ้าย */
-    }
-    th { 
-      background-color: #007bff; 
-      color: white;
-          white-space: nowrap; /* ไม่ตัดบรรทัดทำให้ความกว้างพอดีข้อความ */
-          width: 1%; /* บีบให้กว้างเท่าที่จำเป็น */ 
-      padding-top: 10px; /* เพิ่มระยะห่างด้านบน */
-    }
-    button {
-      background-color: #28a745;
-      color: white;
-      padding: 10px 14px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    h3 { margin-top: 30px; }
-    #map { height: 500px; margin-top: 30px; page-break-before: always; }
+    body { font-family: sans-serif; margin: 20px; }
+    .container { display: flex; }
+    .left-panel { width: 50%; padding-right: 20px; }
+    .right-panel { width: 50%; page-break-before: always; }
+    .customer-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .customer-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 100%; position: relative; margin: auto;  /* ชิดกลางเวลาแสดงปกติ */ }
+    .remove-btn { position: absolute; top: 8px; right: 8px; background: red; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-weight: bold; cursor: pointer; font-size: 20px;  /* เพิ่มขนาดตัวอักษรด้วย */ }
+    input, select { padding: 6px; margin: 4px 0; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+    textarea { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; width: 95%; resize: none; overflow: hidden; }
+    button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; margin-top: 10px; }
+    .green { background-color: #28a745; color: white; }
+    label { background-color: #007bff; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
+    #map { height: 500px; margin-top: 20px; }
+    .summary-container { display: block; }
+    .summary-block { border: 2px solid #2c3e50; border-radius: 6px; padding: 10px; background-color: #ecf0f1; margin-bottom: 20px; }
+    .summary-block h4 { background-color: #2980b9; color: white; padding: 6px; border-radius: 4px; text-align: center; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    .compact-input { width: 160px; display: inline-block; }
+    #routeSummary { page-break-before: always; }
 
-@media print {
-  /* ซ่อน control ต่าง ๆ ของ Google Map ตอน print */
-  .gmnoprint, 
-  .gm-style-cc,
-  .gm-style-mtc, 
-  .gm-control-active,
-  .gm-fullscreen-control,
-  .gm-svpc,
-  .gm-bundled-control {
-    display: none !important;
-  }
-
-  /* ซ่อนข้อความ Ctrl + Scroll */
-  .gm-style > div:first-child > div[role="button"] {
-    display: none !important;
-  }
-}
-
-
-  /* สำหรับ Chrome และ Edge */
-  .calendar-only::-webkit-datetime-edit {
-    color: transparent;
-  }
-  .calendar-only::-webkit-inner-spin-button,
-  .calendar-only::-webkit-clear-button {
-    display: none;
-  }
-
-
+    @media print {
+      .container { display: block; }
+      .left-panel, .right-panel { width: 100%; }
+      button, .remove-btn { display: none; }
+      .customer-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+      .customer-card { page-break-inside: avoid; width: 80%; }
+            .summary-block:not(:first-child) {page-break-before: always;}
+    }
   </style>
 </head>
 <body>
-<div id="mainPanel">
-  <div class="top-panel">
-
-<div class="left-panel">
-<div style="margin: 10px 0;">
-
-	<div style="display: flex; align-items: center; gap: 10px;">
-  	    <h3 style="margin: 0;">Visit Planning</h3>
-  	    <span id="visitDate" style="font-weight: bold; color: #333; font-size: 14px;"></span>
-	</div>
-
-  <!-- Visit Date -->
-      <div style="display: flex; align-items: center; gap: 10px;">
-        <label for="visitDateInput" style="font-weight: bold;">Visit Date :</label>
-        <input type="date" id="visitDateInput" >
-      </div>
-
-
-  <!-- Booking Time (ขึ้นบรรทัดใหม่) -->
-  <div style="display: flex; align-items: center; gap: 10px;">
-    <label for="visitTimeInput1" style="font-weight: bold;">Booking Time :</label>
-    <select id="visitTimeInput1" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-      <!-- filled with JS -->
-    </select>
-    <label for="visitTimeInput2" style="font-weight: bold;">to</label>
-    <select id="visitTimeInput2" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-      <!-- filled with JS -->
-    </select>
+<h2>Multi-Customer Visit Plan - FINAL FULL PRINTABLE</h2>
+<div class="container">
+  <div class="left-panel">
+    <label>Visit Date:</label>
+    <input type="date" id="visitDateInput" class="compact-input"><br>
+    <label>Start From:</label>
+    <select id="originSelect" class="compact-input">
+      <option value="13.784431483421942,100.58041213808076">Yaskawa BKK</option>
+      <option value="13.092777336086302,101.06298540923027">Yaskawa Chonburi</option>
+    </select><br>
+    <div id="customerContainer" class="customer-container"></div>
+        <button id="addCustomerBtn" class="green">+ Add Customer</button>
+     <button id="generateBtn" class="green">Validate & Generate Map</button>
+        <button id="saveBtn" class="green">Save Visit Plan</button>
+    <button id="printBtn" class="green">Print / Export PDF</button>
+  </div>
+  <div class="right-panel">
+    <h3>Summary Per Customer</h3>
+    <div id="summaryContainer" class="summary-container"></div>
   </div>
 </div>
-
-<table>
-   <tr><th>Companion</th></tr>
-  <tr><td><textarea id="companion" rows="2" placeholder="e.g.,Mr.Prapat, Mr.Kitisak"></textarea></td></tr>
-
-  <tr><th>Customer Contact Name</th></tr>
-  <tr><td><textarea id="contactName" rows="2" placeholder="e.g.,Mr.Customer  Tel. ... "></textarea></td></tr>
-
-  <tr><th>Customer's Situation</th></tr>
-  <tr><td><textarea id="situation" rows="2"></textarea></td></tr>
-
-  <tr><th>Visit Detail</th></tr>
-  <tr><td><textarea id="detail" rows="2"></textarea></td></tr>
-
-  <tr><th>Your opinion</th></tr>
-  <tr><td><textarea id="opinion" rows="2"></textarea></td></tr>
-</table>
-
-    <button onclick="saveVisitPlan()">Save Plan</button> 
-    <button onclick="prepareMapForPrint()">Print Plan</button>
-
-      <div id="partSummaryContainer">
-        <h3>Part Purchase Summary</h3>
-        <div id="partSummaryTable"></div>
-      </div>
-    </div>
-
-    <div class="right-panel">
-      <label for="originSelect">Start from:</label>
-      <select id="originSelect">
-        <option value="13.784431483421942, 100.58041213808076">Yaskawa BKK</option>
-        <option value="13.092777336086302, 101.06298540923027">Yaskawa Chonburi</option>
-       
-      </select>
-
-<label for="customerSelect">Customer Name:</label>
-<select id="customerSelect"><option value="">Select</option></select>
-<div id="sapNumFromCustomer"></div>
-<label><input type="checkbox" id="showMap"> Show on Map</label>
-<button onclick="loadCustomerData()">Show Summary</button>
-
-      <div id="summaryTable"></div>
-      <div id="controllerTable"></div>
-
-    </div>
-  </div>
-
-<!-- ข้อมูลเส้นทางด้านบน -->
-<div id="routeInfoTop" style="margin-top: 10px; font-weight: bold;"></div>
-
-<!-- แผนที่ -->
+<div id="routeSummary"></div>
 <div id="map"></div>
 
-<!-- ข้อมูลเส้นทางด้านล่าง -->
-<div id="routeInfoBottom" style="margin-top: 10px; font-weight: bold;   margin-top: 15px; font-size: 16px;color: #333;"></div>
-</div>
-
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
-  authDomain: "custdata-92ebe.firebaseapp.com",
-  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "custdata-92ebe"
-};
+const firebaseConfig = { apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0", authDomain: "custdata-92ebe.firebaseapp.com", databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "custdata-92ebe" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let allData = [], map;
-let directionsRenderer;
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {
-    center: { lat: 13.736717, lng: 100.523186 },
-    zoom: 6,
-    gestureHandling: "cooperative", // ✅ ปิดคำเตือน Ctrl + scroll
-    zoomControl: true
-  });
-}
+let allData = [], allCustomers = [], customers = [], partData = [];
 
 firebase.auth().onAuthStateChanged(user => {
-  if (!user) return window.location.href = "index.html";
-  document.getElementById("mainPanel").classList.remove("hidden");
-
-  db.ref("robot_data").once("value", snapshot => {
-    allData = Object.values(snapshot.val() || {});
-    const customers = new Set(allData.map(d => d["Customer name"]).filter(Boolean));
-    const sel = document.getElementById("customerSelect");
-    Array.from(customers).sort().forEach(cus => {
-      const opt = document.createElement("option");
-      opt.value = cus;
-      opt.textContent = cus;
-      sel.appendChild(opt);
-    });
+  if (!user) return;
+  db.ref("robot_data").once("value", snap => {
+    allData = Object.values(snap.val() || {});
+    allCustomers = [...new Set(allData.map(d => d["Customer name"]).filter(Boolean))].sort();
+    if (customers.length === 0) { customers.push(createEmptyCustomer()); }
+    renderCustomerCards();
+    autoResizeTextarea();
   });
+  db.ref("part").once("value", snap => { partData = Object.values(snap.val() || {}); });
 });
 
-function similarity(a, b) {
-  const clean = s => s.toLowerCase().replace(/[^a-z0-9ก-๙]/gi, '');
-  const sa = clean(a), sb = clean(b);
-  let match = 0;
-  for (let i = 0; i < Math.min(sa.length, sb.length); i++) {
-    if (sa[i] === sb[i]) match++;
-  }
-  return match / Math.max(sa.length, sb.length);
-}
+document.getElementById("addCustomerBtn").addEventListener("click", () => {
+  customers.push(createEmptyCustomer());
+  renderCustomerCards();
+});
 
-function loadCustomerData() {
-  const customer = document.getElementById("customerSelect").value;
-  if (!customer) return;
-  const filtered = allData.filter(d => d["Customer name"] === customer);
-
-  const models = {}, controllers = {};
-  let sapNumber = "";
-  filtered.forEach(d => {
-    const model = d["Robot type"] || "Unknown";
-    models[model] = (models[model] || 0) + 1;
-    const controller = d["Controller"] || "Unknown";
-    controllers[controller] = (controllers[controller] || 0) + 1;
-    if (d["SAP No"] && !sapNumber) sapNumber = d["SAP No"];
-  });
-
-  
-  // แก้ตรงนี้ให้หา Customer SAP Num จาก allData
-  let bestMatch = "-";
-  let bestScore = 0;
-  allData.forEach(d => {
-    const score = similarity(d["Customer name"] || "", customer);
-    if (score > bestScore && d["Customer SAP Num"]) {
-      bestScore = score;
-      bestMatch = d["Customer SAP Num"];
-  }
-  });
-  document.getElementById("sapNumFromCustomer").innerHTML = `<p><strong>Customer SAP Num:</strong> ${bestMatch}</p>`;
-
-  let html = `<table><thead><tr><th>Robot Model</th><th>Quantity</th></tr></thead><tbody>`;
-  for (const [model, qty] of Object.entries(models).sort()) {
-    html += `<tr><td>${model}</td><td>${qty}</td></tr>`;
-  }
-  html += `</tbody></table>`;
-  document.getElementById("summaryTable").innerHTML = html;
-
-  let ctrlHtml = `<table><thead><tr><th>Controller</th><th>Quantity</th></tr></thead><tbody>`;
-  for (const [ctrl, qty] of Object.entries(controllers).sort()) {
-    ctrlHtml += `<tr><td>${ctrl}</td><td>${qty}</td></tr>`;
-  }
-  ctrlHtml += `</tbody></table>`;
-  document.getElementById("controllerTable").innerHTML = ctrlHtml;
-
-  db.ref("part").once("value", snapshot => {
-    const partData = Object.values(snapshot.val() || {});
-    let bestMatch = null, highestScore = 0;
-    partData.forEach(p => {
-      const score = similarity(p.Customer || '', customer);
-      if (score > highestScore) {
-        highestScore = score;
-        bestMatch = p.Customer;
+// function time check
+function validateTime() {
+  for (let i = 0; i < customers.length; i++) {
+    const c = customers[i];
+    if (!c.timeIn || !c.timeOut) {
+      alert(`กรุณากรอกเวลาของ Customer ลำดับ ${i+1}`);
+      return false;
+    }
+    if (c.timeIn >= c.timeOut) {
+      alert(`เวลาของ Customer "${c.name}" ไม่ถูกต้อง: Time In ต้องน้อยกว่า Time Out`);
+      return false;
+    }
+    if (i > 0) {
+      const prev = customers[i - 1];
+      if (c.timeIn < prev.timeOut) {
+        alert(`เวลาของ Customer "${c.name}" ซ้อนทับกับ Customer "${prev.name}"`);
+        return false;
       }
-    });
-    const matchedData = partData.filter(p => p.Customer === bestMatch);
-    const yearly = {};
-    matchedData.forEach(d => {
-      const year = d["Year"] || "-";
-      const qt = parseFloat(d["Qt"] || 0);
-      const price = parseFloat((d["Price"] || "0").toString().replace(/,/g, ''));
-      if (!yearly[year]) yearly[year] = { totalQt: 0, totalPrice: 0 };
-      yearly[year].totalQt += qt;
-      yearly[year].totalPrice += price;
-    });
-    let tableHtml = `<table><thead><tr><th>Year</th><th>Total Qt</th><th>Total Price (Baht)</th></tr></thead><tbody>`;
-    Object.entries(yearly).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([y, data]) => {
-      tableHtml += `<tr><td>${y}</td><td>${data.totalQt}</td><td>${data.totalPrice.toLocaleString(undefined, {minimumFractionDigits:2})}</td></tr>`;
-    });
-    tableHtml += `</tbody></table>`;
-    document.getElementById("partSummaryTable").innerHTML = tableHtml;
-  });
-
-	if (document.getElementById("showMap").checked) {
-  	clearMapAndRoute();
-  	pinToMap();
-	}
+    }
+  }
+  return true;
 }
 
+document.getElementById("generateBtn").addEventListener("click", () => {
+  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
+  if (!validateTime()) return;
+  renderSummaries();
+  generateMap();
+});
 
+function createEmptyCustomer() {
+  return { name: "", timeIn: "08:00", timeOut: "09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:"" };
+}
 
-function pinToMap() {
-  const customer = document.getElementById("customerSelect").value;
-  if (!customer || !map) return;
+function renderCustomerCards() {
+  const container = document.getElementById("customerContainer");
+  container.innerHTML = "";
+  customers.forEach((cust, idx) => {
+    const card = document.createElement("div");
+    card.className = "customer-card";
+    card.innerHTML = `
+      <button class="remove-btn" onclick="removeCustomer(${idx})">&times;</button>
+      <label>Customer Name:</label>
+      <input type="text" id="customerInput${idx}" value="${cust.name}">
+      
+            <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div style="flex:0 0 40%;">
+          <label>Time In:</label>
+          <select class="timeIn compact-input" style="width: 80px;">${generateTimeOptions(cust.timeIn)}</select>
+        </div>
+        <div style="flex:0 0 40%;">
+          <label>Time Out:</label>
+          <select class="timeOut compact-input" style="width: 80px;">${generateTimeOptions(cust.timeOut)}</select>
+        </div>
+      </div>
+      <label>Companion:</label><textarea class="companion">${cust.companion||''}</textarea>
+      <label>Contact Name:</label><textarea class="contactName">${cust.contactName||''}</textarea>
+      <label>Situation:</label><textarea class="situation">${cust.situation||''}</textarea>
+      <label>Visit Detail:</label><textarea class="visitDetail">${cust.visitDetail||''}</textarea>
+      <label>Opinion:</label><textarea class="opinion">${cust.opinion||''}</textarea>`;
+    container.appendChild(card);
 
-  const matched = allData.find(d => d["Customer name"] === customer);
-  if (!matched || !matched.Address) {
-    alert("ไม่พบตำแหน่งของลูกค้าใน Address");
-    return;
+    new TomSelect(`#customerInput${idx}`, {
+      create: false, maxItems: 1, valueField: 'value', labelField: 'text', searchField: 'text',
+      options: allCustomers.map(c => ({ value: c, text: c })),
+      items: cust.name ? [cust.name] : [],
+      onChange: val => { customers[idx].name = val; renderSummaries(); },
+      openOnFocus: true, maxOptions: 10000
+    });
+
+    card.querySelector(".timeIn").addEventListener("change", e => { customers[idx].timeIn = e.target.value; });
+    card.querySelector(".timeOut").addEventListener("change", e => { customers[idx].timeOut = e.target.value; });
+    card.querySelector(".companion").addEventListener("input", e => { customers[idx].companion = e.target.value; });
+    card.querySelector(".contactName").addEventListener("input", e => { customers[idx].contactName = e.target.value; });
+    card.querySelector(".situation").addEventListener("input", e => { customers[idx].situation = e.target.value; });
+    card.querySelector(".visitDetail").addEventListener("input", e => { customers[idx].visitDetail = e.target.value; });
+    card.querySelector(".opinion").addEventListener("input", e => { customers[idx].opinion = e.target.value; });
+  });
+  renderSummaries();
+    autoResizeTextarea();
+}
+
+function generateTimeOptions(selected="08:00") {
+  let html = "";
+  for (let h = 8; h <= 23; h++) {
+    ["00","30"].forEach(m => {
+      const val = `${h.toString().padStart(2,'0')}:${m}`;
+      html += `<option value="${val}" ${val==selected?"selected":""}>${val}</option>`;
+    });
   }
+  html += `<option value="24:00" ${selected=="24:00"?"selected":""}>24:00</option>`;
+  return html;
+}
 
-  const [custLatStr, custLngStr] = matched.Address.split(",");
-  const custLat = parseFloat(custLatStr);
-  const custLng = parseFloat(custLngStr);
-  if (isNaN(custLat) || isNaN(custLng)) {
-    alert("พิกัด Address ไม่ถูกต้อง");
-    return;
-  }
+function removeCustomer(index) { customers.splice(index, 1); renderCustomerCards(); }
 
-  const originStr = document.getElementById("originSelect").value;
-  const [originLat, originLng] = originStr.split(",").map(parseFloat);
+function renderSummaries() {
+  const container = document.getElementById("summaryContainer");
+  container.innerHTML = "";
+  customers.forEach(cust => {
+    if (!cust.name) return;
+    const filtered = allData.filter(d => d["Customer name"] === cust.name);
+    const models = {}, controllers = {}, parts = {};
+    filtered.forEach(d => { models[d["Robot type"]||"Unknown"] = (models[d["Robot type"]||"Unknown"]||0)+1; controllers[d["Controller"]||"Unknown"] = (controllers[d["Controller"]||"Unknown"]||0)+1; });
+    partData.filter(p => p.Customer.toLowerCase().includes(cust.name.toLowerCase())).forEach(p => {
+      const year = p.Year || "-";
+      parts[year] = parts[year] || { qty: 0, price: 0 };
+      parts[year].qty += parseFloat(p.Qt||0);
+      parts[year].price += parseFloat((p.Price||"0").toString().replace(/,/g,''));
+    });
+    const block = document.createElement("div");
+    block.className = "summary-block";
+    block.innerHTML = `<h4>${cust.name}</h4>`;
+    block.innerHTML += `<table><tr><th>Model</th><th>Qty</th></tr>${Object.entries(models).map(([m,q])=>`<tr><td>${m}</td><td>${q}</td>`).join('')}</table>`;
+    block.innerHTML += `<table><tr><th>Controller</th><th>Qty</th></tr>${Object.entries(controllers).map(([c,q])=>`<tr><td>${c}</td><td>${q}</td>`).join('')}</table>`;
+    if (Object.keys(parts).length>0) {
+      block.innerHTML += `<table><tr><th>Year</th><th>Qty</th><th>Total Price</th></tr>`+
+        Object.entries(parts).sort().map(([y,d])=>`<tr><td>${y}</td><td>${d.qty}</td><td>${d.price.toLocaleString()}</td></tr>`).join('')+`</table>`;
+    }
+    container.appendChild(block);
+  });
+}
 
-  const origin = new google.maps.LatLng(originLat, originLng);
-  const destination = new google.maps.LatLng(custLat, custLng);
-
-  const directionsService = new google.maps.DirectionsService();
+function initMap() {
+  map = new google.maps.Map(document.getElementById("map"), {center: { lat: 13.736717, lng: 100.523186 }, zoom: 6 });
   directionsRenderer = new google.maps.DirectionsRenderer();
   directionsRenderer.setMap(map);
+}
 
-  directionsService.route({
-    origin,
-    destination,
-    travelMode: 'DRIVING'   
-  }, (result, status) => {
+function generateMap() {
+  const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
+  const origin = { lat: originCoords[0], lng: originCoords[1] };
+  const waypoints = customers.map(cust => {
+    const data = allData.find(d => d["Customer name"] === cust.name);
+    if (!data || !data.Address) return null;
+    const [lat,lng] = data.Address.split(",").map(parseFloat);
+    return { name: cust.name, location: { lat, lng } };
+  }).filter(Boolean);
+  if (!waypoints.length) return alert("No valid addresses found");
+  const ds = new google.maps.DirectionsService();
+  ds.route({ origin, destination: waypoints[waypoints.length-1].location, waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), travelMode: 'DRIVING' }, (result, status) => {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
-      const route = result.routes[0].legs[0];
-      const distanceText = route.distance ? route.distance.text : "";
-      const durationText = route.duration ? route.duration.text : "";
-      const infoText = `📍 Est. Distance: ${distanceText} / Est. Time: ${durationText}`;
-	document.getElementById("routeInfoTop").innerText = infoText;
-	document.getElementById("routeInfoBottom").innerText = infoText;
+      generateRouteSummary(result, waypoints);
     } else {
-      alert("ไม่สามารถสร้างเส้นทาง: " + status);
+      alert("Failed to generate map: "+status);
     }
   });
 }
 
-document.addEventListener('input', function (e) {
-  if (e.target.tagName.toLowerCase() === 'textarea') {
-    e.target.style.height = 'auto'; // รีเซ็ตความสูงก่อน
-    e.target.style.height = (e.target.scrollHeight) + 'px'; // ตั้งความสูงใหม่
-  }
-});
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const dateSpan = document.getElementById('visitDate');
-    const today = new Date();
-    const day = today.getDate().toString().padStart(2, '0');
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const month = monthNames[today.getMonth()];
-    const year = today.getFullYear();
-    const formatted = `${day} ${month} ${year}`;
-    dateSpan.textContent = `📅 ${formatted}`;
+function generateRouteSummary(result, waypoints) {
+  const legs = result.routes[0].legs;
+  let html = `<h3>Route Summary</h3><table><tr><th>Customer</th><th>Distance</th><th>Time</th></tr>`;
+  let totalDist = 0, totalDur = 0;
+  legs.forEach((leg, i) => {
+    html += `<tr><td>${waypoints[i].name}</td><td>${leg.distance.text}</td><td>${leg.duration.text}</td></tr>`;
+    totalDist += leg.distance.value; totalDur += leg.duration.value;
   });
-
-function clearMapAndRoute() {
-  if (directionsRenderer) {
-    directionsRenderer.setMap(null);
-    directionsRenderer = null;
-  }
-  document.getElementById("routeInfoTop").innerText = "";
-  document.getElementById("routeInfoBottom").innerText = "";
+  html += `</table><h4>Total Distance: ${(totalDist/1000).toFixed(2)} km, Total Time: ${(totalDur/60).toFixed(0)} min</h4>`;
+  document.getElementById("routeSummary").innerHTML = html;
 }
 
+window.onbeforeprint = () => {
+  document.getElementById("map").style.pointerEvents = "none";
+};
+
+window.onafterprint = () => {
+  document.getElementById("map").style.pointerEvents = "auto";
+};
+
+document.getElementById("printBtn").addEventListener("click", () => {
+  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
+  if (!validateTime()) return;
+  prepareMapForPrint();
+});
 
 function prepareMapForPrint() {
   // Trigger onbeforeprint (simulate mouseout)
@@ -395,135 +278,79 @@ function prepareMapForPrint() {
   }, 1100);
 }
 
-window.onbeforeprint = () => {
-  const mapDiv = document.getElementById("map");
-  if (mapDiv) {
-    const mouseOutEvent = new MouseEvent("mouseout", {
-      bubbles: true,
-      cancelable: true,
-      view: window
+
+
+function autoResizeTextarea() {
+  document.querySelectorAll("textarea").forEach(textarea => {
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+    textarea.addEventListener("input", function() {
+      this.style.height = "auto";
+      this.style.height = (this.scrollHeight) + "px";
     });
-    mapDiv.dispatchEvent(mouseOutEvent);
-  }
-};
-
-
-
-function populateTimeOptions1() {
-  const timeSel = document.getElementById("visitTimeInput1");
-  timeSel.innerHTML = "";
-
-  // เริ่มจาก 8:00 → รวม 48 ช่องครึ่งชั่วโมง (24 ชม.)
-  for (let i = 0; i < 48; i++) {
-    const totalMinutes = (8 * 60) + (i * 30);
-    const hours = Math.floor((totalMinutes / 60) % 24);
-    const minutes = totalMinutes % 60;
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-
-    const opt = document.createElement("option");
-    opt.value = `${hh}:${mm}`;
-    opt.textContent = `${hh}:${mm}`;
-    timeSel.appendChild(opt);
-  }
-}
-
-function populateTimeOptions2() {
-  const timeSel = document.getElementById("visitTimeInput2");
-  timeSel.innerHTML = "";
-
-  // เริ่มจาก 8:00 → รวม 48 ช่องครึ่งชั่วโมง (24 ชม.)
-  for (let i = 0; i < 48; i++) {
-    const totalMinutes = (8 * 60) + (i * 30);
-    const hours = Math.floor((totalMinutes / 60) % 24);
-    const minutes = totalMinutes % 60;
-    const hh = String(hours).padStart(2, '0');
-    const mm = String(minutes).padStart(2, '0');
-
-    const opt = document.createElement("option");
-    opt.value = `${hh}:${mm}`;
-    opt.textContent = `${hh}:${mm}`;
-    timeSel.appendChild(opt);
-  }
-}
-
-
-document.addEventListener("DOMContentLoaded", () => {
-  populateTimeOptions1();
-  populateTimeOptions2();
-
-    const visitDateInput = document.getElementById("visitDateInput");
-
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-
-  // ตั้งค่าค่าใน input (แบบที่ browser รองรับ)
-  visitDateInput.value = `${yyyy}-${mm}-${dd}`;
-
-
-
-  const startSelect = document.getElementById("visitTimeInput1");
-  const endSelect = document.getElementById("visitTimeInput2");
-
-  function timeToMinutes(t) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  }
-
-  endSelect.addEventListener("change", () => {
-    const startTime = startSelect.value;
-    const endTime = endSelect.value;
-
-    if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
-      alert("⛔ End Time less than Start time try again!!");
-      endSelect.value = ""; // เคลียร์ค่าเดิม
-    }
   });
-});
+}
 
-function saveVisitPlan() {
+// save data to firebase
+document.getElementById("saveBtn").addEventListener("click", () => {
+  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
+  if (!validateTime()) return;
   const visitDate = document.getElementById("visitDateInput").value;
-  const bookingStart = document.getElementById("visitTimeInput1").value;
-  const bookingEnd = document.getElementById("visitTimeInput2").value;
-  const companion = document.getElementById("companion").value;
-  const contact = document.getElementById("contactName").value;
-  const situation = document.getElementById("situation").value;
-  const detail = document.getElementById("detail").value;
-  const opinion = document.getElementById("opinion").value;
-  const customerName = document.getElementById("customerSelect").value;
   const startFrom = document.getElementById("originSelect").options[document.getElementById("originSelect").selectedIndex].text;
 
   const user = firebase.auth().currentUser;
   const uid = user.uid;
   const email = user.email;
 
-  if (!visitDate || !bookingStart || !bookingEnd || !customerName) {
-    alert("❗ กรุณากรอก Visit Date, Booking Time และ Customer Name");
+  if (!visitDate || customers.length === 0) {
+    alert("❗ กรุณากรอก Visit Date และเพิ่มอย่างน้อย 1 ลูกค้า");
     return;
   }
 
-  // ดึงชื่อจาก database ที่ users/{uid}/name
-  db.ref("users/" + uid).once("value", (snapshot) => {
+  db.ref("users/" + uid).once("value", snapshot => {
     const userData = snapshot.val();
     const name = userData?.name || "Unknown";
 
+ db.ref("visit_plan").once("value", snap => {
+      const allPlans = Object.values(snap.val() || {});
+
+      let duplicateFound = false;
+      customers.forEach(cust => {
+        const exist = allPlans.find(p =>
+          p.visitDate === visitDate &&
+          p.customerName === cust.name &&
+          p.loginEmail === email
+        );
+        if (exist) {
+          duplicateFound = true;
+        }
+      });
+
+      if (duplicateFound) {
+        alert("⚠ มีรายการลูกค้าซ้ำในวันเดียวกันสำหรับ user นี้แล้ว กรุณาตรวจสอบ");
+        return;
+      }
+
+
+    const customerArray = customers.map(cust => ({
+      customerName: cust.name,
+      bookingTimeIn: cust.timeIn,
+      bookingTimeOut: cust.timeOut,
+      companion: cust.companion,
+      contactName: cust.contactName,
+      situation: cust.situation,
+      visitDetail: cust.visitDetail,
+      opinion: cust.opinion
+    }));
+
     const planData = {
       timestamp: Date.now(),
-      visitDate,
-      bookingTimeIn: bookingStart,
-      bookingTimeOut: bookingEnd,
-      companion,
-      contactName: contact,
-      situation,
-      visitDetail: detail,
-      opinion,
-      customerName,
-      startFrom,
+      visitDate: visitDate,
+      startFrom: startFrom,
       uid: uid,
       loginName: name,
-      loginEmail: email
+      loginEmail: email,
+      customers: customerArray
     };
 
     db.ref("visit_plan").push(planData, error => {
@@ -534,7 +361,9 @@ function saveVisitPlan() {
       }
     });
   });
-}
+});
+});
+
 
 </script>
 </body>
