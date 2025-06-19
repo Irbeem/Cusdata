@@ -14,9 +14,11 @@
     th, td { border: 1px solid #ccc; padding: 6px 10px; }
     th { background-color: #007bff; color: white; text-align: left; }
     a { color: #007bff; text-decoration: none; }
+    button { padding: 4px 8px; }
   </style>
 </head>
 <body>
+
   <h2>Visit Plan Records</h2>
 
   <label for="userFilter">Filter by User:</label>
@@ -47,10 +49,11 @@
     <thead>
       <tr>
         <th>Visit Date</th>
-                <th>Order</th>
+        <th>Order</th>
         <th>Customer</th>
         <th>User</th>
         <th>Details</th>
+        <th>Delete</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -76,36 +79,33 @@
   let allPlans = [];
   let currentPage = 1;
   let pageSize = 10;
-  const userMap = {};  // email -> name
+  const userMap = {};
 
   function loadVisitPlans() {
     db.ref("visit_plan").once("value", snapshot => {
       const data = snapshot.val() || {};
-
       allPlans = [];
+
       Object.entries(data).forEach(([key, val]) => {
         (val.customers || []).forEach(cust => {
           allPlans.push({
-            key,
+            key, 
             visitDate: val.visitDate,
             loginEmail: val.loginEmail,
             customerName: cust.customerName,
             loginName: val.loginName,
             timeIn: cust.bookingTimeIn || "00:00"
           });
-
           if (val.loginEmail && val.loginName) {
             userMap[val.loginEmail] = val.loginName;
           }
         });
       });
 
-      // เตรียม dropdown user
       const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
       userSelect.innerHTML = '<option value="">All</option>' + users.map(u => 
         `<option value="${u}">${userMap[u]}</option>`).join('');
 
-      // dropdown year
       const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
       yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
 
@@ -131,14 +131,12 @@
       return true;
     });
 
-    // sort ตาม visitDate, loginEmail, timeIn
     filtered.sort((a, b) => {
       if (a.visitDate !== b.visitDate) return a.visitDate.localeCompare(b.visitDate);
       if (a.loginEmail !== b.loginEmail) return a.loginEmail.localeCompare(b.loginEmail);
       return a.timeIn.localeCompare(b.timeIn);
     });
 
-    // คำนวณลำดับ
     let sequenceMap = {};
     filtered.forEach(p => {
       const key = p.loginEmail + "_" + p.visitDate;
@@ -155,10 +153,11 @@
     tableBody.innerHTML = paginatedData.map(p => `
       <tr>
         <td>${p.visitDate}</td>
-                <td>${p.sequence}</td>
+        <td>${p.sequence}</td>
         <td>${p.customerName || '-'}</td>
         <td>${p.loginName || '-'}</td>
         <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
+        <td><button onclick="deleteCustomer('${p.key}', '${p.customerName.replace(/'/g,"\\'")}')">Delete</button></td>
       </tr>
     `).join('');
 
@@ -170,7 +169,6 @@
       paginationControls.innerHTML = "";
       return;
     }
-
     let html = `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button> `;
     for (let i = 1; i <= totalPages; i++) {
       html += `<button onclick="gotoPage(${i})" ${i === currentPage ? 'style="font-weight:bold;"' : ''}>${i}</button> `;
@@ -193,6 +191,28 @@
       opt.textContent = monthNames[i];
       monthSelect.appendChild(opt);
     }
+  }
+
+  function deleteCustomer(planKey, customerName) {
+    if (!confirm(`Delete customer "${customerName}"?`)) return;
+
+    db.ref("visit_plan/" + planKey).once("value", snapshot => {
+      const planData = snapshot.val();
+      if (!planData || !planData.customers) {
+        alert("Data not found.");
+        return;
+      }
+
+      const newCustomers = planData.customers.filter(c => c.customerName !== customerName);
+      db.ref("visit_plan/" + planKey + "/customers").set(newCustomers, (error) => {
+        if (error) {
+          alert("Failed to delete: " + error);
+        } else {
+          alert("Customer deleted.");
+          loadVisitPlans();
+        }
+      });
+    });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
