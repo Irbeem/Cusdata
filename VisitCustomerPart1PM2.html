@@ -262,11 +262,13 @@ function generateMap() {
   const origin = { lat: originCoords[0], lng: originCoords[1] };
   const waypoints = customers.map(cust => {
     const dataList = robotDataCache[cust.name];
+ 
     if (!dataList || dataList.length === 0) return null;
-    const data = dataList[0];
-    if (!data.Address) return null;
-    const [lat, lng] = data.Address.split(",").map(parseFloat);
-    return { name: cust.name, location: { lat, lng } };
+let dataWithAddress = dataList.find(d => d.Address);
+if (!dataWithAddress) return null;
+
+const [lat, lng] = dataWithAddress.Address.split(",").map(parseFloat);
+return { name: cust.name, location: { lat, lng } };
 }).filter(Boolean);
   if (!waypoints.length) return alert("No valid addresses found");
   const ds = new google.maps.DirectionsService();
