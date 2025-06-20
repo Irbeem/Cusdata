@@ -106,8 +106,10 @@ onAuthStateChanged(auth, async (user) => {
   allCustomers = [...customerSet].sort();
 
   if (customers.length === 0) customers.push(createEmptyCustomer());
+
+  // เรียก renderCustomerCards หลัง preload customer เสร็จแน่นอน
+  allCustomers = [...customerSet].sort();
   renderCustomerCards();
-});
 
 function createEmptyCustomer() {
   return { name: "", timeIn: "08:00", timeOut: "09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:"" };
