@@ -7,7 +7,10 @@
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap&language=en" async defer></script>
-  <style>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>  
+<style>
     body { font-family: sans-serif; margin: 20px; }
     .container { display: flex; }
     .left-panel { width: 50%; padding-right: 20px; }
@@ -67,19 +70,11 @@
 
 <script>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import {
-  getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-import {
-  getDatabase, ref, get, child, query, orderByChild, equalTo, push
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-
 // Firebase config
 const firebaseConfig = { apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0", authDomain: "custdata-92ebe.firebaseapp.com", databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "custdata-92ebe" };
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getDatabase(app);
+const app = firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
 
 // Global variables
 let allCustomers = [];
