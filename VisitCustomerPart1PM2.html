@@ -112,7 +112,7 @@ function createEmptyCustomer() {
 }
 
 // Render customer cards
-function renderCustomerCards() {
+async function renderCustomerCards() {
   const container = document.getElementById("customerContainer");
   container.innerHTML = "";
   customers.forEach((cust, idx) => {
