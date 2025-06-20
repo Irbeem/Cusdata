@@ -138,8 +138,26 @@ function renderCustomerCards() {
       create: false, maxItems: 1, valueField: 'value', labelField: 'text', searchField: 'text',
       options: allCustomers.map(c => ({ value: c, text: c })),
       items: cust.name ? [cust.name] : [],
-      onChange: val => { customers[idx].name = val; renderSummaries(); }
-    });
+      
+      onChange: async val => {
+    customers[idx].name = val;
+
+    if (!robotDataCache[val]) {
+      const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(val).once("value");
+      robotDataCache[val] = [];
+      if (snapshot.exists()) {
+        snapshot.forEach(child => robotDataCache[val].push(child.val()));
+      }
+    }
+
+    if (!partDataCache[val]) {
+      const partSnap = await db.ref(`part/${val}`).once("value");
+      partDataCache[val] = partSnap.exists() ? partSnap.val() : {};
+    }
+
+    renderSummaries();
+  }
+  });
 
     card.querySelector(".timeIn").addEventListener("change", e => customers[idx].timeIn = e.target.value);
     card.querySelector(".timeOut").addEventListener("change", e => customers[idx].timeOut = e.target.value);
@@ -210,23 +228,7 @@ if (!partDataCache[cust.name]) {
   }
 }
 	
-onChange: async val => {
-  customers[idx].name = val;
-  // โหลด robotData ทันทีที่เลือกชื่อใหม่
-  if (!robotDataCache[val]) {
-    const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(val).once("value");
-    robotDataCache[val] = [];
-    if (snapshot.exists()) {
-      snapshot.forEach(child => robotDataCache[val].push(child.val()));
-    }
-  }
-  // โหลด part data ทันที
-  if (!partDataCache[val]) {
-    const partSnap = await db.ref(`part/${val}`).once("value");
-    partDataCache[val] = partSnap.exists() ? partSnap.val() : {};
-  }
-  renderSummaries();
-}
+
 
 // Generate table for summary
 function generateTable(data, label) {
