@@ -183,10 +183,10 @@ if (!robotDataCache[cust.name]) {
     snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
   }
 }
-    if (!partDataCache[cust.name]) {
-      const partSnap = await get(ref(db, `part/${cust.name}`));
-      partDataCache[cust.name] = partSnap.exists() ? partSnap.val() : {};
-    }
+if (!partDataCache[cust.name]) {
+  const partSnap = await db.ref(`part/${cust.name}`).once("value");
+  partDataCache[cust.name] = partSnap.exists() ? partSnap.val() : {};
+}
 
     const models = {}, controllers = {}, parts = {};
     robotDataCache[cust.name].forEach(d => {
