@@ -44,7 +44,7 @@
   </style>
 </head>
 <body>
-<h2>Customer Visit Plan</h2>
+<h2>Customer Visit Plan : </h2><span id="loginNameDisplay"></span></h2>
 <div class="container">
   <div class="left-panel">
     <label>Visit Date:</label>
@@ -76,6 +76,16 @@ let allData = [], allCustomers = [], customers = [], partData = [];
 
 firebase.auth().onAuthStateChanged(user => {
   if (!user) return;
+
+  // ดึงชื่อผู้ใช้จาก Firebase
+  db.ref("users/" + user.uid).once("value", snapshot => {
+    const userData = snapshot.val();
+    const name = userData?.name || "Unknown";
+
+    // ใส่ชื่อไปแสดงในหน้า
+    document.getElementById("loginNameDisplay").textContent = ` - ${name}`;
+  });
+  
   db.ref("robot_data").once("value", snap => {
     allData = Object.values(snap.val() || {});
     allCustomers = [...new Set(allData.map(d => d["Customer name"]).filter(Boolean))].sort();
