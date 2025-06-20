@@ -176,15 +176,13 @@ async function renderSummaries() {
   for (const cust of customers) {
     if (!cust.name) continue;
 
-    if (!robotDataCache[cust.name]) {
-      const q = query(ref(db, 'robot_data'), orderByChild("Customer name"), equalTo(cust.name));
-      const snapshot = await get(q);
-      robotDataCache[cust.name] = [];
-      if (snapshot.exists()) {
-        snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
-      }
-    }
-
+if (!robotDataCache[cust.name]) {
+  const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(cust.name).once("value");
+  robotDataCache[cust.name] = [];
+  if (snapshot.exists()) {
+    snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
+  }
+}
     if (!partDataCache[cust.name]) {
       const partSnap = await get(ref(db, `part/${cust.name}`));
       partDataCache[cust.name] = partSnap.exists() ? partSnap.val() : {};
