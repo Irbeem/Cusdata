@@ -1,11 +1,6 @@
-// ปรับปรุง main.js ทั้งหมดสำหรับ input_form.html แบบลด download
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
 import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-import {
-  getDatabase, ref, push, get, query, orderByChild, equalTo
+  getDatabase, ref, push, get
 } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
 // Firebase config
@@ -21,71 +16,46 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Elements
-const loginForm = document.getElementById('loginForm');
+// DOM Elements
 const robotForm = document.getElementById('robotForm');
-const logoutBtn = document.getElementById('logoutBtn');
-const robotSection = document.getElementById('robotSection');
 
-// Login handler
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    loginForm.style.display = 'none';
-    logoutBtn.style.display = 'inline';
-    robotSection.style.display = 'block';
-    await preloadCustomerList();
-  } else {
-    loginForm.style.display = 'block';
-    robotSection.style.display = 'none';
-  }
-});
-
-loginForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const email = loginForm.email.value;
-  const password = loginForm.password.value;
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-  } catch (err) {
-    alert("Login error " + err.message);
-  }
-});
-
-logoutBtn.addEventListener('click', async () => {
-  await signOut(auth);
-});
-
+// ========== Form Submit ==========
 robotForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   let formData = Object.fromEntries(new FormData(robotForm).entries());
+
+  // แก้ key ที่มี dot
   for (let key in formData) {
     if (key.includes('.')) {
       formData[key.replace(/\./g, '_')] = formData[key];
       delete formData[key];
     }
   }
+
   try {
     await push(ref(db, 'robot_data'), formData);
-    alert('Data saved successfully');
+    alert('✅ Data saved successfully');
     robotForm.reset();
   } catch (err) {
-    alert('Error saving data');
+    console.error(err);
+    alert('❌ Error saving data');
   }
 });
 
-// Preload customer names on page load
-async function preloadCustomerList() {
+// ========== Auto-fill Customer Lists ==========
+async function populateCustomerList() {
   const snapshot = await get(ref(db, 'robot_data'));
   const customerNames = new Set();
+
   if (snapshot.exists()) {
     snapshot.forEach(child => {
-      const data = child.val();
-      if (data["Customer name"]) customerNames.add(data["Customer name"].trim());
+      const name = child.val()["Customer name"]?.trim();
+      if (name) customerNames.add(name);
     });
   }
+
   const datalist = document.getElementById('customerList');
   datalist.innerHTML = '';
   [...customerNames].sort().forEach(name => {
@@ -93,24 +63,14 @@ async function preloadCustomerList() {
   });
 }
 
-// Debounce function to limit calls
-function debounce(func, delay) {
-  let timer;
-  return function(...args) {
-    clearTimeout(timer);
-    timer = setTimeout(() => func.apply(this, args), delay);
-  }
-}
+await populateCustomerList();
 
-// When user selects customer name, load related fields
-const customerNameInput = document.getElementById('customerNameInput');
-customerNameInput.addEventListener('input', debounce(async (e) => {
+// ========== Fill SAP/Address/... เมื่อเลือกชื่อ ==========
+document.getElementById('customerNameInput').addEventListener('input', async (e) => {
   const selectedName = e.target.value.trim();
   if (!selectedName) return;
 
-  const q = query(ref(db, 'robot_data'), orderByChild("Customer name"), equalTo(selectedName));
-  const snapshot = await get(q);
-
+  const snapshot = await get(ref(db, 'robot_data'));
   const sapNumbers = new Set();
   const abbreviations = new Set();
   const addresses = new Set();
@@ -120,32 +80,100 @@ customerNameInput.addEventListener('input', debounce(async (e) => {
   if (snapshot.exists()) {
     snapshot.forEach(child => {
       const data = child.val();
-      if (data["Customer SAP Num"]) sapNumbers.add(data["Customer SAP Num"].trim());
-      if (data["Abbreviation"]) abbreviations.add(data["Abbreviation"].trim());
-      if (data["Address"]) addresses.add(data["Address"].trim());
-      if (data["Area"]) areas.add(data["Area"].trim());
-      if (data["in or outside"]) locations.add(data["in or outside"].trim());
+      if (data["Customer name"]?.trim() === selectedName) {
+        if (data["Customer SAP Num"]) sapNumbers.add(data["Customer SAP Num"].trim());
+        if (data["Abbreviation"]) abbreviations.add(data["Abbreviation"].trim());
+        if (data["Address"]) addresses.add(data["Address"].trim());
+        if (data["Area"]) areas.add(data["Area"].trim());
+        if (data["in or outside"]) locations.add(data["in or outside"].trim());
+      }
     });
   }
 
-  fillDatalistOrInput('sapList', 'customerSAPInput', sapNumbers);
-  fillDatalistOrInput('abbreviationList', 'abbreviationInput', abbreviations);
-  fillDatalistOrInput('addressList', 'addressInput', addresses);
-  fillDatalistOrInput('areaList', 'areaInput', areas);
-  fillDatalistOrInput('inOrOutsideList', 'inOrOutsideInput', locations);
-}, 500));
+  const fill = (inputId, listId, dataSet) => {
+    const input = document.getElementById(inputId);
+    const datalist = document.getElementById(listId);
+    datalist.innerHTML = '';
 
-function fillDatalistOrInput(listId, inputId, dataSet) {
-  const input = document.getElementById(inputId);
-  const datalist = document.getElementById(listId);
-  datalist.innerHTML = '';
-  if (dataSet.size === 1) {
-    input.value = [...dataSet][0];
-  } else {
-    input.value = '';
-    [...dataSet].sort().forEach(val => {
+    if (dataSet.size === 1) {
+      input.value = [...dataSet][0];
+    } else {
+      input.value = '';
+      [...dataSet].sort().forEach(val => {
+        datalist.appendChild(new Option(val, val));
+      });
+    }
+  };
+
+  fill('customerSAPInput', 'sapList', sapNumbers);
+  fill('abbreviationInput', 'abbreviationList', abbreviations);
+  fill('addressInput', 'addressList', addresses);
+  fill('areaInput', 'areaList', areas);
+  fill('inOrOutsideInput', 'inOrOutsideList', locations.size ? locations : new Set(["Thailand", "Abroad"]));
+});
+
+// ========== Auto-fill Datalist Options ==========
+async function populateUniqueOptions() {
+  const snapshot = await get(ref(db, 'robot_data'));
+  const robotTypes = new Set();
+  const types = new Set();
+  const controllers = new Set();
+  const useApps = new Set();
+  const sysApps = new Set();
+
+  if (snapshot.exists()) {
+    snapshot.forEach(child => {
+      const data = child.val();
+      if (data["Robot type"]) robotTypes.add(data["Robot type"].trim());
+      if (data["Type"]) types.add(data["Type"].trim());
+      if (data["Controller"]) controllers.add(data["Controller"].trim());
+      if (data["USE application"]) useApps.add(data["USE application"].trim());
+      if (data["System application"]) sysApps.add(data["System application"].trim());
+    });
+  }
+
+  const fillDatalist = (listId, items) => {
+    const datalist = document.getElementById(listId);
+    datalist.innerHTML = '';
+    [...items].sort().forEach(val => {
       datalist.appendChild(new Option(val, val));
     });
-  }
+  };
+
+  fillDatalist('robotTypeList', robotTypes);
+  fillDatalist('typeList', types);
+  fillDatalist('controllerList', controllers);
+  fillDatalist('useAppList', useApps);
+  fillDatalist('sysAppList', sysApps);
 }
 
+await populateUniqueOptions();
+
+// ========== ป้องกัน Enter ส่งฟอร์ม ==========
+robotForm.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+  }
+});
+
+// ========== เติมวัน เดือน ปี ปัจจุบัน ==========
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+
+  const yearInput = document.getElementById('yearInput');
+  if (yearInput && !yearInput.value) yearInput.value = today.getFullYear();
+
+  const monthInput = document.getElementById('monthInput');
+  if (monthInput && !monthInput.value) {
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+    monthInput.value = monthNames[today.getMonth()];
+  }
+
+  const dateInput = document.getElementById('dateOfEntry');
+  if (dateInput && !dateInput.value) {
+    dateInput.value = String(today.getDate()).padStart(2, '0');
+  }
+});
