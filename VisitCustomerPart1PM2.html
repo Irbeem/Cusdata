@@ -273,43 +273,49 @@ function initMap() {
   directionsRenderer.setMap(map);
 }
 
-function generateMap() {
+async function generateMap() {
+  // โหลดข้อมูล cache ให้ครบทุกคนก่อน
+  for (const cust of customers) {
+    if (!robotDataCache[cust.name]) {
+      const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(cust.name).once("value");
+      robotDataCache[cust.name] = [];
+      if (snapshot.exists()) {
+        snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
+      }
+    }
+  }
+  
+  // หลังจากนี้ map จะเจอข้อมูลครบทุก customer แน่นอน
   const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
   const origin = { lat: originCoords[0], lng: originCoords[1] };
 
-  const waypoints = [];
-
-  customers.forEach(cust => {
+  const waypoints = customers.map(cust => {
     const dataList = robotDataCache[cust.name];
-    if (!dataList || dataList.length === 0) return;
-    
-    // หา record แรกที่มี address
+    if (!dataList || dataList.length === 0) return null;
     const dataWithAddress = dataList.find(d => d.Address);
-    if (!dataWithAddress) return;
-
+    if (!dataWithAddress) return null;
     const [lat, lng] = dataWithAddress.Address.split(",").map(parseFloat);
-    waypoints.push({ name: cust.name, location: { lat, lng } });
-  });
+    return { name: cust.name, location: { lat, lng } };
+  }).filter(Boolean);
 
-  if (waypoints.length === 0) {
-    alert("No valid addresses found");
-    return;
-  }
-
+  if (!waypoints.length) return alert("No valid addresses found");
   const ds = new google.maps.DirectionsService();
-  const request = {
+
+  let request = {
     origin,
-    destination: waypoints[waypoints.length - 1].location,
-    waypoints: waypoints.slice(0, -1).map(w => ({ location: w.location, stopover: true })),
+    destination: waypoints[waypoints.length-1].location,
     travelMode: 'DRIVING'
   };
 
+  if (waypoints.length > 1) {
+    request.waypoints = waypoints.slice(0,-1).map(w => ({ location: w.location, stopover: true }));
+  }
   ds.route(request, (result, status) => {
     if (status === 'OK') {
       directionsRenderer.setDirections(result);
       generateRouteSummary(result, waypoints);
     } else {
-      alert("Failed to generate map: " + status);
+      alert("Failed to generate map: "+status);
     }
   });
 }
