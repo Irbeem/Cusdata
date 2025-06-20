@@ -82,6 +82,30 @@ let customers = [];
 let robotDataCache = {};
 let partDataCache = {};
 
+firebase.auth().onAuthStateChanged(async (user) => {
+  if (!user) return;
+
+  const userSnap = await db.ref(`users/${user.uid}`).once("value");
+  const userData = userSnap.exists() ? userSnap.val() : {};
+  document.getElementById("loginNameDisplay").textContent = ` ${userData?.name || "Unknown"}`;
+
+  const snapshot = await db.ref('robot_data').once("value");
+  const customerSet = new Set();
+  if (snapshot.exists()) {
+    snapshot.forEach(child => {
+      const data = child.val();
+      if (data["Customer name"]) customerSet.add(data["Customer name"].trim());
+    });
+  }
+  allCustomers = [...customerSet].sort();
+
+  // <<< เพิ่มส่วนนี้เข้าไป (สำคัญมาก)
+  if (customers.length === 0) {
+    customers.push(createEmptyCustomer());
+  }
+  renderCustomerCards();
+});
+	
 // Create empty customer
 function createEmptyCustomer() {
   return { name: "", timeIn: "08:00", timeOut: "09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:"" };
