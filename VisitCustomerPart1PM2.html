@@ -191,27 +191,31 @@ window.removeCustomer = (index) => {
 async function renderSummaries() {
   const container = document.getElementById("summaryContainer");
   container.innerHTML = "";
+
   for (const cust of customers) {
     if (!cust.name) continue;
 
-if (!robotDataCache[cust.name]) {
-  const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(cust.name).once("value");
-  robotDataCache[cust.name] = [];
-  if (snapshot.exists()) {
-    snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
-  }
-}
-if (!partDataCache[cust.name]) {
-  const partSnap = await db.ref(`part/${cust.name}`).once("value");
-  partDataCache[cust.name] = partSnap.exists() ? partSnap.val() : {};
-}
+    // โหลด robotData ถ้ายังไม่เคยโหลด
+    if (!robotDataCache[cust.name]) {
+      const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(cust.name).once("value");
+      robotDataCache[cust.name] = [];
+      if (snapshot.exists()) {
+        snapshot.forEach(child => robotDataCache[cust.name].push(child.val()));
+      }
+    }
+
+    // โหลด part data ถ้ายังไม่เคยโหลด
+    if (!partDataCache[cust.name]) {
+      const partSnap = await db.ref(`part/${cust.name}`).once("value");
+      partDataCache[cust.name] = partSnap.exists() ? partSnap.val() : {};
+    }
 
     const models = {}, controllers = {}, parts = {};
     robotDataCache[cust.name].forEach(d => {
-      models[d["Robot type"]||"Unknown"] = (models[d["Robot type"]||"Unknown"]||0)+1;
-      controllers[d["Controller"]||"Unknown"] = (controllers[d["Controller"]||"Unknown"]||0)+1;
+      models[d["Robot type"] || "Unknown"] = (models[d["Robot type"] || "Unknown"] || 0) + 1;
+      controllers[d["Controller"] || "Unknown"] = (controllers[d["Controller"] || "Unknown"] || 0) + 1;
     });
-    Object.entries(partDataCache[cust.name]||{}).forEach(([year, pdata]) => {
+    Object.entries(partDataCache[cust.name] || {}).forEach(([year, pdata]) => {
       parts[year] = pdata;
     });
 
@@ -220,6 +224,7 @@ if (!partDataCache[cust.name]) {
     block.innerHTML = `<h4>${cust.name}</h4>`;
     block.innerHTML += generateTable(models, "Model");
     block.innerHTML += generateTable(controllers, "Controller");
+
     if (Object.keys(parts).length > 0) {
       block.innerHTML += `<table><tr><th>Year</th><th>Qty</th><th>Total Price</th></tr>` +
         Object.entries(parts).map(([y, d]) => `<tr><td>${y}</td><td>${d.qty}</td><td>${d.price}</td></tr>`).join('') + `</table>`;
