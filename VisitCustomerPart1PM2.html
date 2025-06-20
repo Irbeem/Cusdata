@@ -81,40 +81,18 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+// Global variables
 let allCustomers = [];
-let robotDataCache = {};  // Cache robot data by customer
-let partDataCache = {};   // Cache part data by customer
 let customers = [];
+let robotDataCache = {};
+let partDataCache = {};
 
-// Init login
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return;
-
-  const userSnap = await get(ref(db, `users/${user.uid}`));
-  const userData = userSnap.exists() ? userSnap.val() : {};
-  document.getElementById("loginNameDisplay").textContent = ` ${userData?.name || "Unknown"}`;
-
-  // Preload only customer names
-  const snapshot = await get(ref(db, 'robot_data'));
-  const customerSet = new Set();
-  if (snapshot.exists()) {
-    snapshot.forEach(child => {
-      const data = child.val();
-      if (data["Customer name"]) customerSet.add(data["Customer name"].trim());
-    });
-  }
-  allCustomers = [...customerSet].sort();
-
-  if (customers.length === 0) customers.push(createEmptyCustomer());
-
-  // เรียก renderCustomerCards หลัง preload customer เสร็จแน่นอน
-  allCustomers = [...customerSet].sort();
-  renderCustomerCards();
-
+// Create empty customer
 function createEmptyCustomer() {
   return { name: "", timeIn: "08:00", timeOut: "09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:"" };
 }
 
+// Render customer cards
 function renderCustomerCards() {
   const container = document.getElementById("customerContainer");
   container.innerHTML = "";
@@ -136,7 +114,7 @@ function renderCustomerCards() {
       <label>Opinion:</label><textarea class="opinion">${cust.opinion||''}</textarea>`;
     container.appendChild(card);
 
-    // Autocomplete customer name (local only)
+    // Autocomplete customer name (TomSelect)
     new TomSelect(`#customerInput${idx}`, {
       create: false, maxItems: 1, valueField: 'value', labelField: 'text', searchField: 'text',
       options: allCustomers.map(c => ({ value: c, text: c })),
@@ -153,9 +131,10 @@ function renderCustomerCards() {
     card.querySelector(".opinion").addEventListener("input", e => customers[idx].opinion = e.target.value);
   });
   renderSummaries();
-  autoResizeTextarea()
+  autoResizeTextarea();
 }
 
+// Generate time options
 function generateTimeOptions(selected) {
   let html = "";
   for (let h = 8; h <= 23; h++) ["00", "30"].forEach(m => {
@@ -165,11 +144,13 @@ function generateTimeOptions(selected) {
   return html;
 }
 
+// Remove customer
 window.removeCustomer = (index) => {
   customers.splice(index, 1);
   renderCustomerCards();
 };
 
+// Render customer summary
 async function renderSummaries() {
   const container = document.getElementById("summaryContainer");
   container.innerHTML = "";
@@ -211,6 +192,13 @@ async function renderSummaries() {
     container.appendChild(block);
   }
 }
+
+// Generate table for summary
+function generateTable(data, label) {
+  return `<table><tr><th>${label}</th><th>Qty</th></tr>` +
+    Object.entries(data).map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('') + `</table>`;
+}
+
 
 function generateTable(data, label) {
   return `<table><tr><th>${label}</th><th>Qty</th></tr>` +
