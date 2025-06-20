@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Customer Address & Rename Tool</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; }
+    th { background-color: #007bff; color: white; }
+    input[type="text"] { width: 90%; }
+    button { padding: 5px 10px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+
+<h2>🗺️ Customer Address Maintenance</h2>
+
+<div id="renameSection">
+  <h3>🔁 Rename Customer Name (Replace All)</h3>
+  <label>Old Name:</label>
+  <input type="text" id="oldName" placeholder="Exact Old Name">
+  <label>New Name:</label>
+  <input type="text" id="newName" placeholder="New Name">
+  <button onclick="renameCustomer()">Update Name</button>
+</div>
+
+<h3>📋 Customers Without Address</h3>
+<table>
+  <thead>
+    <tr><th>Customer Name</th><th>Address</th><th>Action</th></tr>
+  </thead>
+  <tbody id="customerTableBody"></tbody>
+</table>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+  authDomain: "custdata-92ebe.firebaseapp.com",
+  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "custdata-92ebe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let robotData = {};
+let robotKeys = {}; // Mapping customer name -> list of keys
+
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return window.location.href = "index.html";
+  loadCustomers();
+});
+
+function loadCustomers() {
+  db.ref("robot_data").once("value", snapshot => {
+    robotData = snapshot.val() || {};
+    robotKeys = {};
+
+    // Group by customer name
+    Object.entries(robotData).forEach(([key, val]) => {
+      const name = val["Customer name"];
+      if (!name) return;
+      if (!robotKeys[name]) robotKeys[name] = [];
+      robotKeys[name].push(key);
+    });
+
+    // Find customers with missing address
+    const body = document.getElementById("customerTableBody");
+    body.innerHTML = "";
+
+    Object.entries(robotKeys).forEach(([name, keys]) => {
+      const hasAddress = keys.some(k => robotData[k].Address);
+      if (!hasAddress) {
+        body.innerHTML += `
+          <tr>
+            <td>${name}</td>
+            <td><input type="text" id="addr_${name.replaceAll(' ','_')}" placeholder="Enter Address"></td>
+            <td><button onclick="saveAddress('${name}')">Save</button></td>
+          </tr>`;
+      }
+    });
+  });
+}
+
+function saveAddress(name) {
+  const inputId = `addr_${name.replaceAll(' ','_')}`;
+  const newAddress = document.getElementById(inputId).value.trim();
+
+  if (!newAddress) {
+    alert("Please enter address");
+    return;
+  }
+
+  const keys = robotKeys[name];
+  keys.forEach(key => {
+    db.ref("robot_data/" + key).update({ Address: newAddress });
+  });
+
+  alert("Address updated for " + name);
+  loadCustomers();  // Refresh table
+}
+
+// 🔁 Rename logic
+function renameCustomer() {
+  const oldName = document.getElementById("oldName").value.trim();
+  const newName = document.getElementById("newName").value.trim();
+
+  if (!oldName || !newName) {
+    alert("Please fill both Old Name and New Name");
+    return;
+  }
+
+  if (!robotKeys[oldName]) {
+    alert("Customer not found: " + oldName);
+    return;
+  }
+
+  if (oldName === newName) {
+    alert("Old name and new name are the same");
+    return;
+  }
+
+  // Update robot_data
+  robotKeys[oldName].forEach(key => {
+    db.ref("robot_data/" + key).update({ "Customer name": newName });
+  });
+
+  // Update visit_plan (deep update)
+  db.ref("visit_plan").once("value", snapshot => {
+    const plans = snapshot.val() || {};
+    Object.entries(plans).forEach(([planKey, plan]) => {
+      let updated = false;
+      (plan.customers || []).forEach(cust => {
+        if (cust.customerName === oldName) {
+          cust.customerName = newName;
+          updated = true;
+        }
+      });
+      if (updated) {
+        db.ref("visit_plan/" + planKey + "/customers").set(plan.customers);
+      }
+    });
+
+    alert("Name updated everywhere successfully");
+    loadCustomers();
+  });
+}
+</script>
+
+</body>
+</html>
