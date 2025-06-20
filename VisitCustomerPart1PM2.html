@@ -232,6 +232,11 @@ function validateTime() {
 }
 
 // ของเก่า	คอมเม้นนี้ไม่ต้องลบ
+document.getElementById("addCustomerBtn").addEventListener("click", () => {
+  customers.push(createEmptyCustomer());
+  renderCustomerCards();
+});
+	
 document.getElementById("generateBtn").addEventListener("click", () => {
   customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
   if (!validateTime()) return;
