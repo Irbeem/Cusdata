@@ -167,8 +167,8 @@ function renderCustomerCards() {
     card.querySelector(".visitDetail").addEventListener("input", e => customers[idx].visitDetail = e.target.value);
     card.querySelector(".opinion").addEventListener("input", e => customers[idx].opinion = e.target.value);
   });
-  renderSummaries();
-  autoResizeTextarea();
+await renderSummaries();
+autoResizeTextarea();
 }
 
 // Generate time options
