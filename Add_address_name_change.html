@@ -47,7 +47,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 let robotData = {};
-let robotKeys = {}; // Mapping customer name -> list of keys
+let robotKeys = {};
 
 firebase.auth().onAuthStateChanged(user => {
   if (!user) return window.location.href = "index.html";
@@ -59,7 +59,6 @@ function loadCustomers() {
     robotData = snapshot.val() || {};
     robotKeys = {};
 
-    // Group by customer name
     Object.entries(robotData).forEach(([key, val]) => {
       const name = val["Customer name"];
       if (!name) return;
@@ -67,11 +66,13 @@ function loadCustomers() {
       robotKeys[name].push(key);
     });
 
-    // Find customers with missing address
     const body = document.getElementById("customerTableBody");
     body.innerHTML = "";
 
-    Object.entries(robotKeys).forEach(([name, keys]) => {
+    // เรียงชื่อลูกค้าตามตัวอักษร
+    const sortedCustomers = Object.entries(robotKeys).sort(([a], [b]) => a.localeCompare(b));
+
+    sortedCustomers.forEach(([name, keys]) => {
       const hasAddress = keys.some(k => robotData[k].Address);
       if (!hasAddress) {
         body.innerHTML += `
@@ -100,10 +101,9 @@ function saveAddress(name) {
   });
 
   alert("Address updated for " + name);
-  loadCustomers();  // Refresh table
+  loadCustomers();
 }
 
-// 🔁 Rename logic
 function renameCustomer() {
   const oldName = document.getElementById("oldName").value.trim();
   const newName = document.getElementById("newName").value.trim();
@@ -123,12 +123,10 @@ function renameCustomer() {
     return;
   }
 
-  // Update robot_data
   robotKeys[oldName].forEach(key => {
     db.ref("robot_data/" + key).update({ "Customer name": newName });
   });
 
-  // Update visit_plan (deep update)
   db.ref("visit_plan").once("value", snapshot => {
     const plans = snapshot.val() || {};
     Object.entries(plans).forEach(([planKey, plan]) => {
