@@ -209,6 +209,24 @@ if (!partDataCache[cust.name]) {
     container.appendChild(block);
   }
 }
+	
+onChange: async val => {
+  customers[idx].name = val;
+  // โหลด robotData ทันทีที่เลือกชื่อใหม่
+  if (!robotDataCache[val]) {
+    const snapshot = await db.ref('robot_data').orderByChild("Customer name").equalTo(val).once("value");
+    robotDataCache[val] = [];
+    if (snapshot.exists()) {
+      snapshot.forEach(child => robotDataCache[val].push(child.val()));
+    }
+  }
+  // โหลด part data ทันที
+  if (!partDataCache[val]) {
+    const partSnap = await db.ref(`part/${val}`).once("value");
+    partDataCache[val] = partSnap.exists() ? partSnap.val() : {};
+  }
+  renderSummaries();
+}
 
 // Generate table for summary
 function generateTable(data, label) {
