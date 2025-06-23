@@ -143,7 +143,9 @@ function renderCustomerCards(){
     <label>Opinion:</label><textarea class="opinion">${cust.opinion}</textarea>`;
     c.appendChild(div);
 
-    new TomSelect(`#customerInput${idx}`,{options: allCustomers.map(c => ({ value: c, text: c })),items: cust.name ? [cust.name] : [],create: false,maxItems: 1,persist: false,  
+    new TomSelect(`#customerInput${idx}`,{options: allCustomers.map(c => ({ value: c, text: c })),
+    items: cust.name ? [cust.name] : [],create: false,maxItems: 1,  maxOptions: 10000,persist: false,
+    placeholder: "--Select--",
     plugins: [],   // ปิด plugins ทุกตัว (ไม่มี multiple, ไม่มี restore)
     closeAfterSelect: true, // ปิด dropdown ทันทีหลังเลือก
     onChange: val => { customers[idx].name = val; renderSummaries(); }});
