@@ -2,477 +2,201 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="google" content="notranslate">
-  <title>YAPT Customer Part Viewer</title>
+  <title>YAPT Customer Part Viewer (Global Load + Customer Select with TomSelect)</title>
   
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
-
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
     body { margin: 0; font-family: sans-serif; }
     .container { display: flex; flex-direction: row; height: 100vh; }
-    .right-panel {
-      width: 50%;
-      position: fixed;
-      right: 0;
-      top: 0;
-      height: 100vh;
-      z-index: 1;
-     }
-
-    .left-panel {
-      width: 50%;
-      padding: 10px 10px 10px 20px; /* ชิดซ้ายน้อยลง  padding: top right bottom left */
-      margin-right: 50%;
-      overflow-y: auto;
-      height: 100vh;
-    }
-    #map { height: 100%; width: 100%; }
-
-    table { width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px; 
-      font-size: 14px; }
-
-    th, td {
-      padding: 8px;
-      border: 1px solid #ccc;
-      text-align: left;
-      font-size: 14px;
-    }
-
-    th {
-      background-color: #007bff;
-      color: white;
-    }
-   
-    select, input[type="number"] {
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-    }
-    .summary {display: flex; flex-wrap: wrap; margin-top: 10px; font-weight: bold; color: #007BFF; }
-    .hidden { display: none; }
-    .button {
-      background-color: #dc3545;
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      float: right;
-    }
-	/* Blue */
-   .button2 {
-      background-color: #008CBA;      
-      color: white;
-      padding: 6px 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    } 
-   .button3 {background-color: #f44336;} /* Red */ 
-   .button6 {background-color: #e7e7e7; color: black;} /* Gray */ 
-   .button5 {background-color: #555555;} /* Black */
-   .button4 {
-      background-color: #28a745;
-      color: white;
-      padding: 6px 10px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }   
-   .inline-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    }
-   .row-flex {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 10px;
-    }
+    .left-panel { width: 50%; padding: 10px 10px 10px 20px; margin-right: 50%; overflow-y: auto; height: 100vh; }
+    .right-panel { width: 50%; position: fixed; right: 0; top: 0; height: 100vh; z-index: 1; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { padding: 8px; border: 1px solid #ccc; text-align: left; font-size: 14px; }
+    th { background-color: #007bff; color: white; }
+    select { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    #topButton { position: fixed; bottom: 20px; right: 20px; padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
   </style>
-
-
 </head>
 <body>
-<div class="container hidden" id="mainPanel">
+
+<div class="container">
   <div class="left-panel">
-    <button class="button" onclick="signOut()">Sign Out</button>
-    
-    <h2 id="heading-2" style="background-color: #007bff; color: white; padding: 10px; border-radius: 8px; width: 23%;">
-        Part Viewer
-    </h2>
-<div class="row-flex">
+    <h2>Part Viewer (Global Load + Customer Select)</h2>
     <label>Customer:</label>
-    <select id="CustomerFilter"><option value="">All</option></select>
-    <button class="button2" onclick="updateFilteredMarkers()">Display</button>
-<label><input type="checkbox" id="splitByYear"> Extract Year</label> 
-  <br><a href="#heading-3"><button class="button4">Go to All Data</button></a>
-</div>
+    <select id="customerSelect" placeholder="--Select--"></select>
+    <button onclick="applyFilters()">Display</button>
 
-    <h3> Summary Table </h3>
-    <div id="summaryChart"></div>
-
-    <h3 id="heading-3">Filtered Data Table </h3>
-    <a href="#heading-2"><button class="button4">Top</button></a>
+    <div id="summaryBlock"></div>
     <table id="dataTable">
-      <thead><tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr></thead>
+      <thead>
+        <tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr>
+      </thead>
       <tbody></tbody>
     </table>
-
-    <br><a href="#heading-2"><button class="button4">Top</button></a>
-</div>
-<div class="right-panel" id="rightPanel" style="display: none;">
-  <div style="position: absolute; top: 0; left: 0; right: 0; background-color: white; max-height: 100%; overflow-y: auto; border-top: 1px solid #ccc; padding: 10px;">
+  </div>
+  <div class="right-panel">
     <h4>Purchase Summary by Year</h4>
-    <div id="yearlySummaryTable"></div>
-    <canvas id="yearlyChart" width="400" height="200"></canvas>
-
+    <table id="yearSummaryTable">
+      <thead>
+        <tr><th>Year</th><th>Times</th><th>Part PCs</th><th>Value</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <canvas id="yearlyChart"></canvas>
   </div>
 </div>
 
+<button id="topButton" onclick="window.scrollTo({top:0,behavior:'smooth'});">Top</button>
+
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
-    authDomain: "custdata-92ebe.firebaseapp.com",
-    databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "custdata-92ebe",
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
-  const auth = firebase.auth();
+const firebaseConfig = { 
+  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+  authDomain: "custdata-92ebe.firebaseapp.com",
+  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "custdata-92ebe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  let map;
-  let markers = [];
-  let allData = [];
-
-
-  function clearMarkers() {
-    markers.forEach(m => m.setMap(null));
-    markers = [];
-  }
-
-
+let allData = [];
+let filteredData = [];
+let chartInstance = null;
 
 firebase.auth().onAuthStateChanged(user => {
-  if (user) {
-    document.getElementById("mainPanel").classList.remove("hidden");
-    loadData();
-  } else {
-    // หน่วงเวลาเล็กน้อยก่อน redirect
-    setTimeout(() => {
-      if (!firebase.auth().currentUser) {
-        window.location.href = "index.html";
-      }
-    }, 1000);
-  }
+  if (!user) return window.location.href = "index.html";
+  loadData();
 });
 
-  function signOut() {
-    auth.signOut().then(() => {
-      //alert("ออกจากระบบสำเร็จ");
-      window.location.href = "index.html";
-    }).catch((error) => {
-      alert("Error: " + error.message);
-    });
-  }
-
-  function loadData() {
-    db.ref("part").once("value", snapshot => {
-      const data = snapshot.val();
-      if (!data) return;
-      allData = Object.values(data);
-      populateFilters();
-    });
-  }
-
-  function populateFilters() {
-    const CustomerSet = new Set();
-    allData.forEach(d => {
-	if (d["Customer"]) CustomerSet.add(d["Customer"]);
-    });
-    const customer = document.getElementById("CustomerFilter");
-
-    customer.innerHTML = '<option value="">All</option>';
-
-    Array.from(CustomerSet).sort().forEach(cus => {
-      const opt = document.createElement("option");
-      opt.value = cus; opt.textContent = cus;
-      customer.appendChild(opt);
-    });
-
-  }
-
-
-  async function updateFilteredMarkers() {
-    const customerSelected = document.getElementById("CustomerFilter").value;
-
-    const currentYear = new Date().getFullYear();
-
-    const splitByYear = document.getElementById("splitByYear").checked;
-
-    clearMarkers();
-    const tbody = document.querySelector("#dataTable tbody");
-    tbody.innerHTML = "";
-
-    let filtered = allData.filter(d => {
-      return (!customerSelected || d["Customer"] === customerSelected)
-    });
-
-    const customerCounts = {};
-    filtered.forEach(d => {
-      const name = d["Customer"];
-      if (!name) return;
-      customerCounts[name] = (customerCounts[name] || 0) + 1;
-    });
-
-    filtered.forEach(d => {
-      const year = parseInt(d["Year"]);
-      const age = !isNaN(year) ? currentYear - year : "-";
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-	<td>${d["Year"] || "-"}</td>
-        <td>${d["Customer"] || "-"}</td>
-        <td>${d["MatCode"] || "-"}</td>
-        <td>${d["PartName"] || "-"}</td>
-        <td>${d["Qt"] || "-"}</td>
-        <td>${d["Unit"] || "-"}</td>
-        <td>${parseFloat((d.Price || "0").toString().replace(/,/g, '')).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-        `;
-      tbody.appendChild(tr);
-    });
-
-  
-const summary = {};
-filtered.forEach(d => {
-  const customer = d["Customer"] || "Unknown";
-  const matcode = d["MatCode"] || "Unknown";
-  const partname = d["PartName"] || "Unknown";
-  const unit = d["Unit"] || "-";
-  const year = d["Year"] || "-";
-  const qt = parseFloat(d["Qt"]) || 0;
-  const price = parseFloat((d["Price"] || "0").toString().replace(/,/g, '')) || 0;
-
-  const key = splitByYear 
-              ? `${customer}|${matcode}|${partname}|${year}` 
-              : `${customer}|${matcode}|${partname}`;
-
-  if (!summary[key]) {
-    summary[key] = { customer, matcode, partname, qt, unit, price, year };
-  } else {
-    summary[key].qt += qt;
-    summary[key].price += price;
-  }
-});
-
-const summaryChart = document.getElementById("summaryChart");
-summaryChart.innerHTML = "";
-const table = document.createElement("table");
-table.innerHTML = `<thead><tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr></thead>`;
-const tbody2 = document.createElement("tbody");
-
-
-const sortedSummary = Object.values(summary).sort((a, b) => {
-      if (!splitByYear) return 0;
-      return (b.year || '').toString().localeCompare((a.year || '').toString());
-});
-
-sortedSummary.forEach(row => {
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${row.year}</td>
-    <td>${row.customer}</td>
-    <td>${row.matcode}</td>
-    <td>${row.partname}</td>
-    <td>${row.qt}</td>
-    <td>${row.unit}</td>
-    <td>${row.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-    `;
-  tbody2.appendChild(tr);
-});
-
-table.appendChild(tbody2);
-summaryChart.appendChild(table);
-
-// ตารางสรุปยอดซื้อต่อปีและจำนวนไอเทมต่อปี
-const yearlySummary = {};
-filtered.forEach(d => {
-  const year = d["Year"] || "-";
-  const qt = parseFloat(d["Qt"]) || 0;
-  const price = parseFloat((d["Price"] || "0").toString().replace(/,/g, '')) || 0;
-
-  if (!yearlySummary[year]) {
-    yearlySummary[year] = { totalQt: 0, totalPrice: 0, count: 0 };
-  }
-  yearlySummary[year].totalQt += qt;
-  yearlySummary[year].totalPrice += price;
-  yearlySummary[year].count += 1;
-});
-
-const yearTableDiv = document.getElementById("yearlySummaryTable");
-yearTableDiv.innerHTML = "";
-const yTable = document.createElement("table");
-yTable.innerHTML = `<thead><tr><th>Year</th><th>Times</th><th>Part PCs</th><th>Value</th></tr></thead>`;
-const yBody = document.createElement("tbody");
-
-Object.entries(yearlySummary)
-  .sort((a, b) => b[0].localeCompare(a[0])) // เรียงจากปีใหม่ไปเก่า
-  .forEach(([year, data]) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${year}</td>
-      <td>${data.count}</td>
-      <td>${data.totalQt}</td>
-      <td>${data.totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-      
-    `;
-    yBody.appendChild(tr);
+function loadData() {
+  db.ref("part").once("value", snapshot => {
+    allData = Object.values(snapshot.val() || {});
+    populateCustomerFilter();
   });
-
-yTable.appendChild(yBody);
-yearTableDiv.appendChild(yTable);
-
-if (filtered.length > 0) {
-  document.getElementById("rightPanel").style.display = "block";
-} else {
-  document.getElementById("rightPanel").style.display = "none";
 }
 
-
-const summaryByYear = {};
-Object.entries(yearlySummary).forEach(([year, data]) => {
-  summaryByYear[year] = data.totalPrice;
-});
-	  
-	  
-// ล้างกราฟเดิมถ้ามี  ---สร้างกราฟ
-if (window.yearlyChartInstance) {
-  window.yearlyChartInstance.destroy();
+function populateCustomerFilter() {
+  const customers = [...new Set(allData.map(d => d.Customer).filter(Boolean))].sort();
+  const customerSelect = document.getElementById("customerSelect");
+  customerSelect.innerHTML = "<option value=''>--Select--</option>";
+  customers.forEach(c => {
+    const option = document.createElement("option");
+    option.value = c; option.text = c;
+    customerSelect.appendChild(option);
+  });
+  new TomSelect("#customerSelect", { 
+    create: false, 
+    maxItems: 1, 
+    maxOptions: 10000,
+    sortField: "text",
+    placeholder: "--Select--"
+  });
 }
 
-const ctx = document.getElementById('yearlyChart').getContext('2d');
-const labels = Object.keys(summaryByYear);
-const data = Object.values(summaryByYear);
-
-window.yearlyChartInstance = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: labels,
-    datasets: [{
-      label: 'Total Purchase',
-      data: data,
-      backgroundColor: 'rgba(54, 162, 235, 0.7)',
-      borderColor: 'rgba(54, 162, 235, 1)',
-      borderWidth: 1
-    }]
-  },
-  options: {
-    responsive: true,
-    scales: {
-      y: {
-        beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Total (Baht)'
-        }
-      },
-      x: {
-        title: {
-          display: true,
-          text: 'Year'
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        display: false
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            return context.dataset.label + ': ' + context.raw.toLocaleString() + ' Baht';
-          }
-        }
-      }
-    }
+function applyFilters() {
+  const customer = document.getElementById("customerSelect").value;
+  if (!customer) {
+    alert("Please select a customer.");
+    return;
   }
-});  // จบกราฟ
+  filteredData = allData.filter(d => d.Customer === customer);
+  renderTable();
+  renderSummaryTable();
+  renderYearSummaryTable();
+  renderChart();
+}
 
-	  
-} // จบ  updatefiltermark
-
-
-
-// ฟังก์ชันสำหรับแสดงข้อมูลในตารางและสรุป summary
-function renderTableAndSummary(filtered) {
+function renderTable() {
   const tbody = document.querySelector("#dataTable tbody");
   tbody.innerHTML = "";
-
-  const currentYear = new Date().getFullYear();
-
-  filtered.forEach(d => {
-    
-    
+  filteredData.forEach(d => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${d["Year"] || "-"}</td>
-      <td>${d["Customer"] || "-"}</td>
-      <td>${d["MatCode"] || "-"}</td>
-      <td>${d["PartName"] || "-"}</td>
-      <td>${d["Qt"] || "-"}</td>
-      <td>${d["Unit"] || "-"}</td>
-      <td>${d["Price"] || "-"}</td>`;
+      <td>${d.Year || "-"}</td>
+      <td>${d.Customer || "-"}</td>
+      <td>${d.MatCode || "-"}</td>
+      <td>${d.PartName || "-"}</td>
+      <td>${d.Qt || "-"}</td>
+      <td>${d.Unit || "-"}</td>
+      <td>${d.Price || "-"}</td>`;
     tbody.appendChild(tr);
   });
-
-  // สร้าง summary chart
-  const summary = {};
-  filtered.forEach(d => {
-    const customer = d["Customer"] || "Unknown";
-    const model = d["PartName"] || "Unknown";
-    if (!summary[customer]) summary[customer] = {};
-    summary[customer][model] = (summary[customer][model] || 0) + 1;
-  });
-
-  const summaryChart = document.getElementById("summaryChart");
-  summaryChart.innerHTML = "";
-  const table = document.createElement("table");
-  table.innerHTML = `<thead><tr><th>Year</th><th>Customer</th><th>MatCode</th><th>PartName</th><th>Qt</th><th>Unit</th><th>Price</th></tr></thead>`;
-  const tbody2 = document.createElement("tbody");
-
-  Object.entries(summary).forEach(([customer, models]) => {
-    const total = Object.values(models).reduce((a, b) => a + b, 0);
-    let first = true;
-    for (const [model, qty] of Object.entries(models)) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${first ? customer : ""}</td>
-        <td>${model}</td>
-        <td>${qty}</td>
-        <td>${first ? total : ""}</td>`;
-      tbody2.appendChild(tr);
-      first = false;
-    }
-  });
-  table.appendChild(tbody2);
-  summaryChart.appendChild(table);
-
-  document.getElementById("filteredRobotCount").textContent = filtered.length;
-  document.getElementById("customerCount").textContent = Object.keys(summary).length;
-  document.getElementById("filteredPercent").textContent = allData.length > 0 ? ((filtered.length / allData.length) * 100).toFixed(1) : 0;
 }
 
+function renderSummaryTable() {
+  const summaryBlock = document.getElementById("summaryBlock");
+  const summary = {};
+  filteredData.forEach(d => {
+    const pname = d.PartName || "Unknown";
+    summary[pname] = (summary[pname] || 0) + 1;
+  });
+  let html = `<h4>Summary Table</h4><table><thead><tr><th>PartName</th><th>Count</th></tr></thead><tbody>`;
+  Object.entries(summary).forEach(([p, q]) => {
+    html += `<tr><td>${p}</td><td>${q}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+  summaryBlock.innerHTML = html;
+}
+
+function renderYearSummaryTable() {
+  const summaryByYear = {};
+  filteredData.forEach(d => {
+    const year = d.Year || "Unknown";
+    const price = parseFloat((d.Price || "0").toString().replace(/,/g, '')) || 0;
+    const pcs = parseFloat(d.Qt || "0") || 0;
+    if (!summaryByYear[year]) summaryByYear[year] = { count: 0, pcs: 0, totalPrice: 0 };
+    summaryByYear[year].count++;
+    summaryByYear[year].pcs += pcs;
+    summaryByYear[year].totalPrice += price;
+  });
+  const tbody = document.querySelector("#yearSummaryTable tbody");
+  tbody.innerHTML = "";
+  Object.entries(summaryByYear).sort().forEach(([year, data]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${year}</td><td>${data.count}</td><td>${data.pcs}</td><td>${data.totalPrice.toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderChart() {
+  const summaryByYear = {};
+  filteredData.forEach(d => {
+    const year = d.Year || "Unknown";
+    let price = parseFloat((d.Price || "0").toString().replace(/,/g, '')) || 0;
+    summaryByYear[year] = (summaryByYear[year] || 0) + price;
+  });
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('yearlyChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(summaryByYear),
+      datasets: [{
+        label: 'Total Purchase (Baht)',
+        data: Object.values(summaryByYear),
+        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, title: { display: true, text: 'Total (Baht)' } },
+        x: { title: { display: true, text: 'Year' } }
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.formattedValue} Baht` } }
+      }
+    }
+  });
+}
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>	
 </body>
 </html>
