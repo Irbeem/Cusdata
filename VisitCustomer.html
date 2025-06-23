@@ -2,230 +2,254 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="google" content="notranslate">
-  <title>Visit Plan List</title>
+  <title>Multi-Customer Visit Plan - FINAL FULL PRINTABLE</title>
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap&language=en" async defer></script>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    select, table { margin-top: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 6px 10px; }
-    th { background-color: #007bff; color: white; text-align: left; }
-    a { color: #007bff; text-decoration: none; }
-    button { padding: 4px 8px; }
+    body { font-family: sans-serif; margin: 20px; }
+    .container { display: flex; }
+    .left-panel { width: 50%; padding-right: 20px; }
+    .right-panel { width: 50%; page-break-before: always; }
+    .customer-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .customer-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 100%; position: relative; margin: auto;  /* ชิดกลางเวลาแสดงปกติ */ }
+    .remove-btn { position: absolute; top: 8px; right: 8px; background: red; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-weight: bold; cursor: pointer; }
+    input, select { padding: 6px; margin: 4px 0; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+    textarea { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; width: 95%; resize: none; overflow: hidden; }
+    button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; margin-top: 10px; }
+    .green { background-color: #28a745; color: white; }
+    label { background-color: #007bff; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
+    #map { height: 500px; margin-top: 20px; }
+    .summary-container { display: block; }
+    .summary-block { border: 2px solid #2c3e50; border-radius: 6px; padding: 10px; background-color: #ecf0f1; margin-bottom: 20px; }
+    .summary-block h4 { background-color: #2980b9; color: white; padding: 6px; border-radius: 4px; text-align: center; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    .compact-input { width: 160px; display: inline-block; }
+    #routeSummary { page-break-before: always; }
+
+    @media print {
+      .container { display: block; }
+      .left-panel, .right-panel { width: 100%; }
+      button, .remove-btn { display: none; }
+      .customer-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+      .customer-card { page-break-inside: avoid; width: 80%; }
+            .summary-block:not(:first-child) {page-break-before: always;}
+    }
   </style>
 </head>
 <body>
-
-  <h2>Visit Plan Records</h2>
-
-  <label for="userFilter">Filter by User:</label>
-  <select id="userFilter">
-    <option value="">All</option>
-  </select>
-
-  <label for="monthFilter">Month:</label>
-  <select id="monthFilter">
-    <option value="">All</option>
-  </select>
-
-  <label for="yearFilter">Year:</label>
-  <select id="yearFilter">
-    <option value="">All</option>
-  </select>
-
-  <label for="pageSizeSelect">Show per page:</label>
-  <select id="pageSizeSelect">
-    <option value="10">10</option>
-    <option value="20">20</option>
-    <option value="50">50</option>
-  </select>
-
-  <div id="paginationControls" style="margin-top: 10px;"></div>
-
-  <table id="visitTable">
-    <thead>
-      <tr>
-        <th>Visit Date</th>
-        <th>Order</th>
-        <th>Customer</th>
-        <th>User</th>
-        <th>Details</th>
-        <th>Delete</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<h2>Customer Visit Plan : <span id="loginNameDisplay"></span></h2>
+<div class="container">
+  <div class="left-panel">
+    <label>Visit Date:</label>
+    <input type="date" id="visitDateInput"><br>
+    <label>Start From:</label>
+    <select id="originSelect">
+      <option value="13.784431483421942,100.58041213808076">Yaskawa BKK</option>
+      <option value="13.092777336086302,101.06298540923027">Yaskawa Chonburi</option>
+    </select><br>
+    <div id="customerContainer" class="customer-container"></div>
+    <button id="addCustomerBtn" class="green">+ Add Customer</button>
+    <button id="generateBtn" class="green">Generate Map</button>
+    <button id="saveBtn" class="green">Save Plan</button>
+    <button id="printBtn" class="green">Print PDF</button>
+  </div>
+  <div class="right-panel">
+    <h3>Summary</h3>
+    <div id="summaryContainer"></div>
+  </div>
+</div>
+<div id="routeSummary"></div>
+<div id="map"></div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
-  authDomain: "custdata-92ebe.firebaseapp.com",
-  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "custdata-92ebe"
-};
+const firebaseConfig = { apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0", authDomain: "custdata-92ebe.firebaseapp.com", databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "custdata-92ebe" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+let allData=[], allCustomers=[], customers=[], partData=[], userData=null;
 
-const tableBody = document.querySelector("#visitTable tbody");
-const userSelect = document.getElementById("userFilter");
-const monthSelect = document.getElementById("monthFilter");
-const yearSelect = document.getElementById("yearFilter");
-const pageSizeSelect = document.getElementById("pageSizeSelect");
-const paginationControls = document.getElementById("paginationControls");
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return;
+  db.ref("users/"+user.uid).once("value", snap=>{
+    userData = snap.val();
+    document.getElementById("loginNameDisplay").textContent = userData?.name || "Unknown";
+  });
+  Promise.all([
+    db.ref("robot_data").once("value"),
+    db.ref("part").once("value")
+  ]).then(([robotSnap, partSnap]) => {
+    allData = Object.values(robotSnap.val() || {});
+    allCustomers = [...new Set(allData.map(d=>d["Customer name"]).filter(Boolean))].sort();
+    partData = Object.values(partSnap.val() || {});
+    if(customers.length===0) customers.push(createEmptyCustomer());
+    renderCustomerCards();
+  });
+});
 
-let allPlans = [];
-let dataLoaded = false;
-let currentPage = 1;
-let pageSize = 10;
-const userMap = {};
+document.getElementById("addCustomerBtn").onclick=()=>{ customers.push(createEmptyCustomer()); renderCustomerCards(); }
 
-function loadVisitPlans() {
-  if (dataLoaded) {
-    renderTable();
-    return;
-  }
-  db.ref("visit_plan").once("value", snapshot => {
-    const data = snapshot.val() || {};
-    allPlans = [];
-    Object.entries(data).forEach(([key, val]) => {
-      (val.customers || []).forEach(cust => {
-        allPlans.push({
-          key, 
-          visitDate: val.visitDate,
-          loginEmail: val.loginEmail,
-          customerName: cust.customerName,
-          loginName: val.loginName,
-          timeIn: cust.bookingTimeIn || "00:00"
-        });
-        if (val.loginEmail && val.loginName) {
-          userMap[val.loginEmail] = val.loginName;
-        }
-      });
+document.getElementById("generateBtn").onclick=()=>{
+  if(!validateTime()) return;
+  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
+  renderSummaries();
+  generateMap();
+}
+
+document.getElementById("saveBtn").onclick=()=>{
+  if(!validateTime()) return;
+  const visitDate=document.getElementById("visitDateInput").value;
+  if(!visitDate || customers.length===0){alert("Please input date and customers");return;}
+  const plan={ timestamp:Date.now(), visitDate, startFrom:document.getElementById("originSelect").value, loginName:userData.name, customers };
+  db.ref("visit_plan").push(plan,e=>{if(e)alert("Error");else alert("Saved!");});
+}
+
+document.getElementById("printBtn").onclick=()=>{
+  if(!validateTime()) return;
+  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
+  prepareMapForPrint();
+}
+
+function createEmptyCustomer(){ return {name:"", timeIn:"08:00", timeOut:"09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:""}; }
+
+function renderCustomerCards(){
+  const c=document.getElementById("customerContainer"); c.innerHTML="";
+  customers.forEach((cust,idx)=>{
+    const div=document.createElement("div"); div.className="customer-card";
+    div.innerHTML=`<button class="remove-btn" onclick="removeCustomer(${idx})">&times;</button>
+    <label>Customer:</label><input type="text" id="customerInput${idx}" value="${cust.name}">
+
+    <label>Time In:</label><select class="timeIn">${genTimeOpts(cust.timeIn)}</select>
+    <label>Time Out:</label><select class="timeOut">${genTimeOpts(cust.timeOut)}</select>
+        <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div style="flex:0 0 40%;">
+          <label>Time In:</label>
+          <select class="timeIn compact-input" style="width: 80px;">${genTimeOpts(cust.timeIn)}</select>
+        </div>
+        <div style="flex:0 0 40%;">
+          <label>Time Out:</label>
+          <select class="timeOut compact-input" style="width: 80px;">${genTimeOpts(cust.timeOut)}</select>
+        </div>
+    </div>
+    <label>Companion:</label><textarea class="companion">${cust.companion}</textarea>
+    <label>Contact Name:</label><textarea class="contactName">${cust.contactName}</textarea>
+    <label>Situation:</label><textarea class="situation">${cust.situation}</textarea>
+    <label>Visit Detail:</label><textarea class="visitDetail">${cust.visitDetail}</textarea>
+    <label>Opinion:</label><textarea class="opinion">${cust.opinion}</textarea>`;
+    c.appendChild(div);
+
+    new TomSelect(`#customerInput${idx}`,{options: allCustomers.map(c => ({ value: c, text: c })),items: cust.name ? [cust.name] : [],create: false,maxItems: 1,persist: false,  
+    plugins: [],   // ปิด plugins ทุกตัว (ไม่มี multiple, ไม่มี restore)
+    closeAfterSelect: true, // ปิด dropdown ทันทีหลังเลือก
+    onChange: val => { customers[idx].name = val; renderSummaries(); }});
+
+    div.querySelector(".timeIn").onchange=e=>{customers[idx].timeIn=e.target.value;}
+    div.querySelector(".timeOut").onchange=e=>{customers[idx].timeOut=e.target.value;}
+    div.querySelector(".companion").oninput=e=>{customers[idx].companion=e.target.value;}
+    div.querySelector(".contactName").oninput=e=>{customers[idx].contactName=e.target.value;}
+    div.querySelector(".situation").oninput=e=>{customers[idx].situation=e.target.value;}
+    div.querySelector(".visitDetail").oninput=e=>{customers[idx].visitDetail=e.target.value;}
+    div.querySelector(".opinion").oninput=e=>{customers[idx].opinion=e.target.value;}
+  });
+  renderSummaries();
+}
+
+function genTimeOpts(sel){
+  let h=""; for(let i=8;i<=23;i++){["00","30"].forEach(m=>{let t=`${i.toString().padStart(2,'0')}:${m}`; h+=`<option ${t==sel?"selected":""}>${t}</option>`;});} h+=`<option ${sel=="24:00"?"selected":""}>24:00</option>`; return h;
+}
+
+function removeCustomer(i){ customers.splice(i,1); renderCustomerCards(); }
+
+function renderSummaries(){
+  const s=document.getElementById("summaryContainer"); s.innerHTML="";
+  customers.forEach(cust=>{
+    if(!cust.name)return;
+    const filtered=allData.filter(d=>d["Customer name"]===cust.name);
+    const models={},controllers={},parts={};
+    filtered.forEach(d=>{ models[d["Robot type"]||"Unknown"]=(models[d["Robot type"]||"Unknown"]||0)+1; controllers[d["Controller"]||"Unknown"]=(controllers[d["Controller"]||"Unknown"]||0)+1; });
+    partData.filter(p=>p.Customer.toLowerCase().includes(cust.name.toLowerCase())).forEach(p=>{
+      const y=p.Year||"-"; parts[y]=parts[y]||{qty:0,price:0}; parts[y].qty+=parseFloat(p.Qt||0); parts[y].price+=parseFloat((p.Price||"0").replace(/,/g,''));
     });
-    populateFilters();
-    dataLoaded = true;
-    renderTable();
-  });
-}
-
-function populateFilters() {
-  const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
-  userSelect.innerHTML = '<option value="">All</option>' + users.map(u => `<option value="${u}">${userMap[u]}</option>`).join('');
-
-  const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
-  yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
-}
-
-function renderTable() {
-  const selectedUser = userSelect.value;
-  const selectedMonth = monthSelect.value;
-  const selectedYear = yearSelect.value;
-
-  const filtered = allPlans.filter(p => {
-    if (selectedUser && p.loginEmail !== selectedUser) return false;
-    if (selectedYear && (!p.visitDate || !p.visitDate.startsWith(selectedYear))) return false;
-    if (selectedMonth && (!p.visitDate || p.visitDate.split("-")[1] !== selectedMonth)) return false;
-    return true;
-  });
-
-  filtered.sort((a, b) => {
-    if (a.visitDate !== b.visitDate) return b.visitDate.localeCompare(a.visitDate);
-    if (a.loginEmail !== b.loginEmail) return a.loginEmail.localeCompare(b.loginEmail);
-    return a.timeIn.localeCompare(b.timeIn);
-  });
-
-  let sequenceMap = {};
-  filtered.forEach(p => {
-    const key = p.loginEmail + "_" + p.visitDate;
-    if (!sequenceMap[key]) sequenceMap[key] = 1;
-    p.sequence = sequenceMap[key]++;
-  });
-
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  if (currentPage > totalPages) currentPage = totalPages || 1;
-
-  const startIdx = (currentPage - 1) * pageSize;
-  const paginatedData = filtered.slice(startIdx, startIdx + pageSize);
-
-  tableBody.innerHTML = paginatedData.map(p => `
-    <tr>
-      <td>${p.visitDate}</td>
-      <td>${p.sequence}</td>
-      <td>${p.customerName || '-'}</td>
-      <td>${p.loginName || '-'}</td>
-      <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
-      <td><button onclick="deleteCustomer('${p.key}', '${p.customerName.replace(/'/g,"\\'")}')">Delete</button></td>
-    </tr>
-  `).join('');
-
-  renderPaginationControls(totalPages);
-}
-
-function renderPaginationControls(totalPages) {
-  if (totalPages <= 1) {
-    paginationControls.innerHTML = "";
-    return;
-  }
-  let html = `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button> `;
-  for (let i = 1; i <= totalPages; i++) {
-    html += `<button onclick="gotoPage(${i})" ${i === currentPage ? 'style="font-weight:bold;"' : ''}>${i}</button> `;
-  }
-  html += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
-  paginationControls.innerHTML = html;
-}
-
-function gotoPage(page) {
-  currentPage = page;
-  renderTable();
-}
-
-function populateMonthDropdown() {
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  for (let i = 0; i < 12; i++) {
-    const opt = document.createElement("option");
-    opt.value = (i+1).toString().padStart(2, '0');
-    opt.textContent = monthNames[i];
-    monthSelect.appendChild(opt);
-  }
-}
-
-function deleteCustomer(planKey, customerName) {
-  if (!confirm(`Delete customer "${customerName}"?`)) return;
-  db.ref("visit_plan/" + planKey).once("value", snapshot => {
-    const planData = snapshot.val();
-    if (!planData || !planData.customers) {
-      alert("Data not found.");
-      return;
+    let html=`<div class="summary-block"><h4>${cust.name}</h4><table><tr><th>Model</th><th>Qty</th></tr>`;
+    for(let [m,q] of Object.entries(models)) html+=`<tr><td>${m}</td><td>${q}</td></tr>`;
+    html+=`</table><table><tr><th>Controller</th><th>Qty</th></tr>`;
+    for(let [c,q] of Object.entries(controllers)) html+=`<tr><td>${c}</td><td>${q}</td></tr>`;
+    html+=`</table>`;
+    if(Object.keys(parts).length>0){
+      html+=`<table><tr><th>Year</th><th>Qty</th><th>Total Price</th></tr>`;
+      for(let [y,d] of Object.entries(parts)) html+=`<tr><td>${y}</td><td>${d.qty}</td><td>${d.price.toLocaleString()}</td></tr>`;
+      html+=`</table>`;
     }
-    const newCustomers = planData.customers.filter(c => c.customerName !== customerName);
-    db.ref("visit_plan/" + planKey + "/customers").set(newCustomers, (error) => {
-      if (error) {
-        alert("Failed to delete: " + error);
-      } else {
-        alert("Customer deleted.");
-        allPlans = allPlans.filter(p => !(p.key === planKey && p.customerName === customerName));
-        renderTable();
-      }
-    });
+    html+=`</div>`; s.innerHTML+=html;
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  populateMonthDropdown();
-  loadVisitPlans();
-});
+function validateTime(){
+  for(let i=0;i<customers.length;i++){
+    let c=customers[i];
+    if(!c.timeIn || !c.timeOut){ alert("Time missing at customer "+(i+1)); return false; }
+    if(c.timeIn>=c.timeOut){ alert("Time In must be before Time Out at "+c.name); return false; }
+    if(i>0 && c.timeIn<customers[i-1].timeOut){ alert("Time overlap at "+c.name); return false; }
+  }
+  return true;
+}
 
-monthSelect.addEventListener("change", renderTable);
-yearSelect.addEventListener("change", renderTable);
-userSelect.addEventListener("change", renderTable);
-pageSizeSelect.addEventListener("change", () => {
-  pageSize = parseInt(pageSizeSelect.value);
-  currentPage = 1;
-  renderTable();
-});
+let map, directionsRenderer;
+function initMap(){
+  map=new google.maps.Map(document.getElementById("map"),{center:{lat:13.736717,lng:100.523186},zoom:6});
+  directionsRenderer=new google.maps.DirectionsRenderer();
+  directionsRenderer.setMap(map);
+}
+
+function generateMap(){
+  const origin=document.getElementById("originSelect").value.split(",").map(Number);
+  const originLatLng={lat:origin[0],lng:origin[1]};
+  const waypoints=customers.map(c=>{
+    const d=allData.find(e=>e["Customer name"]===c.name);
+    if(!d||!d.Address)return null;
+    const [lat,lng]=d.Address.split(",").map(Number);
+    return {name:c.name,location:{lat,lng}};
+  }).filter(Boolean);
+  if(waypoints.length===0){alert("No valid addresses");return;}
+  const ds=new google.maps.DirectionsService();
+  ds.route({origin:originLatLng,destination:waypoints.slice(-1)[0].location,waypoints:waypoints.slice(0,-1).map(w=>({location:w.location,stopover:true})),travelMode:'DRIVING'},(result,status)=>{
+    if(status==='OK'){ directionsRenderer.setDirections(result); generateRouteSummary(result,waypoints); }
+    else alert("Map error: "+status);
+  });
+}
+
+function generateRouteSummary(result,waypoints){
+  const legs=result.routes[0].legs; let html="<h3>Route Summary</h3><table><tr><th>Customer</th><th>Distance</th><th>Time</th></tr>", totalDist=0, totalDur=0;
+  legs.forEach((leg,i)=>{ html+=`<tr><td>${waypoints[i].name}</td><td>${leg.distance.text}</td><td>${leg.duration.text}</td></tr>`; totalDist+=leg.distance.value; totalDur+=leg.duration.value; });
+  html+=`</table><h4>Total: ${(totalDist/1000).toFixed(1)} km, ${(totalDur/60).toFixed(0)} min</h4>`;
+  document.getElementById("routeSummary").innerHTML=html;
+}
+
+function prepareMapForPrint(){
+  const bounds=new google.maps.LatLngBounds();
+  const origin=document.getElementById("originSelect").value.split(",").map(Number);
+  bounds.extend(new google.maps.LatLng(origin[0],origin[1]));
+  customers.forEach(c=>{ const d=allData.find(e=>e["Customer name"]===c.name); if(d&&d.Address){ const [lat,lng]=d.Address.split(",").map(Number); bounds.extend(new google.maps.LatLng(lat,lng)); }});
+  map.fitBounds(bounds);
+  google.maps.event.addListenerOnce(map,'idle',()=>{ map.setZoom(map.getZoom()-1); setTimeout(()=>{window.print();},1000); });
+}
+
+
+window.onbeforeprint = () => {
+  document.getElementById("map").style.pointerEvents = "none";
+};
+
+window.onafterprint = () => {
+  document.getElementById("map").style.pointerEvents = "auto";
+};
+
+
+
+
+
 </script>
 </body>
 </html>
