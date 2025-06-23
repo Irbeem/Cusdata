@@ -121,10 +121,7 @@ function renderCustomerCards(){
     const div=document.createElement("div"); div.className="customer-card";
     div.innerHTML=`<button class="remove-btn" onclick="removeCustomer(${idx})">&times;</button>
     <label>Customer:</label><input type="text" id="customerInput${idx}" value="${cust.name}">
-
-    <label>Time In:</label><select class="timeIn">${genTimeOpts(cust.timeIn)}</select>
-    <label>Time Out:</label><select class="timeOut">${genTimeOpts(cust.timeOut)}</select>
-        <div style="display:flex; justify-content:space-between; gap:10px;">
+    <div style="display:flex; justify-content:space-between; gap:10px;">
         <div style="flex:0 0 40%;">
           <label>Time In:</label>
           <select class="timeIn compact-input" style="width: 80px;">${genTimeOpts(cust.timeIn)}</select>
