@@ -1,414 +1,231 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Customer Visit Plan</title>
-  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <meta name="google" content="notranslate">
+  <title>Visit Plan List</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBwX8K9beHAcHPJjHXxLtvl1YTV5KPvAt8&callback=initMap&language=en" async defer></script>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    .container { display: flex; }
-    .left-panel { width: 50%; padding-right: 20px; }
-    .right-panel { width: 50%; page-break-before: always; }
-    .customer-container { display: flex; flex-wrap: wrap; gap: 20px; }
-    .customer-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 100%; position: relative; margin: auto;  /* ชิดกลางเวลาแสดงปกติ */ }
-    .remove-btn { position: absolute; top: 8px; right: 8px; background: red; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-weight: bold; cursor: pointer; 
-                 font-size: 40px; display: flex; justify-content: center; align-items: center;}
-    input, select { padding: 6px; margin: 4px 0; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
-    textarea { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; width: 95%; resize: none; overflow: hidden; }
-    button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; margin-top: 10px; }
-    .green { background-color: #28a745; color: white; }
-    label { background-color: #007bff; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
-    #map { height: 500px; margin-top: 20px; }
-    .summary-container { display: block; }
-    .summary-block { border: 2px solid #2c3e50; border-radius: 6px; padding: 10px; background-color: #ecf0f1; margin-bottom: 20px; }
-    .summary-block h4 { background-color: #2980b9; color: white; padding: 6px; border-radius: 4px; text-align: center; }
-    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
-    .compact-input { width: 160px; display: inline-block; }
-    #routeSummary { page-break-before: always; }
-
-    @media print {
-      .container { display: block; }
-      .left-panel, .right-panel { width: 100%; }
-      button, .remove-btn { display: none; }
-      .customer-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
-      .customer-card { page-break-inside: avoid; width: 80%; }
-            .summary-block:not(:first-child) {page-break-before: always;}
-    }
+    body { font-family: sans-serif; padding: 20px; }
+    select, table { margin-top: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; }
+    th { background-color: #007bff; color: white; text-align: left; }
+    a { color: #007bff; text-decoration: none; }
+    button { padding: 4px 8px; }
   </style>
 </head>
 <body>
-<h2>Customer Visit Plan : <span id="loginNameDisplay"></span></h2>
-<div class="container">
-  <div class="left-panel">
-    <label>Visit Date:</label>
-    <input type="date" id="visitDateInput" class="compact-input"><br>
-    <label>Start From:</label>
-    <select id="originSelect" class="compact-input">
-      <option value="13.784431483421942,100.58041213808076">Yaskawa BKK</option>
-      <option value="13.092777336086302,101.06298540923027">Yaskawa Chonburi</option>
-    </select><br>
-    <div id="customerContainer" class="customer-container"></div>
-        <button id="addCustomerBtn" class="green">+ Add Customer</button>
-     <button id="generateBtn" class="green">Validate & Generate Map</button>
-        <button id="saveBtn" class="green">Save Visit Plan</button>
-    <button id="printBtn" class="green">Print / Export PDF</button>
-  </div>
-  <div class="right-panel">
-    <h3>Summary Per Customer</h3>
-    <div id="summaryContainer" class="summary-container"></div>
-  </div>
-</div>
-<div id="routeSummary"></div>
-<div id="map"></div>
+
+  <h2>Visit Plan Records</h2>
+
+  <label for="userFilter">Filter by User:</label>
+  <select id="userFilter">
+    <option value="">All</option>
+  </select>
+
+  <label for="monthFilter">Month:</label>
+  <select id="monthFilter">
+    <option value="">All</option>
+  </select>
+
+  <label for="yearFilter">Year:</label>
+  <select id="yearFilter">
+    <option value="">All</option>
+  </select>
+
+  <label for="pageSizeSelect">Show per page:</label>
+  <select id="pageSizeSelect">
+    <option value="10">10</option>
+    <option value="20">20</option>
+    <option value="50">50</option>
+  </select>
+
+  <div id="paginationControls" style="margin-top: 10px;"></div>
+
+  <table id="visitTable">
+    <thead>
+      <tr>
+        <th>Visit Date</th>
+        <th>Order</th>
+        <th>Customer</th>
+        <th>User</th>
+        <th>Details</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
 <script>
-const firebaseConfig = { apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0", authDomain: "custdata-92ebe.firebaseapp.com", databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app", projectId: "custdata-92ebe" };
+const firebaseConfig = {
+  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+  authDomain: "custdata-92ebe.firebaseapp.com",
+  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "custdata-92ebe"
+};
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let allData = [], allCustomers = [], customers = [], partData = [];
 
-firebase.auth().onAuthStateChanged(user => {
-  if (!user) return;
+const tableBody = document.querySelector("#visitTable tbody");
+const userSelect = document.getElementById("userFilter");
+const monthSelect = document.getElementById("monthFilter");
+const yearSelect = document.getElementById("yearFilter");
+const pageSizeSelect = document.getElementById("pageSizeSelect");
+const paginationControls = document.getElementById("paginationControls");
 
-  // ดึงชื่อผู้ใช้จาก Firebase
-  db.ref("users/" + user.uid).once("value", snapshot => {
-    const userData = snapshot.val();
-    const name = userData?.name || "Unknown";
+let allPlans = [];
+let dataLoaded = false;
+let currentPage = 1;
+let pageSize = 10;
+const userMap = {};
 
-    // ใส่ชื่อไปแสดงในหน้า
-    document.getElementById("loginNameDisplay").textContent = ` ${name}`;
-  });
-  
-  db.ref("robot_data").once("value", snap => {
-    allData = Object.values(snap.val() || {});
-    allCustomers = [...new Set(allData.map(d => d["Customer name"]).filter(Boolean))].sort();
-    if (customers.length === 0) { customers.push(createEmptyCustomer()); }
-    renderCustomerCards();
-    autoResizeTextarea();
-  });
-  db.ref("part").once("value", snap => { partData = Object.values(snap.val() || {}); });
-});
-
-document.getElementById("addCustomerBtn").addEventListener("click", () => {
-  customers.push(createEmptyCustomer());
-  renderCustomerCards();
-});
-
-// function time check
-function validateTime() {
-  for (let i = 0; i < customers.length; i++) {
-    const c = customers[i];
-    if (!c.timeIn || !c.timeOut) {
-      alert(`กรุณากรอกเวลาของ Customer ลำดับ ${i+1}`);
-      return false;
-    }
-    if (c.timeIn >= c.timeOut) {
-      alert(`เวลาของ Customer "${c.name}" ไม่ถูกต้อง: Time In ต้องน้อยกว่า Time Out`);
-      return false;
-    }
-    if (i > 0) {
-      const prev = customers[i - 1];
-      if (c.timeIn < prev.timeOut) {
-        alert(`เวลาของ Customer "${c.name}" ซ้อนทับกับ Customer "${prev.name}"`);
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-document.getElementById("generateBtn").addEventListener("click", () => {
-  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
-  if (!validateTime()) return;
-  renderSummaries();
-  generateMap();
-});
-
-function createEmptyCustomer() {
-  return { name: "", timeIn: "08:00", timeOut: "09:00", companion:"", contactName:"", situation:"", visitDetail:"", opinion:"" };
-}
-
-function renderCustomerCards() {
-  const container = document.getElementById("customerContainer");
-  container.innerHTML = "";
-  customers.forEach((cust, idx) => {
-    const card = document.createElement("div");
-    card.className = "customer-card";
-    card.innerHTML = `
-      <button class="remove-btn" onclick="removeCustomer(${idx})">&times;</button>
-      <label>Customer Name:</label>
-      <input type="text" id="customerInput${idx}" value="${cust.name}">
-      
-            <div style="display:flex; justify-content:space-between; gap:10px;">
-        <div style="flex:0 0 40%;">
-          <label>Time In:</label>
-          <select class="timeIn compact-input" style="width: 80px;">${generateTimeOptions(cust.timeIn)}</select>
-        </div>
-        <div style="flex:0 0 40%;">
-          <label>Time Out:</label>
-          <select class="timeOut compact-input" style="width: 80px;">${generateTimeOptions(cust.timeOut)}</select>
-        </div>
-      </div>
-      <label>Companion:</label><textarea class="companion">${cust.companion||''}</textarea>
-      <label>Contact Name:</label><textarea class="contactName">${cust.contactName||''}</textarea>
-      <label>Situation:</label><textarea class="situation">${cust.situation||''}</textarea>
-      <label>Visit Detail:</label><textarea class="visitDetail">${cust.visitDetail||''}</textarea>
-      <label>Opinion:</label><textarea class="opinion">${cust.opinion||''}</textarea>`;
-    container.appendChild(card);
-
-    new TomSelect(`#customerInput${idx}`, {
-      create: false, maxItems: 1, valueField: 'value', labelField: 'text', searchField: 'text',
-      options: allCustomers.map(c => ({ value: c, text: c })),
-      items: cust.name ? [cust.name] : [],
-      onChange: val => { customers[idx].name = val; renderSummaries(); },
-      openOnFocus: true, maxOptions: 10000
-    });
-
-    card.querySelector(".timeIn").addEventListener("change", e => { customers[idx].timeIn = e.target.value; });
-    card.querySelector(".timeOut").addEventListener("change", e => { customers[idx].timeOut = e.target.value; });
-    card.querySelector(".companion").addEventListener("input", e => { customers[idx].companion = e.target.value; });
-    card.querySelector(".contactName").addEventListener("input", e => { customers[idx].contactName = e.target.value; });
-    card.querySelector(".situation").addEventListener("input", e => { customers[idx].situation = e.target.value; });
-    card.querySelector(".visitDetail").addEventListener("input", e => { customers[idx].visitDetail = e.target.value; });
-    card.querySelector(".opinion").addEventListener("input", e => { customers[idx].opinion = e.target.value; });
-  });
-  renderSummaries();
-    autoResizeTextarea();
-}
-
-function generateTimeOptions(selected="08:00") {
-  let html = "";
-  for (let h = 8; h <= 23; h++) {
-    ["00","30"].forEach(m => {
-      const val = `${h.toString().padStart(2,'0')}:${m}`;
-      html += `<option value="${val}" ${val==selected?"selected":""}>${val}</option>`;
-    });
-  }
-  html += `<option value="24:00" ${selected=="24:00"?"selected":""}>24:00</option>`;
-  return html;
-}
-
-function removeCustomer(index) { customers.splice(index, 1); renderCustomerCards(); }
-
-function renderSummaries() {
-  const container = document.getElementById("summaryContainer");
-  container.innerHTML = "";
-  customers.forEach(cust => {
-    if (!cust.name) return;
-    const filtered = allData.filter(d => d["Customer name"] === cust.name);
-    const models = {}, controllers = {}, parts = {};
-    filtered.forEach(d => { models[d["Robot type"]||"Unknown"] = (models[d["Robot type"]||"Unknown"]||0)+1; controllers[d["Controller"]||"Unknown"] = (controllers[d["Controller"]||"Unknown"]||0)+1; });
-    partData.filter(p => p.Customer.toLowerCase().includes(cust.name.toLowerCase())).forEach(p => {
-      const year = p.Year || "-";
-      parts[year] = parts[year] || { qty: 0, price: 0 };
-      parts[year].qty += parseFloat(p.Qt||0);
-      parts[year].price += parseFloat((p.Price||"0").toString().replace(/,/g,''));
-    });
-    const block = document.createElement("div");
-    block.className = "summary-block";
-    block.innerHTML = `<h4>${cust.name}</h4>`;
-    block.innerHTML += `<table><tr><th>Model</th><th>Qty</th></tr>${Object.entries(models).map(([m,q])=>`<tr><td>${m}</td><td>${q}</td>`).join('')}</table>`;
-    block.innerHTML += `<table><tr><th>Controller</th><th>Qty</th></tr>${Object.entries(controllers).map(([c,q])=>`<tr><td>${c}</td><td>${q}</td>`).join('')}</table>`;
-    if (Object.keys(parts).length>0) {
-      block.innerHTML += `<table><tr><th>Year</th><th>Qty</th><th>Total Price</th></tr>`+
-        Object.entries(parts).sort().map(([y,d])=>`<tr><td>${y}</td><td>${d.qty}</td><td>${d.price.toLocaleString()}</td></tr>`).join('')+`</table>`;
-    }
-    container.appendChild(block);
-  });
-}
-
-function initMap() {
-  map = new google.maps.Map(document.getElementById("map"), {center: { lat: 13.736717, lng: 100.523186 }, zoom: 6 });
-  directionsRenderer = new google.maps.DirectionsRenderer();
-  directionsRenderer.setMap(map);
-}
-
-function generateMap() {
-  const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
-  const origin = { lat: originCoords[0], lng: originCoords[1] };
-  const waypoints = customers.map(cust => {
-    const data = allData.find(d => d["Customer name"] === cust.name);
-    if (!data || !data.Address) return null;
-    const [lat,lng] = data.Address.split(",").map(parseFloat);
-    return { name: cust.name, location: { lat, lng } };
-  }).filter(Boolean);
-  if (!waypoints.length) return alert("No valid addresses found");
-  const ds = new google.maps.DirectionsService();
-  
-  let request = {
-  origin,
-  destination: waypoints[waypoints.length-1].location,
-  travelMode: 'DRIVING'
-};
-
-if (waypoints.length > 1) {
-  request.waypoints = waypoints.slice(0,-1).map(w => ({ location: w.location, stopover: true }));
-}
-  ds.route({ origin, destination: waypoints[waypoints.length-1].location, waypoints: waypoints.slice(0,-1).map(w=>({ location: w.location, stopover: true })), travelMode: 'DRIVING' }, (result, status) => {
-    if (status === 'OK') {
-      directionsRenderer.setDirections(result);
-      generateRouteSummary(result, waypoints);
-    } else {
-      alert("Failed to generate map: "+status);
-    }
-  });
-}
-
-function generateRouteSummary(result, waypoints) {
-  const legs = result.routes[0].legs;
-  let html = `<h3>Route Summary</h3><table><tr><th>Customer</th><th>Distance</th><th>Time</th></tr>`;
-  let totalDist = 0, totalDur = 0;
-  legs.forEach((leg, i) => {
-    html += `<tr><td>${waypoints[i].name}</td><td>${leg.distance.text}</td><td>${leg.duration.text}</td></tr>`;
-    totalDist += leg.distance.value; totalDur += leg.duration.value;
-  });
-  html += `</table><h4>Total Distance: ${(totalDist/1000).toFixed(2)} km, Total Time: ${(totalDur/60).toFixed(0)} min</h4>`;
-  document.getElementById("routeSummary").innerHTML = html;
-}
-
-window.onbeforeprint = () => {
-  document.getElementById("map").style.pointerEvents = "none";
-};
-
-window.onafterprint = () => {
-  document.getElementById("map").style.pointerEvents = "auto";
-};
-
-document.getElementById("printBtn").addEventListener("click", () => {
-  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
-  if (!validateTime()) return;
-  prepareMapForPrint();
-});
-
-function prepareMapForPrint() {
-  // Trigger onbeforeprint (simulate mouseout)
-  // map.setZoom(4);  // <<< ใส่ตรงนี้เลย ปรับตามที่คุณต้องการ
-  const bounds = new google.maps.LatLngBounds();
-    
-    // รวม origin ด้วย
-    const originCoords = document.getElementById("originSelect").value.split(",").map(parseFloat);
-    bounds.extend(new google.maps.LatLng(originCoords[0], originCoords[1]));
-
-    customers.forEach(cust => {
-        const data = allData.find(d => d["Customer name"] === cust.name);
-        if (data && data.Address) {
-            const [lat, lng] = data.Address.split(",").map(parseFloat);
-            bounds.extend(new google.maps.LatLng(lat, lng));
-        }
-    });
-
-    map.fitBounds(bounds);  // ให้ Google คำนวณขอบเขตก่อน
-
-    // รอให้ fitBounds เสร็จก่อนแล้วค่อยลด zoom
-    google.maps.event.addListenerOnce(map, 'idle', function() {
-        const currentZoom = map.getZoom();
-        map.setZoom(currentZoom - 2);  // <<< ขยาย 1 ระดับ 
-    });
-
-  if (typeof window.onbeforeprint === 'function') {
-    window.onbeforeprint();
-  }
-
-  // Wait 1.1 sec for message to disappear, then print
-  setTimeout(() => {
-    window.print();
-  }, 1100);
-}
-
-
-
-function autoResizeTextarea() {
-  document.querySelectorAll("textarea").forEach(textarea => {
-    textarea.style.height = "auto";
-    textarea.style.height = textarea.scrollHeight + "px";
-    textarea.addEventListener("input", function() {
-      this.style.height = "auto";
-      this.style.height = (this.scrollHeight) + "px";
-    });
-  });
-}
-
-// save data to firebase
-document.getElementById("saveBtn").addEventListener("click", () => {
-  customers.sort((a,b)=> a.timeIn.localeCompare(b.timeIn));
-  if (!validateTime()) return;
-  const visitDate = document.getElementById("visitDateInput").value;
-  const startFrom = document.getElementById("originSelect").options[document.getElementById("originSelect").selectedIndex].text;
-
-  const user = firebase.auth().currentUser;
-  const uid = user.uid;
-  const email = user.email;
-
-  if (!visitDate || customers.length === 0) {
-    alert("❗ กรุณากรอก Visit Date และเพิ่มอย่างน้อย 1 ลูกค้า");
+function loadVisitPlans() {
+  if (dataLoaded) {
+    renderTable();
     return;
   }
-
-  db.ref("users/" + uid).once("value", snapshot => {
-    const userData = snapshot.val();
-    const name = userData?.name || "Unknown";
-
- db.ref("visit_plan").once("value", snap => {
-      const allPlans = Object.values(snap.val() || {});
-
-      let duplicateFound = false;
-      customers.forEach(cust => {
-        const exist = allPlans.find(p =>
-          p.visitDate === visitDate &&
-          p.customerName === cust.name &&
-          p.loginEmail === email
-        );
-        if (exist) {
-          duplicateFound = true;
+  db.ref("visit_plan").once("value", snapshot => {
+    const data = snapshot.val() || {};
+    allPlans = [];
+    Object.entries(data).forEach(([key, val]) => {
+      (val.customers || []).forEach(cust => {
+        allPlans.push({
+          key, 
+          visitDate: val.visitDate,
+          loginEmail: val.loginEmail,
+          customerName: cust.customerName,
+          loginName: val.loginName,
+          timeIn: cust.bookingTimeIn || "00:00"
+        });
+        if (val.loginEmail && val.loginName) {
+          userMap[val.loginEmail] = val.loginName;
         }
       });
+    });
+    populateFilters();
+    dataLoaded = true;
+    renderTable();
+  });
+}
 
-      if (duplicateFound) {
-        alert("⚠ มีรายการลูกค้าซ้ำในวันเดียวกันสำหรับ user นี้แล้ว กรุณาตรวจสอบ");
-        return;
-      }
+function populateFilters() {
+  const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
+  userSelect.innerHTML = '<option value="">All</option>' + users.map(u => `<option value="${u}">${userMap[u]}</option>`).join('');
 
+  const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
+  yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
+}
 
-    const customerArray = customers.map(cust => ({
-      customerName: cust.name,
-      bookingTimeIn: cust.timeIn,
-      bookingTimeOut: cust.timeOut,
-      companion: cust.companion,
-      contactName: cust.contactName,
-      situation: cust.situation,
-      visitDetail: cust.visitDetail,
-      opinion: cust.opinion
-    }));
+function renderTable() {
+  const selectedUser = userSelect.value;
+  const selectedMonth = monthSelect.value;
+  const selectedYear = yearSelect.value;
 
-    const planData = {
-      timestamp: Date.now(),
-      visitDate: visitDate,
-      startFrom: startFrom,
-      uid: uid,
-      loginName: name,
-      loginEmail: email,
-      customers: customerArray
-    };
+  const filtered = allPlans.filter(p => {
+    if (selectedUser && p.loginEmail !== selectedUser) return false;
+    if (selectedYear && (!p.visitDate || !p.visitDate.startsWith(selectedYear))) return false;
+    if (selectedMonth && (!p.visitDate || p.visitDate.split("-")[1] !== selectedMonth)) return false;
+    return true;
+  });
 
-    db.ref("visit_plan").push(planData, error => {
+  filtered.sort((a, b) => {
+    if (a.visitDate !== b.visitDate) return b.visitDate.localeCompare(a.visitDate);
+    if (a.loginEmail !== b.loginEmail) return a.loginEmail.localeCompare(b.loginEmail);
+    return a.timeIn.localeCompare(b.timeIn);
+  });
+
+  let sequenceMap = {};
+  filtered.forEach(p => {
+    const key = p.loginEmail + "_" + p.visitDate;
+    if (!sequenceMap[key]) sequenceMap[key] = 1;
+    p.sequence = sequenceMap[key]++;
+  });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+
+  const startIdx = (currentPage - 1) * pageSize;
+  const paginatedData = filtered.slice(startIdx, startIdx + pageSize);
+
+  tableBody.innerHTML = paginatedData.map(p => `
+    <tr>
+      <td>${p.visitDate}</td>
+      <td>${p.sequence}</td>
+      <td>${p.customerName || '-'}</td>
+      <td>${p.loginName || '-'}</td>
+      <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
+      <td><button onclick="deleteCustomer('${p.key}', '${p.customerName.replace(/'/g,"\\'")}')">Delete</button></td>
+    </tr>
+  `).join('');
+
+  renderPaginationControls(totalPages);
+}
+
+function renderPaginationControls(totalPages) {
+  if (totalPages <= 1) {
+    paginationControls.innerHTML = "";
+    return;
+  }
+  let html = `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button> `;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button onclick="gotoPage(${i})" ${i === currentPage ? 'style="font-weight:bold;"' : ''}>${i}</button> `;
+  }
+  html += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
+  paginationControls.innerHTML = html;
+}
+
+function gotoPage(page) {
+  currentPage = page;
+  renderTable();
+}
+
+function populateMonthDropdown() {
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  for (let i = 0; i < 12; i++) {
+    const opt = document.createElement("option");
+    opt.value = (i+1).toString().padStart(2, '0');
+    opt.textContent = monthNames[i];
+    monthSelect.appendChild(opt);
+  }
+}
+
+function deleteCustomer(planKey, customerName) {
+  if (!confirm(`Delete customer "${customerName}"?`)) return;
+  db.ref("visit_plan/" + planKey).once("value", snapshot => {
+    const planData = snapshot.val();
+    if (!planData || !planData.customers) {
+      alert("Data not found.");
+      return;
+    }
+    const newCustomers = planData.customers.filter(c => c.customerName !== customerName);
+    db.ref("visit_plan/" + planKey + "/customers").set(newCustomers, (error) => {
       if (error) {
-        alert("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล");
+        alert("Failed to delete: " + error);
       } else {
-        alert("✅ บันทึกข้อมูลเรียบร้อยแล้ว");
+        alert("Customer deleted.");
+        allPlans = allPlans.filter(p => !(p.key === planKey && p.customerName === customerName));
+        renderTable();
       }
     });
   });
-});
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  populateMonthDropdown();
+  loadVisitPlans();
 });
 
-
+monthSelect.addEventListener("change", renderTable);
+yearSelect.addEventListener("change", renderTable);
+userSelect.addEventListener("change", renderTable);
+pageSizeSelect.addEventListener("change", () => {
+  pageSize = parseInt(pageSizeSelect.value);
+  currentPage = 1;
+  renderTable();
+});
 </script>
 </body>
 </html>
