@@ -3,47 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate">
-  <title>Visit Plan List</title>
+  <title>Visit Plan List (With Filters)</title>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    select, table { margin-top: 10px; }
     table { border-collapse: collapse; width: 100%; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 6px 10px; }
     th { background-color: #007bff; color: white; text-align: left; }
     a { color: #007bff; text-decoration: none; }
     button { padding: 4px 8px; }
+    .filter-container { margin-bottom: 20px; }
   </style>
 </head>
 <body>
 
-  <h2>Visit Plan Records</h2>
+  <h2>Visit Plan Records (With Filters)</h2>
 
-  <label for="userFilter">Filter by User:</label>
-  <select id="userFilter">
-    <option value="">All</option>
-  </select>
+  <div class="filter-container">
+    <label>User:</label>
+    <select id="userFilter">
+      <option value="">All</option>
+    </select>
+    
+    <label>Start Date:</label>
+    <input type="date" id="startDate">
+    
+    <label>End Date:</label>
+    <input type="date" id="endDate">
+    
+    <label>Show:</label>
+    <select id="pageSizeSelect">
+      <option value="10">10</option>
+      <option value="20">20</option>
+      <option value="50">50</option>
+    </select>
 
-  <label for="monthFilter">Month:</label>
-  <select id="monthFilter">
-    <option value="">All</option>
-  </select>
+    <button onclick="applyFilters()">Filter</button>
+  </div>
 
-  <label for="yearFilter">Year:</label>
-  <select id="yearFilter">
-    <option value="">All</option>
-  </select>
-
-  <label for="pageSizeSelect">Show per page:</label>
-  <select id="pageSizeSelect">
-    <option value="10">10</option>
-    <option value="20">20</option>
-    <option value="50">50</option>
-  </select>
-
-  <div id="paginationControls" style="margin-top: 10px;"></div>
+  <div id="paginationControls"></div>
 
   <table id="visitTable">
     <thead>
@@ -60,177 +60,123 @@
   </table>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
-    authDomain: "custdata-92ebe.firebaseapp.com",
-    databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "custdata-92ebe"
-  };
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+const firebaseConfig = {
+  apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
+  authDomain: "custdata-92ebe.firebaseapp.com",
+  databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "custdata-92ebe"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-  const tableBody = document.querySelector("#visitTable tbody");
-  const userSelect = document.getElementById("userFilter");
-  const monthSelect = document.getElementById("monthFilter");
-  const yearSelect = document.getElementById("yearFilter");
-  const pageSizeSelect = document.getElementById("pageSizeSelect");
-  const paginationControls = document.getElementById("paginationControls");
+const tableBody = document.querySelector("#visitTable tbody");
+const userFilter = document.getElementById("userFilter");
+const startDateInput = document.getElementById("startDate");
+const endDateInput = document.getElementById("endDate");
+const pageSizeSelect = document.getElementById("pageSizeSelect");
+const paginationControls = document.getElementById("paginationControls");
 
-  let allPlans = [];
-  let currentPage = 1;
-  let pageSize = 10;
-  const userMap = {};
+let allPlans = [];
+let filteredPlans = [];
+let currentPage = 1;
+let pageSize = 10;
 
-  function loadVisitPlans() {
-    db.ref("visit_plan").once("value", snapshot => {
-      const data = snapshot.val() || {};
-      allPlans = [];
+firebase.auth().onAuthStateChanged(user => {
+  if (user) {
+    loadVisitPlans();
+  } else {
+    alert("Please login to access the system");
+    window.location.href = "login.html";
+  }
+});
 
-      Object.entries(data).forEach(([key, val]) => {
-        (val.customers || []).forEach(cust => {
-          allPlans.push({
-            key, 
-            visitDate: val.visitDate,
-            loginEmail: val.loginEmail,
-            customerName: cust.customerName,
-            loginName: val.loginName,
-            timeIn: cust.bookingTimeIn || "00:00"
-          });
-          if (val.loginEmail && val.loginName) {
-            userMap[val.loginEmail] = val.loginName;
-          }
+function loadVisitPlans() {
+  db.ref("visit_plan").once("value", snapshot => {
+    const data = snapshot.val() || {};
+    allPlans = [];
+    Object.entries(data).forEach(([key, val]) => {
+      (val.customers || []).forEach((cust, index) => {
+        allPlans.push({
+          key: key,
+          visitDate: val.visitDate,
+          loginEmail: val.loginEmail,
+          customerName: cust.customerName,
+          loginName: val.loginName,
+          order: index + 1
         });
       });
-
-      const users = [...new Set(allPlans.map(p => p.loginEmail).filter(Boolean))];
-      userSelect.innerHTML = '<option value="">All</option>' + users.map(u => 
-        `<option value="${u}">${userMap[u]}</option>`).join('');
-
-      const years = [...new Set(allPlans.map(p => p.visitDate?.split('-')[0]).filter(Boolean))];
-      yearSelect.innerHTML = '<option value="">All</option>' + years.sort().map(y => `<option value="${y}">${y}</option>`).join('');
-
-      renderTable();
     });
-  }
+    populateUserFilter();
+    applyFilters();
+  });
+}
 
-  pageSizeSelect.addEventListener("change", () => {
-    pageSize = parseInt(pageSizeSelect.value);
-    currentPage = 1;
-    renderTable();
+function populateUserFilter() {
+  const users = [...new Set(allPlans.map(p => p.loginName).filter(Boolean))];
+  userFilter.innerHTML = '<option value="">All</option>' + users.map(u => `<option value="${u}">${u}</option>`).join('');
+}
+
+function applyFilters() {
+  pageSize = parseInt(pageSizeSelect.value);
+  currentPage = 1;
+
+  filteredPlans = allPlans.filter(p => {
+    if (userFilter.value && p.loginName !== userFilter.value) return false;
+    if (startDateInput.value && p.visitDate < startDateInput.value) return false;
+    if (endDateInput.value && p.visitDate > endDateInput.value) return false;
+    return true;
   });
 
-  function renderTable() {
-    const selectedUser = userSelect.value;
-    const selectedMonth = monthSelect.value;
-    const selectedYear = yearSelect.value;
+  filteredPlans.sort((a, b) => b.visitDate.localeCompare(a.visitDate));
+  renderTable();
+}
 
-    const filtered = allPlans.filter(p => {
-      if (selectedUser && p.loginEmail !== selectedUser) return false;
-      if (selectedYear && (!p.visitDate || !p.visitDate.startsWith(selectedYear))) return false;
-      if (selectedMonth && (!p.visitDate || p.visitDate.split("-")[1] !== selectedMonth)) return false;
-      return true;
-    });
+function renderTable() {
+  const totalPages = Math.ceil(filteredPlans.length / pageSize);
+  if (currentPage > totalPages) currentPage = totalPages || 1;
+  const startIdx = (currentPage - 1) * pageSize;
+  const pageData = filteredPlans.slice(startIdx, startIdx + pageSize);
 
-    filtered.sort((a, b) => {
-      if (a.visitDate !== b.visitDate) return a.visitDate.localeCompare(b.visitDate);
-      if (a.loginEmail !== b.loginEmail) return a.loginEmail.localeCompare(b.loginEmail);
-      return a.timeIn.localeCompare(b.timeIn);
-    });
+  const rows = pageData.map(p => `
+    <tr>
+      <td>${p.visitDate}</td>
+      <td>${p.order}</td>
+      <td>${p.customerName || '-'}</td>
+      <td>${p.loginName || '-'}</td>
+      <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
+      <td><button onclick="deleteVisitPlan('${p.key}')">Delete</button></td>
+    </tr>
+  `).join('');
+  tableBody.innerHTML = rows;
 
-    let sequenceMap = {};
-    filtered.forEach(p => {
-      const key = p.loginEmail + "_" + p.visitDate;
-      if (!sequenceMap[key]) sequenceMap[key] = 1;
-      p.sequence = sequenceMap[key]++;
-    });
+  renderPagination(totalPages);
+}
 
-    const totalPages = Math.ceil(filtered.length / pageSize);
-    if (currentPage > totalPages) currentPage = totalPages || 1;
-
-    const startIdx = (currentPage - 1) * pageSize;
-    const paginatedData = filtered.slice(startIdx, startIdx + pageSize);
-
-    tableBody.innerHTML = paginatedData.map(p => `
-      <tr>
-        <td>${p.visitDate}</td>
-        <td>${p.sequence}</td>
-        <td>${p.customerName || '-'}</td>
-        <td>${p.loginName || '-'}</td>
-        <td><a href="visit_detail.html?id=${p.key}" target="_blank">View</a></td>
-        <td><button onclick="deleteCustomer('${p.key}', '${p.customerName.replace(/'/g,"\\'")}')">Delete</button></td>
-      </tr>
-    `).join('');
-
-    renderPaginationControls(totalPages);
+function renderPagination(totalPages) {
+  let html = '';
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button onclick="goToPage(${i})" ${i === currentPage ? 'style="font-weight:bold"' : ''}>${i}</button> `;
   }
+  paginationControls.innerHTML = html;
+}
 
-  function renderPaginationControls(totalPages) {
-    if (totalPages <= 1) {
-      paginationControls.innerHTML = "";
-      return;
-    }
-    let html = `<button onclick="gotoPage(1)" ${currentPage === 1 ? 'disabled' : ''}>&laquo;</button> `;
-    for (let i = 1; i <= totalPages; i++) {
-      html += `<button onclick="gotoPage(${i})" ${i === currentPage ? 'style="font-weight:bold;"' : ''}>${i}</button> `;
-    }
-    html += `<button onclick="gotoPage(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>&raquo;</button>`;
-    paginationControls.innerHTML = html;
-  }
+function goToPage(page) {
+  currentPage = page;
+  renderTable();
+}
 
-  function gotoPage(page) {
-    currentPage = page;
-    renderTable();
-  }
-
-  function populateMonthDropdown() {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    for (let i = 0; i < 12; i++) {
-      const opt = document.createElement("option");
-      opt.value = (i+1).toString().padStart(2, '0');
-      opt.textContent = monthNames[i];
-      monthSelect.appendChild(opt);
-    }
-  }
-
-  function deleteCustomer(planKey, customerName) {
-    if (!confirm(`Delete customer "${customerName}"?`)) return;
-
-    db.ref("visit_plan/" + planKey).once("value", snapshot => {
-      const planData = snapshot.val();
-      if (!planData || !planData.customers) {
-        alert("Data not found.");
-        return;
-      }
-
-      const newCustomers = planData.customers.filter(c => c.customerName !== customerName);
-      db.ref("visit_plan/" + planKey + "/customers").set(newCustomers, (error) => {
-        if (error) {
-          alert("Failed to delete: " + error);
-        } else {
-          alert("Customer deleted.");
-          loadVisitPlans();
-        }
+function deleteVisitPlan(planKey) {
+  if (confirm("Are you sure you want to delete this entire visit plan?")) {
+    db.ref("visit_plan/" + planKey).remove()
+      .then(() => {
+        alert("Visit plan deleted.");
+        loadVisitPlans();
+      })
+      .catch((error) => {
+        alert("Error deleting: " + error);
       });
-    });
   }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    populateMonthDropdown();
-    loadVisitPlans();
-  });
-
-  monthSelect.addEventListener("change", renderTable);
-  yearSelect.addEventListener("change", renderTable);
-  userSelect.addEventListener("change", renderTable);
-
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      loadVisitPlans();
-    } else {
-      window.location.href = "index.html";
-    }
-  });
+}
 </script>
 </body>
 </html>
