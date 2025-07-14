@@ -31,7 +31,6 @@
     thead th {
       position: sticky;
       top: 0;
-      background: #f2f2f2;
       z-index: 3;
     }
 
@@ -39,8 +38,8 @@
     th:first-child {
       position: sticky;
       left: 0;
-      background: #f1f1f1;
       z-index: 2;
+      background: #f1f1f1;
       font-weight: bold;
       min-width: 150px;
     }
@@ -55,6 +54,14 @@
       margin-bottom: 3px;
       font-size: 0.85rem;
     }
+
+    .sun { background-color: #ffdddd !important; }
+    .mon { background-color: #ffffcc !important; }
+    .tue { background-color: #ffe0f0 !important; }
+    .wed { background-color: #ddffdd !important; }
+    .thu { background-color: #e0f0ff !important; }
+    .fri { background-color: #f3e5ff !important; }
+    .sat { background-color: #ffcccc !important; }
   </style>
 </head>
 <body>
@@ -122,11 +129,17 @@
         tableMap[e.name][d].push(e);
       });
 
+      const getDayClass = (date) => {
+        const weekday = new Date(year, month, date).getDay();
+        return ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][weekday];
+      };
+
       const container = document.getElementById("calendar");
       let html = `<h3>เดือน ${month + 1} ปี ${year}</h3>`;
       html += `<div class="calendar-wrapper"><table><thead><tr><th>👤 ชื่อ</th>`;
       for (let d = 1; d <= daysInMonth; d++) {
-        html += `<th>${d}</th>`;
+        const dayClass = getDayClass(d);
+        html += `<th class="${dayClass}">${d}</th>`;
       }
       html += `</tr></thead><tbody>`;
 
