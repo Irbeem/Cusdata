@@ -9,10 +9,8 @@
   <div id="output">กำลังโหลดข้อมูล...</div>
 
   <script>
-    // ใส่ Sheet ID และชื่อชีทตรงนี้
     const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
     const SHEET_NAME = 'Carlendar';
-
     const endpoint = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
     fetch(endpoint)
@@ -22,14 +20,28 @@
         const cols = json.table.cols.map(c => c.label);
         const rows = json.table.rows.map(r => {
           const obj = {};
-          r.c.forEach((cell, i) => obj[cols[i]] = cell ? cell.v : "");
+          r.c.forEach((cell, i) => {
+            const key = cols[i];
+            if (key === "date" && cell && typeof cell.v === "string" && cell.v.includes("Date(")) {
+              const match = cell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
+              if (match) {
+                const [_, y, m, d] = match;
+                obj[key] = new Date(Number(y), Number(m), Number(d)).toLocaleDateString("th-TH", {
+                  year: 'numeric', month: '2-digit', day: '2-digit'
+                });
+              } else {
+                obj[key] = cell.v;
+              }
+            } else {
+              obj[key] = cell ? cell.v : "";
+            }
+          });
           return obj;
         });
 
         let html = `<table border="1" cellpadding="5"><tr>`;
         cols.forEach(col => html += `<th>${col}</th>`);
         html += `</tr>`;
-
         rows.forEach(row => {
           html += `<tr>`;
           cols.forEach(col => html += `<td>${row[col]}</td>`);
