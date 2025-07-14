@@ -31,7 +31,7 @@
   <div id="timeline" style="margin-top:20px;"></div>
 
   <script>
-    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8'; // 👈 ใช้ Sheet จริงของคุณ
     const SHEET_NAME = 'Carlendar';
     const endpoint = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
@@ -59,7 +59,7 @@
       }
     })();
 
-    // โหลดข้อมูล
+    // โหลดข้อมูลจาก Google Sheets
     fetch(endpoint)
       .then(res => res.text())
       .then(text => {
