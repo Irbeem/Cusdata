@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ปฏิทินรายเดือน (Google Sheet)</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    .row { display: flex; margin-bottom: 0.5rem; }
+    .name { width: 120px; font-weight: bold; }
+    .event {
+      min-width: 140px;
+      border: 1px solid #ccc;
+      margin-right: 5px;
+      padding: 6px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h2>📅 ปฏิทินรายเดือน (จาก Google Sheets)</h2>
+
+  <label>เดือน:
+    <select id="month" onchange="filterData()">
+      <script>
+        for (let i = 1; i <= 12; i++) {
+          document.write(`<option value="${i}" ${i === new Date().getMonth() + 1 ? "selected" : ""}>${i}</option>`);
+        }
+      </script>
+    </select>
+  </label>
+
+  <label>ปี:
+    <select id="year" onchange="filterData()">
+      <script>
+        const y = new Date().getFullYear();
+        for (let i = y - 2; i <= y + 1; i++) {
+          document.write(`<option value="${i}" ${i === y ? "selected" : ""}>${i}</option>`);
+        }
+      </script>
+    </select>
+  </label>
+
+  <div id="timeline" style="margin-top:20px;"></div>
+
+  <script>
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const SHEET_NAME = 'Carlendar';
+    const endpoint = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
+
+    let allData = [];
+
+    fetch(endpoint)
+      .then(res => res.text())
+      .then(text => {
+        const json = JSON.parse(text.substring(47).slice(0, -2));
+        const cols = json.table.cols.map(c => c.label);
+        const rows = json.table.rows.map(r => {
+          const obj = {};
+          r.c.forEach((cell, i) => obj[cols[i]] = cell ? cell.v : "");
+          return obj;
+        });
+        allData = rows;
+        filterData();
+      });
+
+    function filterData() {
+      const m = +document.getElementById("month").value;
+      const y = +document.getElementById("year").value;
+
+      const filtered = allData.filter(e => {
+        const d = new Date(e["date"]);
+        return d.getMonth() + 1 === m && d.getFullYear() === y;
+      });
+
+      renderTimeline(filtered);
+    }
+
+    function renderTimeline(data) {
+      const grouped = {};
+      data.forEach(e => {
+        if (!grouped[e["name"]]) grouped[e["name"]] = [];
+        grouped[e["name"]].push(e);
+      });
+
+      for (let key in grouped) {
+        grouped[key].sort((a, b) => new Date(a.date) - new Date(b.date));
+      }
+
+      const container = document.getElementById("timeline");
+      container.innerHTML = "";
+
+      Object.keys(grouped).forEach(name => {
+        const row = document.createElement("div");
+        row.className = "row";
+
+        const nameCell = document.createElement("div");
+        nameCell.className = "name";
+        nameCell.textContent = name;
+        row.appendChild(nameCell);
+
+        grouped[name].forEach(event => {
+          const ev = document.createElement("div");
+          ev.className = "event";
+          ev.style.backgroundColor = getColor(event["type"]);
+          ev.innerHTML = `<b>${
+            new Date(event["date"]).toLocaleDateString("th-TH", {
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric"
+            })
+          }</b><br>${event["time"]}<br>${event["type"]}<br>${event["note"] || ""}`;
+          row.appendChild(ev);
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function getColor(type) {
+      const colors = {
+        "ประชุม": "#ffb3ba",
+        "เขียนโค้ด": "#bae1ff",
+        "ตรวจงาน": "#baffc9",
+        "เอกสาร": "#ffffba",
+        "อื่นๆ": "#e6e6fa"
+      };
+      return colors[type] || "#eee";
+    }
+  </script>
+</body>
+</html>
