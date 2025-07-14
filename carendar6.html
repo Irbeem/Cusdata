@@ -2,64 +2,19 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>📅 ปฏิทินรายเดือน (Google Sheets)</title>
-  <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    .row { display: flex; margin-bottom: 0.5rem; }
-    .name { width: 140px; font-weight: bold; }
-    .event {
-      min-width: 160px;
-      border: 1px solid #ccc;
-      margin-right: 5px;
-      padding: 6px;
-      border-radius: 4px;
-      font-size: 0.9rem;
-    }
-  </style>
+  <title>📄 ทดสอบอ่าน Google Sheet</title>
 </head>
 <body>
-  <h2>📅 ปฏิทินรายเดือน (จาก Google Sheets)</h2>
-
-  <label>เดือน:
-    <select id="month" onchange="filterData()"></select>
-  </label>
-
-  <label>ปี:
-    <select id="year" onchange="filterData()"></select>
-  </label>
-
-  <div id="timeline" style="margin-top:20px;"></div>
+  <h2>📄 ทดสอบอ่านข้อมูลจาก Google Sheets</h2>
+  <div id="output">กำลังโหลดข้อมูล...</div>
 
   <script>
-    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8'; // 👈 ใช้ Sheet จริงของคุณ
+    // ใส่ Sheet ID และชื่อชีทตรงนี้
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
     const SHEET_NAME = 'Carlendar';
+
     const endpoint = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
-    let allData = [];
-
-    // สร้าง dropdown เดือน/ปี
-    (() => {
-      const monthSel = document.getElementById("month");
-      const yearSel = document.getElementById("year");
-      const now = new Date();
-      for (let i = 1; i <= 12; i++) {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.text = i;
-        if (i === now.getMonth() + 1) opt.selected = true;
-        monthSel.appendChild(opt);
-      }
-      const y = now.getFullYear();
-      for (let i = y - 2; i <= y + 1; i++) {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.text = i;
-        if (i === y) opt.selected = true;
-        yearSel.appendChild(opt);
-      }
-    })();
-
-    // โหลดข้อมูลจาก Google Sheets
     fetch(endpoint)
       .then(res => res.text())
       .then(text => {
@@ -70,77 +25,23 @@
           r.c.forEach((cell, i) => obj[cols[i]] = cell ? cell.v : "");
           return obj;
         });
-        allData = rows;
-        filterData();
+
+        let html = `<table border="1" cellpadding="5"><tr>`;
+        cols.forEach(col => html += `<th>${col}</th>`);
+        html += `</tr>`;
+
+        rows.forEach(row => {
+          html += `<tr>`;
+          cols.forEach(col => html += `<td>${row[col]}</td>`);
+          html += `</tr>`;
+        });
+        html += `</table>`;
+
+        document.getElementById("output").innerHTML = html;
       })
       .catch(err => {
-        document.getElementById("timeline").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
+        document.getElementById("output").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลล้มเหลว: ${err.message}</p>`;
       });
-
-function filterData() {
-  const m = +document.getElementById("month").value;
-  const y = +document.getElementById("year").value;
-
-  const filtered = allData.filter(e => {
-    let d = new Date(e["date"]);
-    if (isNaN(d)) d = new Date(e["date"] + "T00:00:00"); // 💡 แก้ปัญหาค่า date ไม่ใช่ Date object
-
-    return d.getMonth() + 1 === m && d.getFullYear() === y;
-  });
-
-  renderTimeline(filtered);
-}
-    
-
-
-    function renderTimeline(data) {
-      const grouped = {};
-      data.forEach(e => {
-        if (!grouped[e["name"]]) grouped[e["name"]] = [];
-        grouped[e["name"]].push(e);
-      });
-
-      for (let name in grouped) {
-        grouped[name].sort((a, b) => new Date(a.date) - new Date(b.date));
-      }
-
-      const container = document.getElementById("timeline");
-      container.innerHTML = "";
-
-      Object.keys(grouped).forEach(name => {
-        const row = document.createElement("div");
-        row.className = "row";
-        const nameCell = document.createElement("div");
-        nameCell.className = "name";
-        nameCell.textContent = name;
-        row.appendChild(nameCell);
-
-        grouped[name].forEach(event => {
-          const ev = document.createElement("div");
-          ev.className = "event";
-          ev.style.backgroundColor = getColor(event["type"]);
-          ev.innerHTML = `<b>${
-            new Date(event["date"]).toLocaleDateString("th-TH", {
-              day: "2-digit", month: "2-digit", year: "numeric"
-            })
-          }</b><br>${event["time"]}<br>${event["type"]}<br>${event["note"] || ""}`;
-          row.appendChild(ev);
-        });
-
-        container.appendChild(row);
-      });
-    }
-
-    function getColor(type) {
-      const colors = {
-        "ประชุม": "#ffb3ba",
-        "เขียนโค้ด": "#bae1ff",
-        "ตรวจงาน": "#baffc9",
-        "เอกสาร": "#ffffba",
-        "อื่นๆ": "#e6e6fa"
-      };
-      return colors[type] || "#eee";
-    }
   </script>
 </body>
 </html>
