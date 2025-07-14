@@ -2,11 +2,29 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>📄 ทดสอบอ่าน Google Sheet</title>
+  <title>📅 ปฏิทินรายเดือนจาก Google Sheets</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    h2 { margin-bottom: 0.5rem; }
+    .calendar-row { display: flex; align-items: flex-start; margin-bottom: 10px; }
+    .name { width: 150px; font-weight: bold; }
+    .day-cell {
+      border: 1px solid #ccc;
+      min-width: 100px;
+      min-height: 60px;
+      margin: 1px;
+      padding: 4px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+    }
+    .day-cell b { display: block; margin-bottom: 2px; }
+    .day-container { display: flex; flex-wrap: nowrap; overflow-x: auto; }
+    .header { font-weight: bold; background: #eee; }
+  </style>
 </head>
 <body>
-  <h2>📄 ทดสอบอ่านข้อมูลจาก Google Sheets</h2>
-  <div id="output">กำลังโหลดข้อมูล...</div>
+  <h2>📅 ปฏิทินรายเดือน (แสดงเดือนล่าสุดจาก Google Sheets)</h2>
+  <div id="calendar">⏳ กำลังโหลดข้อมูล...</div>
 
   <script>
     const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
@@ -26,11 +44,7 @@
               const match = cell.v.match(/Date\((\d+),(\d+),(\d+)\)/);
               if (match) {
                 const [_, y, m, d] = match;
-                obj[key] = new Date(Number(y), Number(m), Number(d)).toLocaleDateString("th-TH", {
-                  year: 'numeric', month: '2-digit', day: '2-digit'
-                });
-              } else {
-                obj[key] = cell.v;
+                obj[key] = new Date(Number(y), Number(m), Number(d));
               }
             } else {
               obj[key] = cell ? cell.v : "";
@@ -39,21 +53,94 @@
           return obj;
         });
 
-        let html = `<table border="1" cellpadding="5"><tr>`;
-        cols.forEach(col => html += `<th>${col}</th>`);
-        html += `</tr>`;
-        rows.forEach(row => {
-          html += `<tr>`;
-          cols.forEach(col => html += `<td>${row[col]}</td>`);
-          html += `</tr>`;
-        });
-        html += `</table>`;
-
-        document.getElementById("output").innerHTML = html;
+        renderCalendar(rows);
       })
       .catch(err => {
-        document.getElementById("output").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลล้มเหลว: ${err.message}</p>`;
+        document.getElementById("calendar").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลล้มเหลว: ${err.message}</p>`;
       });
+
+    function renderCalendar(data) {
+      // หาเดือนล่าสุดจากข้อมูล
+      const validDates = data.map(e => e.date).filter(d => d instanceof Date);
+      const latest = new Date(Math.max(...validDates));
+      const month = latest.getMonth();
+      const year = latest.getFullYear();
+
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+      // กรองเฉพาะเดือนนี้
+      const monthData = data.filter(e =>
+        e.date instanceof Date &&
+        e.date.getMonth() === month &&
+        e.date.getFullYear() === year
+      );
+
+      // รวมข้อมูลตามชื่อ
+      const grouped = {};
+      monthData.forEach(e => {
+        if (!grouped[e.name]) grouped[e.name] = {};
+        const day = e.date.getDate();
+        if (!grouped[e.name][day]) grouped[e.name][day] = [];
+        grouped[e.name][day].push(e);
+      });
+
+      const container = document.getElementById("calendar");
+      container.innerHTML = `<h3>เดือน ${month + 1} ปี ${year}</h3>`;
+
+      // header วัน
+      const header = document.createElement("div");
+      header.className = "calendar-row";
+      header.innerHTML = `<div class="name"></div>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        const cell = document.createElement("div");
+        cell.className = "day-cell header";
+        cell.innerHTML = `<b>${d}</b>`;
+        header.appendChild(cell);
+      }
+      container.appendChild(header);
+
+      // แสดงแต่ละคน
+      Object.keys(grouped).forEach(name => {
+        const row = document.createElement("div");
+        row.className = "calendar-row";
+
+        const nameBox = document.createElement("div");
+        nameBox.className = "name";
+        nameBox.textContent = name;
+        row.appendChild(nameBox);
+
+        for (let d = 1; d <= daysInMonth; d++) {
+          const cell = document.createElement("div");
+          cell.className = "day-cell";
+
+          const events = grouped[name][d];
+          if (events) {
+            events.forEach(e => {
+              const type = e.type || "";
+              const time = e.time || "";
+              const note = e.note || "";
+              cell.innerHTML += `<b>${type}</b>${time}<br>${note}<br>`;
+              cell.style.background = getColor(type);
+            });
+          }
+
+          row.appendChild(cell);
+        }
+
+        container.appendChild(row);
+      });
+    }
+
+    function getColor(type) {
+      const colors = {
+        "ประชุม": "#ffcccc",
+        "เขียนโค้ด": "#cce5ff",
+        "ตรวจงาน": "#d4edda",
+        "เอกสาร": "#fff3cd",
+        "อื่นๆ": "#e2e3e5"
+      };
+      return colors[type] || "#f8f9fa";
+    }
   </script>
 </body>
 </html>
