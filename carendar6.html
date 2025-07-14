@@ -2,12 +2,11 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>📅 ปฏิทินแนวตั้งจาก Google Sheets</title>
+  <title>📅 ปฏิทินแนวนอนจาก Google Sheets</title>
   <style>
     body {
       font-family: sans-serif;
       padding: 1rem;
-      overflow-x: auto;
     }
 
     .calendar-wrapper {
@@ -22,8 +21,8 @@
 
     th, td {
       border: 1px solid #ccc;
-      padding: 8px;
-      min-width: 120px;
+      padding: 6px;
+      min-width: 100px;
       text-align: left;
       vertical-align: top;
       background: white;
@@ -42,10 +41,12 @@
       left: 0;
       background: #f1f1f1;
       z-index: 2;
+      font-weight: bold;
+      min-width: 150px;
     }
 
     thead th:first-child {
-      z-index: 4; /* ให้มุมบนซ้ายลอยทับทั้งหัวตารางและคอลัมน์ */
+      z-index: 4;
     }
 
     .event {
@@ -57,7 +58,7 @@
   </style>
 </head>
 <body>
-  <h2>📅 ปฏิทินแนวตั้ง (เดือนล่าสุดจาก Google Sheets)</h2>
+  <h2>📅 ปฏิทินแนวนอน (เดือนล่าสุดจาก Google Sheets)</h2>
   <div id="calendar">⏳ กำลังโหลดข้อมูล...</div>
 
   <script>
@@ -87,20 +88,19 @@
           return obj;
         });
 
-        renderVerticalCalendar(rows);
+        renderHorizontalCalendar(rows);
       })
       .catch(err => {
         document.getElementById("calendar").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลล้มเหลว: ${err.message}</p>`;
       });
 
-    function renderVerticalCalendar(data) {
+    function renderHorizontalCalendar(data) {
       const validDates = data.map(e => e.date).filter(d => d instanceof Date);
       const latest = new Date(Math.max(...validDates));
       const month = latest.getMonth();
       const year = latest.getFullYear();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-      // filter เฉพาะเดือนล่าสุด
       const monthData = data.filter(e =>
         e.date instanceof Date &&
         e.date.getMonth() === month &&
@@ -109,39 +109,38 @@
 
       const names = [...new Set(monthData.map(e => e.name))];
 
-      // เตรียม map: {day => {name => [events]}}
       const tableMap = {};
-      for (let d = 1; d <= daysInMonth; d++) {
-        tableMap[d] = {};
-        names.forEach(name => {
-          tableMap[d][name] = [];
-        });
-      }
+      names.forEach(name => {
+        tableMap[name] = {};
+        for (let d = 1; d <= daysInMonth; d++) {
+          tableMap[name][d] = [];
+        }
+      });
 
       monthData.forEach(e => {
         const d = e.date.getDate();
-        tableMap[d][e.name].push(e);
+        tableMap[e.name][d].push(e);
       });
 
       const container = document.getElementById("calendar");
       let html = `<h3>เดือน ${month + 1} ปี ${year}</h3>`;
-      html += `<div style="overflow-x:auto;"><table><thead><tr><th>📆 วันที่</th>`;
-      names.forEach(name => {
-        html += `<th>${name}</th>`;
-      });
+      html += `<div class="calendar-wrapper"><table><thead><tr><th>👤 ชื่อ</th>`;
+      for (let d = 1; d <= daysInMonth; d++) {
+        html += `<th>${d}</th>`;
+      }
       html += `</tr></thead><tbody>`;
 
-      for (let d = 1; d <= daysInMonth; d++) {
-        html += `<tr><td><b>${d}</b></td>`;
-        names.forEach(name => {
+      names.forEach(name => {
+        html += `<tr><td>${name}</td>`;
+        for (let d = 1; d <= daysInMonth; d++) {
           html += `<td>`;
-          tableMap[d][name].forEach(e => {
+          tableMap[name][d].forEach(e => {
             html += `<div class="event" style="background:${getColor(e.type)}"><b>${e.type}</b><br>${e.time}<br>${e.note}</div>`;
           });
           html += `</td>`;
-        });
+        }
         html += `</tr>`;
-      }
+      });
 
       html += `</tbody></table></div>`;
       container.innerHTML = html;
