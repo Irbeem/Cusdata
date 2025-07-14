@@ -2,13 +2,13 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>ปฏิทินรายเดือน (Google Sheet)</title>
+  <title>📅 ปฏิทินรายเดือน (Google Sheets)</title>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
     .row { display: flex; margin-bottom: 0.5rem; }
-    .name { width: 120px; font-weight: bold; }
+    .name { width: 140px; font-weight: bold; }
     .event {
-      min-width: 140px;
+      min-width: 160px;
       border: 1px solid #ccc;
       margin-right: 5px;
       padding: 6px;
@@ -21,24 +21,11 @@
   <h2>📅 ปฏิทินรายเดือน (จาก Google Sheets)</h2>
 
   <label>เดือน:
-    <select id="month" onchange="filterData()">
-      <script>
-        for (let i = 1; i <= 12; i++) {
-          document.write(`<option value="${i}" ${i === new Date().getMonth() + 1 ? "selected" : ""}>${i}</option>`);
-        }
-      </script>
-    </select>
+    <select id="month" onchange="filterData()"></select>
   </label>
 
   <label>ปี:
-    <select id="year" onchange="filterData()">
-      <script>
-        const y = new Date().getFullYear();
-        for (let i = y - 2; i <= y + 1; i++) {
-          document.write(`<option value="${i}" ${i === y ? "selected" : ""}>${i}</option>`);
-        }
-      </script>
-    </select>
+    <select id="year" onchange="filterData()"></select>
   </label>
 
   <div id="timeline" style="margin-top:20px;"></div>
@@ -50,6 +37,29 @@
 
     let allData = [];
 
+    // สร้าง dropdown เดือน/ปี
+    (() => {
+      const monthSel = document.getElementById("month");
+      const yearSel = document.getElementById("year");
+      const now = new Date();
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i;
+        if (i === now.getMonth() + 1) opt.selected = true;
+        monthSel.appendChild(opt);
+      }
+      const y = now.getFullYear();
+      for (let i = y - 2; i <= y + 1; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i;
+        if (i === y) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+    })();
+
+    // โหลดข้อมูล
     fetch(endpoint)
       .then(res => res.text())
       .then(text => {
@@ -62,6 +72,9 @@
         });
         allData = rows;
         filterData();
+      })
+      .catch(err => {
+        document.getElementById("timeline").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
       });
 
     function filterData() {
@@ -83,8 +96,8 @@
         grouped[e["name"]].push(e);
       });
 
-      for (let key in grouped) {
-        grouped[key].sort((a, b) => new Date(a.date) - new Date(b.date));
+      for (let name in grouped) {
+        grouped[name].sort((a, b) => new Date(a.date) - new Date(b.date));
       }
 
       const container = document.getElementById("timeline");
@@ -93,7 +106,6 @@
       Object.keys(grouped).forEach(name => {
         const row = document.createElement("div");
         row.className = "row";
-
         const nameCell = document.createElement("div");
         nameCell.className = "name";
         nameCell.textContent = name;
@@ -105,9 +117,7 @@
           ev.style.backgroundColor = getColor(event["type"]);
           ev.innerHTML = `<b>${
             new Date(event["date"]).toLocaleDateString("th-TH", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric"
+              day: "2-digit", month: "2-digit", year: "numeric"
             })
           }</b><br>${event["time"]}<br>${event["type"]}<br>${event["note"] || ""}`;
           row.appendChild(ev);
