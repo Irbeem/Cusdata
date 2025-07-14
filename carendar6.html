@@ -4,8 +4,49 @@
   <meta charset="UTF-8">
   <title>📅 ปฏิทินแนวตั้งจาก Google Sheets</title>
   <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    table { border-collapse: collapse; width: max-content; }
+  body {
+    font-family: sans-serif;
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: max-content;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    min-width: 120px;
+    text-align: left;
+    vertical-align: top;
+    background: white;
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: #f9f9f9;
+    z-index: 10;
+  }
+
+  td:first-child,
+  th:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    background: #f1f1f1;
+    font-weight: bold;
+  }
+
+  .event {
+    border-radius: 5px;
+    padding: 4px;
+    margin-bottom: 3px;
+    font-size: 0.8rem;
+  }
+
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
@@ -19,18 +60,7 @@
       top: 0;
       z-index: 2;
     }
-    td:first-child, th:first-child {
-      position: sticky;
-      left: 0;
-      background: #fff;
-      z-index: 1;
-    }
-    .event {
-      border-radius: 5px;
-      padding: 4px;
-      margin-bottom: 3px;
-      font-size: 0.8rem;
-    }
+
   </style>
 </head>
 <body>
