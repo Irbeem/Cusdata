@@ -77,17 +77,21 @@
         document.getElementById("timeline").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
       });
 
-    function filterData() {
-      const m = +document.getElementById("month").value;
-      const y = +document.getElementById("year").value;
+function filterData() {
+  const m = +document.getElementById("month").value;
+  const y = +document.getElementById("year").value;
 
-      const filtered = allData.filter(e => {
-        const d = new Date(e["date"]);
-        return d.getMonth() + 1 === m && d.getFullYear() === y;
-      });
+  const filtered = allData.filter(e => {
+    let d = new Date(e["date"]);
+    if (isNaN(d)) d = new Date(e["date"] + "T00:00:00"); // 💡 แก้ปัญหาค่า date ไม่ใช่ Date object
 
-      renderTimeline(filtered);
-    }
+    return d.getMonth() + 1 === m && d.getFullYear() === y;
+  });
+
+  renderTimeline(filtered);
+}
+    
+
 
     function renderTimeline(data) {
       const grouped = {};
