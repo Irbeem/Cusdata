@@ -162,6 +162,7 @@ function renderCalendarTable() {
   const dataMap = {};
   const summary = { Warranty: 0, Service: 0, Sales: 0, Oth: 0 };
   const workingDays = new Set();
+  const uniqueJobs = new Set();
 
   names.forEach(name => {
     dataMap[name] = {};
@@ -170,11 +171,15 @@ function renderCalendarTable() {
   filtered.forEach(e => {
     const key = e.name;
     const day = +e.date;
+    const jobKey = `${e.year}-${e.month}-${e.date}-${e.type}-${e.time}-${e.datail}`;
+    if (!uniqueJobs.has(jobKey)) {
+      uniqueJobs.add(jobKey);
+      if (summary[e.type] !== undefined) summary[e.type]++;
+      if (e.date) workingDays.add(e.date);
+    }
     const info = `<div class='event ${e.type}'>${e.type}<br>${e.time}<br>${e.datail}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
-    dataMap[key][day].push(info);
-    if (summary[e.type] !== undefined) summary[e.type]++;
-    if (e.date) workingDays.add(e.date);
+    if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
 
   const thead = document.querySelector("#calendar-table thead");
