@@ -52,6 +52,14 @@
     .Sales { background-color: #c41411; color: white; }
     .Oth { background-color: #fff176; }
 
+    .sun { background-color: #ffd6d6 !important; }
+    .mon { background-color: #fffacc !important; }
+    .tue { background-color: #ffd1e3 !important; }
+    .wed { background-color: #d0f0c0 !important; }
+    .thu { background-color: #ffe0b3 !important; }
+    .fri { background-color: #d0e6ff !important; }
+    .sat { background-color: #e0ccff !important; }
+
     @media (max-width: 768px) {
       table, th, td {
         font-size: 0.75rem;
@@ -170,7 +178,13 @@ function renderCalendarTable() {
   });
 
   const thead = document.querySelector("#calendar-table thead");
-  thead.innerHTML = "<tr><th>ชื่อ</th>" + [...Array(daysInMonth)].map((_, i) => `<th>${i + 1}</th>`).join("") + "</tr>";
+  const daysRow = ["<th>ชื่อ</th>"];
+  for (let i = 1; i <= daysInMonth; i++) {
+    const day = new Date(year, month - 1, i).getDay();
+    const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][day];
+    daysRow.push(`<th class="${dayClass}">${i}</th>`);
+  }
+  thead.innerHTML = `<tr>${daysRow.join("")}</tr>`;
 
   const tbody = document.querySelector("#calendar-table tbody");
   tbody.innerHTML = names.map(name => {
