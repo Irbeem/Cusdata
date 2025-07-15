@@ -70,6 +70,34 @@
     .fri { background-color: #d0e6ff !important; }
     .sat { background-color: #e0ccff !important; }
 
+    #modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      display: none;
+      z-index: 10;
+      max-width: 300px;
+    }
+    #modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.3);
+      display: none;
+      z-index: 9;
+    }
+    #modal-close {
+      float: right;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
     @media (max-width: 768px) {
       table, th, td {
         font-size: 0.75rem;
@@ -80,7 +108,7 @@
   </style>
 </head>
 <body>
-  <h2>🔕️ ปฏิทินแนวนอน (จาก Google Sheets)</h2>
+  <h2>🔕️ ปฏิทินแนวน (จาก Google Sheets)</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -103,6 +131,12 @@
 
   <h3>📊 สรุปข้อมูล</h3>
   <div id="summary"></div>
+
+  <div id="modal-overlay"></div>
+  <div id="modal">
+    <span id="modal-close">&times;</span>
+    <div id="modal-content"></div>
+  </div>
 
 <script>
 const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
@@ -194,8 +228,9 @@ function renderCalendarTable() {
       summary[e.type] = (summary[e.type] || 0) + 1;
       if (e.date) workingDays.add(e.date);
     }
-    const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
-    const info = `<div class='event ${e.type}' title="${tooltip}">${e.type}<br>${e.time}</div>`;
+    const content = `${e.type}<br>${e.time}`;
+    const fullDetail = `${e.type}<br>${e.time}<br>${e.datail}`;
+    const info = `<div class='event ${e.type}' onclick="showModal('${fullDetail.replace(/'/g, '\\'')}')">${content}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
@@ -227,6 +262,20 @@ function renderCalendarTable() {
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
+}
+
+function showModal(html) {
+  document.getElementById("modal-content").innerHTML = html;
+  document.getElementById("modal-overlay").style.display = "block";
+  document.getElementById("modal").style.display = "block";
+}
+
+document.getElementById("modal-overlay").onclick = hideModal;
+document.getElementById("modal-close").onclick = hideModal;
+
+function hideModal() {
+  document.getElementById("modal-overlay").style.display = "none";
+  document.getElementById("modal").style.display = "none";
 }
 </script>
 </body>
