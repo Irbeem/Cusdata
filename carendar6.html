@@ -147,34 +147,41 @@ const ENDPOINT = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 let allData = [];
 let allNames = [];
 
-(() => {
+function initSelectors() {
   const monthSel = document.getElementById("month");
   const yearSel = document.getElementById("year");
   const now = new Date();
-  for (let i = 1; i <= 12; i++) {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.text = i;
-    if (i === now.getMonth() + 1) opt.selected = true;
-    monthSel.appendChild(opt);
+
+  if (monthSel.options.length === 0) {
+    for (let i = 1; i <= 12; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = i;
+      if (i === now.getMonth() + 1) opt.selected = true;
+      monthSel.appendChild(opt);
+    }
   }
-  const y = now.getFullYear();
-  for (let i = y - 2; i <= y + 1; i++) {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.text = i;
-    if (i === y) opt.selected = true;
-    yearSel.appendChild(opt);
+  if (yearSel.options.length === 0) {
+    const y = now.getFullYear();
+    for (let i = y - 2; i <= y + 1; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = i;
+      if (i === y) opt.selected = true;
+      yearSel.appendChild(opt);
+    }
   }
   monthSel.onchange = yearSel.onchange = renderCalendarTable;
   document.getElementById("nameFilter").onchange = renderCalendarTable;
-})();
+}
 
 Promise.all([
   fetch(`${ENDPOINT}&sheet=${SHEET_NAME}`).then(res => res.text()),
   fetch(`${ENDPOINT}&sheet=${NAMES_SHEET_NAME}`).then(res => res.text())
 ])
 .then(([dataText, namesText]) => {
+  initSelectors();
+
   const jsonData = JSON.parse(dataText.substring(47).slice(0, -2));
   const cols = jsonData.table.cols.map(c => c.label);
   allData = jsonData.table.rows.map(r => {
@@ -230,7 +237,7 @@ function renderCalendarTable() {
     }
     const content = `${e.type}<br>${e.time}`;
     const fullDetail = `${e.type}<br>${e.time}<br>${e.datail}`;
-    const info = `<div class='event ${e.type}' onclick="showModal('${fullDetail.replace(/'/g, '\\'')}')">${content}</div>`;
+    const info = `<div class='event ${e.type}' onclick="showModal('${fullDetail.replace(/'/g, "\'")}')">${content}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
@@ -258,7 +265,7 @@ function renderCalendarTable() {
   for (const type in summary) {
     summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
   }
-  summaryHTML += `<li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += `<li>📋 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
