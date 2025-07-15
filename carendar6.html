@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>CS carlendarr</title>
+  <title>CS Carlendar</title>
   <style>
     body {
       font-family: sans-serif;
@@ -54,22 +54,7 @@
       max-width: 100%;
       height: 100%;
       box-sizing: border-box;
-      position: relative;
-    }
-    .event:hover::after {
-      content: attr(data-fulltext);
-      position: absolute;
-      top: 100%;
-      left: 0;
-      white-space: pre-wrap;
-      background: #fff;
-      border: 1px solid #999;
-      padding: 6px;
-      z-index: 100;
-      box-shadow: 0px 2px 8px rgba(0,0,0,0.2);
-      width: max-content;
-      max-width: 300px;
-      color: #000;
+      cursor: pointer;
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
@@ -95,15 +80,15 @@
   </style>
 </head>
 <body>
-  <h2>CS carlendarr</h2>
+  <h2>CS carlendar</h2>
 
-  <label>เดือน:
+  <label>Month:
     <select id="month"></select>
   </label>
-  <label>ปี:
+  <label>Year:
     <select id="year"></select>
   </label>
-  <label>ชื่อ:
+  <label>Name:
     <select id="nameFilter">
       <option value="">All</option>
     </select>
@@ -140,7 +125,7 @@ let allNames = [];
     monthSel.appendChild(opt);
   }
   const y = now.getFullYear();
-  for (let i = 2025; i <= y + 1; i++) {
+  for (let i = y - 2; i <= y + 1; i++) {
     const opt = document.createElement("option");
     opt.value = i;
     opt.text = i;
@@ -168,7 +153,7 @@ Promise.all([
   allNames = nameData.table.rows.map(r => r.c[0]?.v).filter(v => !!v);
 
   const nameSel = document.getElementById("nameFilter");
-  nameSel.innerHTML = '<option value="">ทั้งหมด</option>';
+  nameSel.innerHTML = '<option value="">All</option>';
   allNames.forEach(name => {
     const opt = document.createElement("option");
     opt.value = name;
@@ -210,13 +195,13 @@ function renderCalendarTable() {
       if (e.date) workingDays.add(e.date);
     }
     const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
-    const info = `<div class='event ${e.type}' data-fulltext="${tooltip}">${e.type}<br>${e.time}</div>`;
+    const info = `<div class='event ${e.type}' title="${tooltip}">${e.type}<br>${e.time}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
 
   const thead = document.querySelector("#calendar-table thead");
-  const daysRow = ["<th>ชื่อ</th>"];
+  const daysRow = ["<th>Name</th>"];
   for (let i = 1; i <= daysInMonth; i++) {
     const day = new Date(year, month - 1, i).getDay();
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][day];
@@ -236,9 +221,9 @@ function renderCalendarTable() {
 
   let summaryHTML = "<ul>";
   for (const type in summary) {
-    summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
+    summaryHTML += `<li>${type}: ${summary[type]} times</li>`;
   }
-  summaryHTML += `<li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += `<li>🗓️ Total working day: ${workingDays.size} days</li>`;
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
