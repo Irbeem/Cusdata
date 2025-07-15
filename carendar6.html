@@ -82,6 +82,9 @@
     </table>
   </div>
 
+  <h3>📊 สรุปข้อมูล</h3>
+  <div id="summary"></div>
+
 <script>
 const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
 const SHEET_NAME = 'Carlendar';
@@ -149,15 +152,21 @@ function renderCalendarTable() {
 
   const names = [...new Set(filtered.map(e => e.name))];
   const dataMap = {};
+  const summary = { Warranty: 0, Service: 0, Sales: 0, Oth: 0 };
+  const workingDays = new Set();
+
   names.forEach(name => {
     dataMap[name] = {};
   });
+
   filtered.forEach(e => {
     const key = e.name;
     const day = +e.date;
     const info = `<div class='event ${e.type}'>${e.type}<br>${e.time}<br>${e.datail}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     dataMap[key][day].push(info);
+    if (summary[e.type] !== undefined) summary[e.type]++;
+    if (e.date) workingDays.add(e.date);
   });
 
   const thead = document.querySelector("#calendar-table thead");
@@ -172,6 +181,16 @@ function renderCalendarTable() {
     }
     return `<tr>${row.join("")}</tr>`;
   }).join("");
+
+  document.getElementById("summary").innerHTML = `
+    <ul>
+      <li>🔧 Warranty: ${summary.Warranty} รายการ</li>
+      <li>🛠️ Service: ${summary.Service} รายการ</li>
+      <li>💼 Sales: ${summary.Sales} รายการ</li>
+      <li>📁 Oth: ${summary.Oth} รายการ</li>
+      <li>📅 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>
+    </ul>
+  `;
 }
 </script>
 </body>
