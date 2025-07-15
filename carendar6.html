@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>🔕️ ปฏิทินแนวนอนจาก Google Sheets</title>
+  <title>Carlendar</title>
   <style>
     body {
       font-family: sans-serif;
@@ -58,11 +58,11 @@
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
-    .Inspection { background-color: #00bcd4; color: white; }
+    .Inspection { background-color: #2a36b1; color: white; }
     .Sales { background-color: #c41411; color: white; }
     .Oth { background-color: #fff176; }
 
-    .sun { background-color: #ffd6d6 !important; }
+    .sun { background-color: #c41411 !important; }
     .mon { background-color: #fffacc !important; }
     .tue { background-color: #ffd1e3 !important; }
     .wed { background-color: #d0f0c0 !important; }
@@ -80,17 +80,17 @@
   </style>
 </head>
 <body>
-  <h2>🔕️ ปฏิทินแนวนอน (จาก Google Sheets)</h2>
+  <h2>Carlendar</h2>
 
-  <label>เดือน:
+  <label>Month:
     <select id="month"></select>
   </label>
-  <label>ปี:
+  <label>Year:
     <select id="year"></select>
   </label>
-  <label>ชื่อ:
+  <label>Name:
     <select id="nameFilter">
-      <option value="">ทั้งหมด</option>
+      <option value="">All</option>
     </select>
   </label>
 
@@ -101,7 +101,7 @@
     </table>
   </div>
 
-  <h3>📊 สรุปข้อมูล</h3>
+  <h3>📊 Summary</h3>
   <div id="summary"></div>
 
 <script>
@@ -125,7 +125,7 @@ let allNames = [];
     monthSel.appendChild(opt);
   }
   const y = now.getFullYear();
-  for (let i = y - 2; i <= y + 1; i++) {
+  for (let i = 2025; i <= y + 1; i++) {
     const opt = document.createElement("option");
     opt.value = i;
     opt.text = i;
@@ -153,7 +153,7 @@ Promise.all([
   allNames = nameData.table.rows.map(r => r.c[0]?.v).filter(v => !!v);
 
   const nameSel = document.getElementById("nameFilter");
-  nameSel.innerHTML = '<option value="">ทั้งหมด</option>';
+  nameSel.innerHTML = '<option value="">All</option>';
   allNames.forEach(name => {
     const opt = document.createElement("option");
     opt.value = name;
@@ -201,7 +201,7 @@ function renderCalendarTable() {
   });
 
   const thead = document.querySelector("#calendar-table thead");
-  const daysRow = ["<th>ชื่อ</th>"];
+  const daysRow = ["<th>Name</th>"];
   for (let i = 1; i <= daysInMonth; i++) {
     const day = new Date(year, month - 1, i).getDay();
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][day];
@@ -223,7 +223,7 @@ function renderCalendarTable() {
   for (const type in summary) {
     summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
   }
-  summaryHTML += `<li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += `<li>🗓️ Total working: ${workingDays.size} days</li>`;
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
