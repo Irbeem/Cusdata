@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>🔕️ CS carlendar</title>
+  <title>🔕️ ปฏิทินแนวนอนจาก Google Sheets</title>
   <style>
     body {
       font-family: sans-serif;
@@ -20,10 +20,13 @@
     th, td {
       border: 1px solid #ccc;
       padding: 6px;
-      min-width: 120px;
+      width: 120px;
+      height: 80px;
+      max-height: 80px;
       text-align: left;
       vertical-align: top;
       background: white;
+      overflow: hidden;
     }
     thead th {
       position: sticky;
@@ -46,10 +49,15 @@
       border-radius: 4px;
       font-size: 0.85rem;
       color: #000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .event[title] {
+      cursor: help;
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
-    .Inspection { background-color: #2a36b1; color: white; }
     .Sales { background-color: #c41411; color: white; }
     .Oth { background-color: #fff176; }
 
@@ -65,12 +73,13 @@
       table, th, td {
         font-size: 0.75rem;
         min-width: 80px;
+        max-height: 60px;
       }
     }
   </style>
 </head>
 <body>
-  <h2>🔕️ ปฏิทินแนวน (จาก Google Sheets)</h2>
+  <h2>🔕️ ปฏิทินแนวนอน (จาก Google Sheets)</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -184,7 +193,8 @@ function renderCalendarTable() {
       if (summary[e.type] !== undefined) summary[e.type]++;
       if (e.date) workingDays.add(e.date);
     }
-    const info = `<div class='event ${e.type}'>${e.type}<br>${e.time}<br>${e.datail}</div>`;
+    const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
+    const info = `<div class='event ${e.type}' title="${tooltip}">${e.type}<br>${e.time}<br>${e.datail}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
