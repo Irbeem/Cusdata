@@ -161,7 +161,7 @@ function renderCalendarTable() {
 
   const names = [...new Set(filtered.map(e => e.name))];
   const dataMap = {};
-  const summary = { Warranty: 0, Service: 0, Sales: 0, Oth: 0 };
+  const summary = { Service: 0, Inspection: 0, Warranty: 0, Sales: 0, Oth: 0 };
   const workingDays = new Set();
   const uniqueJobs = new Set();
 
