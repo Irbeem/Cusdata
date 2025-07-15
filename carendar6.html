@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>CS Carlendar</title>
+  <title>🔕️ ปฏิทินแนวนอนจาก Google Sheets</title>
   <style>
     body {
       font-family: sans-serif;
@@ -52,13 +52,14 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      max-width: 100%;
     }
     .event[title] {
       cursor: help;
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
-    .Inspection { background-color: #2a36b1; color: white; }
+    .Inspection { background-color: #00bcd4; color: white; }
     .Sales { background-color: #c41411; color: white; }
     .Oth { background-color: #fff176; }
 
@@ -80,7 +81,7 @@
   </style>
 </head>
 <body>
-  <h2>CS Carlendar</h2>
+  <h2>🔕️ ปฏิทินแนวนอน (จาก Google Sheets)</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -101,7 +102,7 @@
     </table>
   </div>
 
-  <h3>📊 Summary</h3>
+  <h3>📊 สรุปข้อมูล</h3>
   <div id="summary"></div>
 
 <script>
@@ -176,7 +177,7 @@ function renderCalendarTable() {
   const names = nameFilter ? [nameFilter] : allNames;
 
   const dataMap = {};
-  const summary = { Inspection:0, Warranty: 0, Service: 0, Sales: 0, Oth: 0 };
+  const summary = {};
   const workingDays = new Set();
   const uniqueJobs = new Set();
 
@@ -191,7 +192,7 @@ function renderCalendarTable() {
     const jobKey = `${e.year}-${e.month}-${e.date}-${e.type}-${e.time}-${e.datail}`;
     if (!uniqueJobs.has(jobKey)) {
       uniqueJobs.add(jobKey);
-      if (summary[e.type] !== undefined) summary[e.type]++;
+      summary[e.type] = (summary[e.type] || 0) + 1;
       if (e.date) workingDays.add(e.date);
     }
     const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
@@ -219,16 +220,14 @@ function renderCalendarTable() {
     return `<tr>${row.join("")}</tr>`;
   }).join("");
 
-  document.getElementById("summary").innerHTML = `
-    <ul>
-      <li>💧 Service: ${summary.Service} times</li>
-      <li>💧 Inspection: ${summary.Service} times</li>
-      <li>🔧 Warranty: ${summary.Warranty} times</li>
-      <li>💼 Sales: ${summary.Sales} times</li>
-      <li>📁 Other: ${summary.Oth} times</li>
-      <li>🗓️ Total this month working day: ${workingDays.size} days</li>
-    </ul>
-  `;
+  let summaryHTML = "<ul>";
+  for (const type in summary) {
+    summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
+  }
+  summaryHTML += `<li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += "</ul>";
+
+  document.getElementById("summary").innerHTML = summaryHTML;
 }
 </script>
 </body>
