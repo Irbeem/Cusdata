@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>🔕️ ปฏิทินแนวนอนจาก Google Sheets</title>
+  <title>CS Carlendar</title>
   <style>
     body {
       font-family: sans-serif;
@@ -55,6 +55,13 @@
       height: 100%;
       box-sizing: border-box;
     }
+    .event:hover {
+      white-space: normal;
+      overflow: visible;
+      z-index: 10;
+      position: relative;
+      background-color: #fff9c4;
+    }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
     .Inspection { background-color: #2a36b1; color: white; }
@@ -79,7 +86,7 @@
   </style>
 </head>
 <body>
-  <h2>🔕️ ปฏิทินแนวน (จาก Google Sheets)</h2>
+  <h2>🔕️ CS Carlendar</h2>
 
   <label>เดือน:
     <select id="month"></select>
