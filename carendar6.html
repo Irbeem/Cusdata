@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>📅 ปฏิทินแนวนอนจาก Google Sheets</title>
+  <title>🗕️ ปฏิทินแนวนอนจาก Google Sheets</title>
   <style>
     body {
       font-family: sans-serif;
@@ -50,7 +50,6 @@
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
     .Sales { background-color: #c41411; color: white; }
-    .Inspection { background-color: #2a36b1; color: white; }
     .Oth { background-color: #fff176; }
 
     .sun { background-color: #ffd6d6 !important; }
@@ -59,7 +58,7 @@
     .wed { background-color: #d0f0c0 !important; }
     .thu { background-color: #ffe0b3 !important; }
     .fri { background-color: #d0e6ff !important; }
-    .sat { background-color: #c41411 !important; }
+    .sat { background-color: #e0ccff !important; }
 
     @media (max-width: 768px) {
       table, th, td {
@@ -70,7 +69,7 @@
   </style>
 </head>
 <body>
-  <h2>📅 ปฏิทินแนวนอน (จาก Google Sheets)</h2>
+  <h2>🗕️ ปฏิทินแนวน (จาก Google Sheets)</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -99,6 +98,9 @@ const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
 const SHEET_NAME = 'Carlendar';
 const ENDPOINT = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
+// ✅ ระบุรายชื่อเองไว้ที่นี่
+const allNames = ["Prapat", "Nutrada", "test1", "test2", "test3"];
+
 let allData = [];
 
 (() => {
@@ -122,6 +124,15 @@ let allData = [];
   }
   monthSel.onchange = yearSel.onchange = renderCalendarTable;
   document.getElementById("nameFilter").onchange = renderCalendarTable;
+
+  // อัปเดต dropdown รายชื่อจากรายชื่อที่กำหนดเอง
+  const nameSel = document.getElementById("nameFilter");
+  allNames.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.text = name;
+    nameSel.appendChild(opt);
+  });
 })();
 
 fetch(ENDPOINT)
@@ -136,19 +147,7 @@ fetch(ENDPOINT)
     });
     allData = rows;
     renderCalendarTable();
-    renderNameFilter();
   });
-
-function renderNameFilter() {
-  const nameSel = document.getElementById("nameFilter");
-  const names = [...new Set(allData.map(e => e.name))];
-  names.forEach(name => {
-    const opt = document.createElement("option");
-    opt.value = name;
-    opt.text = name;
-    nameSel.appendChild(opt);
-  });
-}
 
 function renderCalendarTable() {
   const month = +document.getElementById("month").value;
@@ -157,11 +156,12 @@ function renderCalendarTable() {
 
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  const filtered = allData.filter(e => +e["year"] === year && +e["month"] === month && (!nameFilter || e.name === nameFilter));
+  const filtered = allData.filter(e => +e["year"] === year && +e["month"] === month);
 
-  const names = [...new Set(filtered.map(e => e.name))];
+  const names = nameFilter ? [nameFilter] : allNames;
+
   const dataMap = {};
-  const summary = { Service: 0, Inspection: 0, Warranty: 0, Sales: 0, Oth: 0 };
+  const summary = { Warranty: 0, Service: 0, Sales: 0, Oth: 0 };
   const workingDays = new Set();
   const uniqueJobs = new Set();
 
@@ -170,6 +170,8 @@ function renderCalendarTable() {
   });
 
   filtered.forEach(e => {
+    if (!allNames.includes(e.name)) return; // ข้ามชื่อที่ไม่ได้อยู่ในลิสต์
+
     const key = e.name;
     const day = +e.date;
     const jobKey = `${e.year}-${e.month}-${e.date}-${e.type}-${e.time}-${e.datail}`;
@@ -196,7 +198,7 @@ function renderCalendarTable() {
   tbody.innerHTML = names.map(name => {
     const row = ["<td>" + name + "</td>"];
     for (let d = 1; d <= daysInMonth; d++) {
-      const cells = dataMap[name][d] ? dataMap[name][d].join("") : "";
+      const cells = dataMap[name] && dataMap[name][d] ? dataMap[name][d].join("") : "";
       row.push(`<td>${cells}</td>`);
     }
     return `<tr>${row.join("")}</tr>`;
@@ -204,12 +206,11 @@ function renderCalendarTable() {
 
   document.getElementById("summary").innerHTML = `
     <ul>
-      <li>🛠️ Service: ${summary.Service} รายการ</li>
-      <li>🛠️ Inspection: ${summary.Inspection} รายการ</li>
       <li>🔧 Warranty: ${summary.Warranty} รายการ</li>
+      <li>🚰 Service: ${summary.Service} รายการ</li>
       <li>💼 Sales: ${summary.Sales} รายการ</li>
       <li>📁 Oth: ${summary.Oth} รายการ</li>
-      <li>📅 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>
+      <li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>
     </ul>
   `;
 }
