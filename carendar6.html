@@ -128,7 +128,7 @@ function initSelectors() {
   }
   if (yearSel.options.length === 0) {
     const y = now.getFullYear();
-    for (let i = y - 2; i <= y + 1; i++) {
+    for (let i = 2024; i <= y + 1; i++) {
       const opt = document.createElement("option");
       opt.value = i;
       opt.text = i;
