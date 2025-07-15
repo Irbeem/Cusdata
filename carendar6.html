@@ -8,176 +8,171 @@
       font-family: sans-serif;
       padding: 1rem;
     }
-
     .calendar-wrapper {
-      overflow: auto;
-      max-height: 80vh;
+      overflow-x: auto;
+      max-width: 100%;
+      margin-top: 1rem;
     }
-
     table {
       border-collapse: collapse;
       width: max-content;
     }
-
     th, td {
       border: 1px solid #ccc;
       padding: 6px;
-      min-width: 100px;
+      min-width: 120px;
       text-align: left;
       vertical-align: top;
       background: white;
     }
-
     thead th {
       position: sticky;
       top: 0;
-      z-index: 3;
+      z-index: 2;
+      background: #f8f8f8;
     }
-
     td:first-child,
     th:first-child {
       position: sticky;
       left: 0;
-      z-index: 2;
+      z-index: 3;
       background: #f1f1f1;
       font-weight: bold;
-      min-width: 150px;
     }
-
-    thead th:first-child {
-      z-index: 4;
-    }
-
     .event {
-      border-radius: 5px;
-      padding: 4px;
+      display: block;
       margin-bottom: 3px;
+      padding: 4px;
+      border-radius: 4px;
       font-size: 0.85rem;
+      color: #000;
     }
+    .Warranty { background-color: #72d572; }
+    .Service { background-color: #2a36b1; color: white; }
+    .Sales { background-color: #c41411; color: white; }
+    .Oth { background-color: #fff176; }
 
-    .sun { background-color: #E22427 !important; }
-    .mon { background-color: #FDFD95 !important; }
-    .tue { background-color: #FB6F92 !important; }
-    .wed { background-color: #92CA68 !important; }
-    .thu { background-color: #FFB58A !important; }
-    .fri { background-color: #78A3D4 !important; }
-    .sat { background-color: #9379C2 !important; }
+    @media (max-width: 768px) {
+      table, th, td {
+        font-size: 0.75rem;
+        min-width: 80px;
+      }
+    }
   </style>
 </head>
 <body>
-  <h2>📅 ปฏิทินแนวนอน (เดือนล่าสุดจาก Google Sheets)</h2>
-  <div id="calendar">⏳ กำลังโหลดข้อมูล...</div>
+  <h2>📅 ปฏิทินแนวนอน (จาก Google Sheets)</h2>
+
+  <label>เดือน:
+    <select id="month"></select>
+  </label>
+  <label>ปี:
+    <select id="year"></select>
+  </label>
+  <label>ชื่อ:
+    <select id="nameFilter">
+      <option value="">ทั้งหมด</option>
+    </select>
+  </label>
+
+  <div class="calendar-wrapper">
+    <table id="calendar-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
 <script>
-  const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
-  const SHEET_NAME = 'Carlendar'; // ต้องตรงกับชื่อ tab ใน Google Sheets
-  const endpoint = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
+const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+const SHEET_NAME = 'Carlendar';
+const ENDPOINT = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${SHEET_NAME}&tqx=out:json`;
 
-  let allData = [];
+let allData = [];
 
-  // สร้าง dropdown เดือน/ปี
-  (() => {
-    const monthSel = document.getElementById("month");
-    const yearSel = document.getElementById("year");
-    const now = new Date();
-    for (let i = 1; i <= 12; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.text = i;
-      if (i === now.getMonth() + 1) opt.selected = true;
-      monthSel.appendChild(opt);
-    }
-    const y = now.getFullYear();
-    for (let i = y - 2; i <= y + 1; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.text = i;
-      if (i === y) opt.selected = true;
-      yearSel.appendChild(opt);
-    }
-  })();
-
-  // โหลดข้อมูลจาก Google Sheets
-  fetch(endpoint)
-    .then(res => res.text())
-    .then(text => {
-      const json = JSON.parse(text.substring(47).slice(0, -2));
-      const cols = json.table.cols.map(c => c.label);
-      const rows = json.table.rows.map(r => {
-        const obj = {};
-        r.c.forEach((cell, i) => obj[cols[i]] = cell ? cell.v : "");
-        return obj;
-      });
-      allData = rows;
-      filterData();
-    })
-    .catch(err => {
-      document.getElementById("timeline").innerHTML = `<p style="color:red;">❌ โหลดข้อมูลไม่สำเร็จ: ${err.message}</p>`;
-    });
-
-  function filterData() {
-    const m = +document.getElementById("month").value;
-    const y = +document.getElementById("year").value;
-
-    const filtered = allData.filter(e => {
-      const d = new Date(+e["year"], +e["month"] - 1, +e["date"]);
-      return d.getMonth() + 1 === m && d.getFullYear() === y;
-    });
-
-    renderTimeline(filtered);
+(() => {
+  const monthSel = document.getElementById("month");
+  const yearSel = document.getElementById("year");
+  const now = new Date();
+  for (let i = 1; i <= 12; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = i;
+    if (i === now.getMonth() + 1) opt.selected = true;
+    monthSel.appendChild(opt);
   }
-
-  function renderTimeline(data) {
-    const grouped = {};
-    data.forEach(e => {
-      if (!grouped[e["name"]]) grouped[e["name"]] = [];
-      grouped[e["name"]].push(e);
-    });
-
-    for (let name in grouped) {
-      grouped[name].sort((a, b) => {
-        const d1 = new Date(+a["year"], +a["month"] - 1, +a["date"]);
-        const d2 = new Date(+b["year"], +b["month"] - 1, +b["date"]);
-        return d1 - d2;
-      });
-    }
-
-    const container = document.getElementById("timeline");
-    container.innerHTML = "";
-
-    Object.keys(grouped).forEach(name => {
-      const row = document.createElement("div");
-      row.className = "row";
-      const nameCell = document.createElement("div");
-      nameCell.className = "name";
-      nameCell.textContent = name;
-      row.appendChild(nameCell);
-
-      grouped[name].forEach(event => {
-        const ev = document.createElement("div");
-        ev.className = "event";
-        ev.style.backgroundColor = getColor(event["type"]);
-        const dateObj = new Date(+event["year"], +event["month"] - 1, +event["date"]);
-        ev.innerHTML = `<b>${
-          dateObj.toLocaleDateString("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" })
-        }</b><br>${event["time"]}<br>${event["type"]}<br>${event["datail"] || ""}`;
-        row.appendChild(ev);
-      });
-
-      container.appendChild(row);
-    });
+  const y = now.getFullYear();
+  for (let i = y - 2; i <= y + 1; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = i;
+    if (i === y) opt.selected = true;
+    yearSel.appendChild(opt);
   }
+  monthSel.onchange = yearSel.onchange = renderCalendarTable;
+  document.getElementById("nameFilter").onchange = renderCalendarTable;
+})();
 
-    function getColor(type) {
-      const colors = {
-        "Office": "#000000",
-        "Service": "#2a36b1",
-        "Sales": "#c41411",
-        "Warranty": "#72d572",
-        "Other": "#fff176"
-      };
-      return colors[type] || "#f0f0f0";
+fetch(ENDPOINT)
+  .then(res => res.text())
+  .then(text => {
+    const json = JSON.parse(text.substring(47).slice(0, -2));
+    const cols = json.table.cols.map(c => c.label);
+    const rows = json.table.rows.map(r => {
+      const obj = {};
+      r.c.forEach((cell, i) => obj[cols[i]] = cell ? cell.v : "");
+      return obj;
+    });
+    allData = rows;
+    renderCalendarTable();
+    renderNameFilter();
+  });
+
+function renderNameFilter() {
+  const nameSel = document.getElementById("nameFilter");
+  const names = [...new Set(allData.map(e => e.name))];
+  names.forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.text = name;
+    nameSel.appendChild(opt);
+  });
+}
+
+function renderCalendarTable() {
+  const month = +document.getElementById("month").value;
+  const year = +document.getElementById("year").value;
+  const nameFilter = document.getElementById("nameFilter").value;
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const filtered = allData.filter(e => +e["year"] === year && +e["month"] === month && (!nameFilter || e.name === nameFilter));
+
+  const names = [...new Set(filtered.map(e => e.name))];
+  const dataMap = {};
+  names.forEach(name => {
+    dataMap[name] = {};
+  });
+  filtered.forEach(e => {
+    const key = e.name;
+    const day = +e.date;
+    const info = `<div class='event ${e.type}'>${e.type}<br>${e.time}<br>${e.datail}</div>`;
+    if (!dataMap[key][day]) dataMap[key][day] = [];
+    dataMap[key][day].push(info);
+  });
+
+  const thead = document.querySelector("#calendar-table thead");
+  thead.innerHTML = "<tr><th>ชื่อ</th>" + [...Array(daysInMonth)].map((_, i) => `<th>${i + 1}</th>`).join("") + "</tr>";
+
+  const tbody = document.querySelector("#calendar-table tbody");
+  tbody.innerHTML = names.map(name => {
+    const row = ["<td>" + name + "</td>"];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cells = dataMap[name][d] ? dataMap[name][d].join("") : "";
+      row.push(`<td>${cells}</td>`);
     }
-  </script>
+    return `<tr>${row.join("")}</tr>`;
+  }).join("");
+}
+</script>
 </body>
 </html>
