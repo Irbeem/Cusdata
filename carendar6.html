@@ -204,8 +204,9 @@ function renderCalendarTable() {
 
   document.getElementById("summary").innerHTML = `
     <ul>
-      <li>🔧 Warranty: ${summary.Warranty} รายการ</li>
       <li>🛠️ Service: ${summary.Service} รายการ</li>
+      <li>🛠️ Inspection: ${summary.Inspection} รายการ</li>
+      <li>🔧 Warranty: ${summary.Warranty} รายการ</li>
       <li>💼 Sales: ${summary.Sales} รายการ</li>
       <li>📁 Oth: ${summary.Oth} รายการ</li>
       <li>📅 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>
