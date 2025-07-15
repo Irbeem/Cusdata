@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>🔕️ ปฏิทินแนวนอนจาก Google Sheets</title>
+  <title>🔕️ CS Carlendar</title>
   <style>
     body {
       font-family: sans-serif;
@@ -60,7 +60,7 @@
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
-    .Inspection { background-color: #00bcd4; color: white; }
+    .Inspection { background-color: #2a36b1; color: white; }
     .Sales { background-color: #c41411; color: white; }
     .Oth { background-color: #fff176; }
 
@@ -70,7 +70,7 @@
     .wed { background-color: #d0f0c0 !important; }
     .thu { background-color: #ffe0b3 !important; }
     .fri { background-color: #d0e6ff !important; }
-    .sat { background-color: #e0ccff !important; }
+    .sat { background-color: #c41411 !important; }
 
     @media (max-width: 768px) {
       table, th, td {
@@ -82,7 +82,7 @@
   </style>
 </head>
 <body>
-  <h2>🔕️ ปฏิทินแนวน (จาก Google Sheets)</h2>
+  <h2>🔕️ CS Carlendar</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -230,9 +230,9 @@ function renderCalendarTable() {
 
   let summaryHTML = "<ul>";
   for (const type in summary) {
-    summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
+    summaryHTML += `<li>${type}: ${summary[type]} times</li>`;
   }
-  summaryHTML += `<li>📋 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += `<li>📋 Total working day: ${workingDays.size} days</li>`;
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
