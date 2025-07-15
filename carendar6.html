@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>CS Carlendar</title>
+  <title>CS carlendarr</title>
   <style>
     body {
       font-family: sans-serif;
@@ -54,13 +54,22 @@
       max-width: 100%;
       height: 100%;
       box-sizing: border-box;
-    }
-    .event:hover {
-      white-space: normal;
-      overflow: visible;
-      z-index: 10;
       position: relative;
-      background-color: #fff9c4;
+    }
+    .event:hover::after {
+      content: attr(data-fulltext);
+      position: absolute;
+      top: 100%;
+      left: 0;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid #999;
+      padding: 6px;
+      z-index: 100;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.2);
+      width: max-content;
+      max-width: 300px;
+      color: #000;
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
@@ -86,7 +95,7 @@
   </style>
 </head>
 <body>
-  <h2>🔕️ CS Carlendar</h2>
+  <h2>CS carlendarr</h2>
 
   <label>เดือน:
     <select id="month"></select>
@@ -96,7 +105,7 @@
   </label>
   <label>ชื่อ:
     <select id="nameFilter">
-      <option value="">ทั้งหมด</option>
+      <option value="">All</option>
     </select>
   </label>
 
@@ -107,7 +116,7 @@
     </table>
   </div>
 
-  <h3>📊 สรุปข้อมูล</h3>
+  <h3>📊 Summary</h3>
   <div id="summary"></div>
 
 <script>
@@ -119,41 +128,34 @@ const ENDPOINT = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx
 let allData = [];
 let allNames = [];
 
-function initSelectors() {
+(() => {
   const monthSel = document.getElementById("month");
   const yearSel = document.getElementById("year");
   const now = new Date();
-
-  if (monthSel.options.length === 0) {
-    for (let i = 1; i <= 12; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.text = i;
-      if (i === now.getMonth() + 1) opt.selected = true;
-      monthSel.appendChild(opt);
-    }
+  for (let i = 1; i <= 12; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = i;
+    if (i === now.getMonth() + 1) opt.selected = true;
+    monthSel.appendChild(opt);
   }
-  if (yearSel.options.length === 0) {
-    const y = now.getFullYear();
-    for (let i = 2024; i <= y + 1; i++) {
-      const opt = document.createElement("option");
-      opt.value = i;
-      opt.text = i;
-      if (i === y) opt.selected = true;
-      yearSel.appendChild(opt);
-    }
+  const y = now.getFullYear();
+  for (let i = 2025; i <= y + 1; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = i;
+    if (i === y) opt.selected = true;
+    yearSel.appendChild(opt);
   }
   monthSel.onchange = yearSel.onchange = renderCalendarTable;
   document.getElementById("nameFilter").onchange = renderCalendarTable;
-}
+})();
 
 Promise.all([
   fetch(`${ENDPOINT}&sheet=${SHEET_NAME}`).then(res => res.text()),
   fetch(`${ENDPOINT}&sheet=${NAMES_SHEET_NAME}`).then(res => res.text())
 ])
 .then(([dataText, namesText]) => {
-  initSelectors();
-
   const jsonData = JSON.parse(dataText.substring(47).slice(0, -2));
   const cols = jsonData.table.cols.map(c => c.label);
   allData = jsonData.table.rows.map(r => {
@@ -207,7 +209,8 @@ function renderCalendarTable() {
       summary[e.type] = (summary[e.type] || 0) + 1;
       if (e.date) workingDays.add(e.date);
     }
-    const info = `<div class='event ${e.type}'>${e.type}<br>${e.time}</div>`;
+    const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
+    const info = `<div class='event ${e.type}' data-fulltext="${tooltip}">${e.type}<br>${e.time}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
@@ -235,7 +238,7 @@ function renderCalendarTable() {
   for (const type in summary) {
     summaryHTML += `<li>${type}: ${summary[type]} รายการ</li>`;
   }
-  summaryHTML += `<li>📋 จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
+  summaryHTML += `<li>🗓️ จำนวนวันทำงานที่มีรายการ: ${workingDays.size} วัน</li>`;
   summaryHTML += "</ul>";
 
   document.getElementById("summary").innerHTML = summaryHTML;
