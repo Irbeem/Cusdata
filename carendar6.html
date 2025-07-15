@@ -57,6 +57,22 @@
       height: 100%;
       box-sizing: border-box;
       cursor: pointer;
+      position: relative;
+    }
+    .event:hover::after {
+      content: attr(data-fulltext);
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 10;
+      white-space: pre-wrap;
+      background: #fff;
+      color: #000;
+      padding: 6px;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      max-width: 300px;
+      min-width: 150px;
     }
     .Warranty { background-color: #72d572; }
     .Service { background-color: #2a36b1; color: white; }
@@ -197,7 +213,7 @@ function renderCalendarTable() {
       if (e.date) workingDays.add(e.date);
     }
     const tooltip = `${e.type}\n${e.time}\n${e.datail}`;
-    const info = `<div class='event ${e.type}' title="${tooltip}">${e.type}<br>${e.time}</div>`;
+    const info = `<div class='event ${e.type}' data-fulltext="${tooltip}">${e.type}<br>${e.time}</div>`;
     if (!dataMap[key][day]) dataMap[key][day] = [];
     if (!dataMap[key][day].includes(info)) dataMap[key][day].push(info);
   });
