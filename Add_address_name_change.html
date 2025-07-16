@@ -5,34 +5,32 @@
   <title>CS Calendar</title>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
-    .calendar-wrapper { overflow-x: auto; overflow-y: auto; max-height: 80vh; margin-top: 1rem; }
+    .calendar-wrapper { overflow-x: auto; max-height: 80vh; margin-top: 1rem; }
     table { border-collapse: collapse; width: max-content; }
     th, td {
       border: 1px solid #ccc; padding: 6px; width: 120px; height: 80px;
-      text-align: left; vertical-align: top; background: white; overflow: hidden; cursor: pointer;
+      text-align: left; vertical-align: top; background: white; cursor: pointer;
     }
-    thead th { position: sticky; top: 0; z-index: 2; background: #f8f8f8; }
+    thead th { position: sticky; top: 0; background: #f8f8f8; }
     td:first-child, th:first-child {
-      position: sticky; left: 0; z-index: 3; background: #f1f1f1; font-weight: bold;
+      position: sticky; left: 0; background: #f1f1f1; font-weight: bold;
     }
-    .event {
-      display: block; padding: 2px; font-size: 0.85rem;
+    .event { font-size: 0.85rem; padding: 2px; display: block; }
+    .Warranty { background: #72d572; }
+    .Service { background: #2a36b1; color: white; }
+    .Inspection { background: #00bcd4; color: white; }
+    .Sales { background: #c41411; color: white; }
+    .Oth { background: #fff176; }
+    .overlay, .modal { display: none; }
+    .overlay.active, .modal.active { display: block; }
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); z-index: 998;
     }
-    .Warranty { background-color: #72d572; }
-    .Service { background-color: #2a36b1; color: white; }
-    .Inspection { background-color: #00bcd4; color: white; }
-    .Sales { background-color: #c41411; color: white; }
-    .Oth { background-color: #fff176; }
-    .modal, .overlay { display: none; }
-    .modal.active, .overlay.active { display: block; }
     .modal {
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: white; border: 1px solid #ccc; padding: 20px; z-index: 999;
       box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    }
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4); z-index: 998;
     }
   </style>
 </head>
@@ -48,7 +46,7 @@
     </table>
   </div>
 
-  <!-- ฟอร์มซ่อนสำหรับ submit -->
+  <!-- ซ่อนฟอร์มที่จะส่ง -->
   <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" hidden>
     <input type="hidden" name="year">
     <input type="hidden" name="month">
@@ -59,13 +57,13 @@
     <input type="hidden" name="datail">
   </form>
 
-  <!-- Popup ป้อนข้อมูล -->
+  <!-- Popup กรอกข้อมูล -->
   <div class="overlay" id="overlay"></div>
   <div class="modal" id="popupForm">
-    <h3>บันทึกข้อมูล</h3>
+    <h3>กรอกข้อมูล</h3>
     <div>ชื่อ: <span id="popupName"></span></div>
     <div>วันที่: <span id="popupDate"></span></div>
-    <label>Type:
+    <label>ประเภท:
       <select id="popupType">
         <option value="Service">Service</option>
         <option value="Warranty">Warranty</option>
@@ -74,16 +72,15 @@
         <option value="Oth">Oth</option>
       </select>
     </label><br>
-    <label>Time: <input type="text" id="popupTime"></label><br>
-    <label>Detail: <input type="text" id="popupDetail"></label><br>
+    <label>เวลา: <input type="text" id="popupTime"></label><br>
+    <label>รายละเอียด: <input type="text" id="popupDetail"></label><br>
     <button type="button" onclick="saveData()">Save</button>
     <button type="button" onclick="deleteData()">Delete</button>
     <button type="button" onclick="closePopup()">Cancel</button>
   </div>
 
   <script>
-    let names = [];
-    let activeCell = null;
+    const names = ["Surin", "Jirasak", "Prapat", "Kitisak", "Nutrada", "Preamaksorn", "Pongpat", "Naruechai", "Komsan", "Autthawut", "Patipat", "Jedsada", "Wirun", "Chalemkiet", "Techit"];
 
     const monthSel = document.getElementById("month");
     const yearSel = document.getElementById("year");
@@ -94,6 +91,7 @@
     const popupType = document.getElementById("popupType");
     const popupTime = document.getElementById("popupTime");
     const popupDetail = document.getElementById("popupDetail");
+    let activeCell = null;
 
     function init() {
       const now = new Date();
@@ -107,12 +105,7 @@
         if (y === now.getFullYear()) opt.selected = true;
         yearSel.add(opt);
       }
-
-      // โหลดชื่อจาก sheet ด้วย Apps Script
-      google.script.run.withSuccessHandler(nameList => {
-        names = nameList;
-        renderTable();
-      }).getNameList();
+      renderTable();
     }
 
     function renderTable() {
@@ -151,26 +144,19 @@
 
     function saveData() {
       if (!activeCell) return;
-
-      const name = activeCell.dataset.name;
-      const day = parseInt(activeCell.dataset.day);
-      const month = parseInt(monthSel.value);
-      const year = parseInt(yearSel.value);
-
-      const html = `<div class='event ${popupType.value}'>${popupType.value}<br>${popupTime.value}<br>${popupDetail.value}</div>`;
-      activeCell.innerHTML = html;
-
       const form = document.getElementById("submitForm");
-      form.year.value = year;
-      form.month.value = month;
-      form.date.value = day;
-      form.name.value = name;
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
       form.type.value = popupType.value;
       form.time.value = popupTime.value;
       form.datail.value = popupDetail.value;
 
-      form.submit();
+      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}</div>`;
+      activeCell.innerHTML = html;
 
+      form.submit();
       closePopup();
     }
 
