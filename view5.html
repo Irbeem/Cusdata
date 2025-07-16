@@ -2,43 +2,21 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>บันทึกข้อมูลลง Google Sheet</title>
+  <title>ฟอร์มบันทึกข้อมูล</title>
 </head>
 <body>
-  <form id="myForm">
-    ปี: <input type="number" name="year"><br>
-    เดือน: <input type="number" name="month"><br>
-    วันที่: <input type="number" name="date"><br>
-    ชื่อ: <input type="text" name="name"><br>
-    ประเภท: <input type="text" name="type"><br>
-    เวลา: <input type="text" name="time"><br>
-    รายละเอียด: <textarea name="datail"></textarea><br>
-    <input type="submit" value="ส่งข้อมูล">
+  <h2>ฟอร์มบันทึกข้อมูลเข้า Google Sheet</h2>
+
+  <form action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST">
+    ปี (year): <input type="number" name="year" required><br><br>
+    เดือน (month): <input type="number" name="month" required><br><br>
+    วันที่ (date): <input type="number" name="date" required><br><br>
+    ชื่อ (name): <input type="text" name="name" required><br><br>
+    ประเภท (type): <input type="text" name="type" required><br><br>
+    เวลา (time): <input type="text" name="time" required><br><br>
+    รายละเอียด (datail): <textarea name="datail" required></textarea><br><br>
+
+    <button type="submit">ส่งข้อมูล</button>
   </form>
-
-  <p id="response"></p>
-
-  <script>
-document.getElementById("myForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(e.target).entries());
-
-  fetch("https://script.google.com/macros/s/AKfycbzixwdbKlD0H2Jyg59f7VpUA_-LiCxBDFx24KOxvvZ-TTIkpGvvj1cn_IJUVK6nfzx4/exec", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(result => {
-    alert("บันทึกเรียบร้อย");
-  })
-  .catch(err => {
-    alert("เกิดข้อผิดพลาด: " + err.message);
-    console.error(err);
-  });
-});
-  </script>
 </body>
 </html>
