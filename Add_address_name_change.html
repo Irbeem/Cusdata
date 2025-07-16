@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -46,7 +48,7 @@
   </div>
 
   <iframe name="hidden_frame" style="display:none;"></iframe>
-  <form id="submitForm" action="https://script.google.com/macros/library/d/1yzdaMoczYfq_BjWr_dZJdhdHfZ6XfjHdiVohcuUvsOXplBRojYz6NEYb/9" method="POST" target="hidden_frame">
+  <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
     <input type="hidden" name="year">
     <input type="hidden" name="month">
     <input type="hidden" name="date">
@@ -78,8 +80,12 @@
   </div>
 
   <script>
-    let names = [];
+    let names = [], allData = [];
     let activeCell = null;
+
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const CALENDAR_SHEET = 'Carlendar';
+    const NAMES_SHEET = 'Names';
 
     const monthSel = document.getElementById("month");
     const yearSel = document.getElementById("year");
@@ -104,36 +110,53 @@
         yearSel.add(opt);
       }
 
-      // Load names from Google Sheet 'Names'
-      const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
-      const NAMES_SHEET = 'Names';
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${NAMES_SHEET}`;
+      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-      fetch(url)
-        .then(res => res.text())
-        .then(txt => {
-          const json = JSON.parse(txt.substring(47).slice(0, -2));
-          names = json.table.rows.map(r => r.c[0]?.v).filter(Boolean);
-          renderTable();
+      Promise.all([
+        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+      ])
+      .then(([namesTxt, dataTxt]) => {
+        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
+
+        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+        const cols = dataJson.table.cols.map(c => c.label);
+        allData = dataJson.table.rows.map(r => {
+          const o = {};
+          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+          return o;
         });
+
+        renderTable();
+      });
     }
 
     function renderTable() {
-      const days = new Date(+yearSel.value, +monthSel.value, 0).getDate();
+      const year = +yearSel.value;
+      const month = +monthSel.value;
+      const days = new Date(year, month, 0).getDate();
       const thead = document.querySelector("#calendar-table thead");
       const tbody = document.querySelector("#calendar-table tbody");
 
-      thead.innerHTML = "<tr><th>Name</th>" +
-        Array.from({length: days}, (_, i) => `<th>${i + 1}</th>`).join("") +
-        "</tr>";
-
-      tbody.innerHTML = names.map(name => {
-        let row = `<tr><td>${name}</td>`;
-        for (let d = 1; d <= days; d++) {
-          row += `<td data-name="${name}" data-day="${d}" onclick="openPopup(this)"></td>`;
+      const dataMap = {};
+      names.forEach(name => dataMap[name] = {});
+      allData.forEach(d => {
+        if (+d.year === year && +d.month === month) {
+          const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}<br>${d.datail}</div>`;
+          (dataMap[d.name][d.date] ||= []).push(html);
         }
-        return row + "</tr>";
-      }).join("");
+      });
+
+      thead.innerHTML = `<tr><th>Name</th>${Array.from({length: days}, (_, i) => `<th>${i+1}</th>`).join('')}</tr>`;
+      tbody.innerHTML = names.map(name => {
+        const row = [`<td>${name}</td>`];
+        for (let d = 1; d <= days; d++) {
+          const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+          row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        }
+        return `<tr>${row.join('')}</tr>`;
+      }).join('');
     }
 
     function openPopup(td) {
