@@ -19,25 +19,26 @@
   <p id="response"></p>
 
   <script>
-    document.getElementById('myForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      const form = e.target;
-      const data = Object.fromEntries(new FormData(form).entries());
+document.getElementById("myForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target).entries());
 
-      fetch("https://script.google.com/macros/s/AKfycbxjLEYJszYmwqE7KshEmXDG6lkLtX4Dk7QruFkWxOAvOEPGeuFknRUgsn9cZZoP3pDb/exec", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
-      })
-      .then(res => res.json())
-      .then(result => {
-        document.getElementById("response").textContent = "บันทึกสำเร็จ!";
-        form.reset();
-      })
-      .catch(err => {
-        document.getElementById("response").textContent = "เกิดข้อผิดพลาด: " + err;
-      });
-    });
+  fetch("https://script.google.com/macros/s/AKfycbzixwdbKlD0H2Jyg59f7VpUA_-LiCxBDFx24KOxvvZ-TTIkpGvvj1cn_IJUVK6nfzx4/exec", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  })
+  .then(res => res.json())
+  .then(result => {
+    alert("บันทึกเรียบร้อย");
+  })
+  .catch(err => {
+    alert("เกิดข้อผิดพลาด: " + err.message);
+    console.error(err);
+  });
+});
   </script>
 </body>
 </html>
