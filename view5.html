@@ -99,7 +99,7 @@
   </style>
 </head>
 <body>
-  <h2>CS Calendar (Interactive Input)</h2>
+  <h2>CS Calendar (Interactive Input with Google Apps Script)</h2>
   <label>Month: <select id="month"></select></label>
   <label>Year: <select id="year"></select></label>
   <label>Name: <select id="nameFilter"></select></label>
@@ -125,8 +125,8 @@
     </select></label><br>
     <label>Time: <input type="text" id="popupTime"></label><br>
     <label>Detail: <input type="text" id="popupDetail"></label><br>
-    <button onclick="saveData()">Save</button>
-    <button onclick="deleteData()">Delete</button>
+    <button onclick="saveDataToSheet()">Save</button>
+    <button onclick="deleteDataFromSheet()">Delete</button>
     <button onclick="closePopup()">Cancel</button>
   </div>
 
@@ -204,17 +204,49 @@
       popup.classList.remove("active");
     }
 
-    function saveData() {
-      if (activeCell) {
-        const info = `<div class='event ${popupType.value}'>${popupType.value}<br>${popupTime.value}<br>${popupDetail.value}</div>`;
-        activeCell.innerHTML = info;
-      }
-      closePopup();
+    function saveDataToSheet() {
+      const payload = {
+        name: popupName.textContent,
+        year: yearSel.value,
+        month: monthSel.value,
+        date: popupDate.textContent,
+        type: popupType.value,
+        time: popupTime.value,
+        detail: popupDetail.value
+      };
+
+      fetch('https://script.google.com/macros/library/d/1yzdaMoczYfq_BjWr_dZJdhdHfZ6XfjHdiVohcuUvsOXplBRojYz6NEYb/1', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (activeCell) {
+          const info = `<div class='event ${popupType.value}'>${popupType.value}<br>${popupTime.value}<br>${popupDetail.value}</div>`;
+          activeCell.innerHTML = info;
+        }
+        closePopup();
+      });
     }
 
-    function deleteData() {
-      if (activeCell) activeCell.innerHTML = "";
-      closePopup();
+    function deleteDataFromSheet() {
+      const payload = {
+        name: popupName.textContent,
+        year: yearSel.value,
+        month: monthSel.value,
+        date: popupDate.textContent,
+        delete: true
+      };
+
+      fetch('https://script.google.com/macros/library/d/1yzdaMoczYfq_BjWr_dZJdhdHfZ6XfjHdiVohcuUvsOXplBRojYz6NEYb/1', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (activeCell) activeCell.innerHTML = "";
+        closePopup();
+      });
     }
 
     init();
