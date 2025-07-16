@@ -1,60 +1,53 @@
-     
-<!-- HTML ฟอร์มทดสอบบันทึกข้อมูลลง Google Sheet -->
 <!DOCTYPE html>
-<html lang="th">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>บันทึกข้อมูลเข้า Google Sheet</title>
-  <style>
-    body { font-family: sans-serif; padding: 1rem; }
-    label { display: block; margin-bottom: 8px; }
-    input, select { padding: 4px; margin-left: 5px; }
-    #result { margin-top: 1em; font-weight: bold; }
-  </style>
+  <title>ฟอร์มบันทึกข้อมูลลง Google Sheet</title>
 </head>
 <body>
-  <h2>ฟอร์มทดสอบบันทึก Google Sheet</h2>
-  <form id="entryForm">
-    <label>ชื่อ: <input name="name" required value="Prapat"></label>
-    <label>ปี: <input name="year" type="number" value="2025"></label>
-    <label>เดือน: <input name="month" type="number" value="7"></label>
-    <label>วันที่: <input name="date" type="number" value="15"></label>
-    <label>ประเภท: 
-      <select name="type">
-        <option value="Service">Service</option>
-        <option value="Warranty">Warranty</option>
-        <option value="Inspection">Inspection</option>
-        <option value="Sales">Sales</option>
-        <option value="Oth">Oth</option>
-      </select>
-    </label>
-    <label>เวลา: <input name="time" value="9.00-12.00"></label>
-    <label>รายละเอียด: <input name="detail" value="TEST ENTRY"></label>
-    <button type="submit">บันทึก</button>
+  <h2>ฟอร์มบันทึกข้อมูล</h2>
+  <form id="myForm">
+    <label>ปี (year): <input type="number" name="year" required></label><br><br>
+    <label>เดือน (month): <input type="number" name="month" required></label><br><br>
+    <label>วันที่ (date): <input type="number" name="date" required></label><br><br>
+    <label>ชื่อ (name): <input type="text" name="name" required></label><br><br>
+    <label>ประเภท (type): <input type="text" name="type" required></label><br><br>
+    <label>เวลา (time): <input type="text" name="time" required></label><br><br>
+    <label>รายละเอียด (datail): <textarea name="datail" required></textarea></label><br><br>
+    <button type="submit">ส่งข้อมูล</button>
   </form>
-  <div id="result"></div>
+
+  <p id="response"></p>
 
   <script>
-    const form = document.getElementById("entryForm");
-    form.onsubmit = function(e) {
+    document.getElementById('myForm').addEventListener('submit', function(e) {
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
+      const form = e.target;
+      const data = {
+        year: form.year.value,
+        month: form.month.value,
+        date: form.date.value,
+        name: form.name.value,
+        type: form.type.value,
+        time: form.time.value,
+        datail: form.datail.value
+      };
 
-       fetch('https://script.google.com/macros/s/AKfycbzixwdbKlD0H2Jyg59f7VpUA_-LiCxBDFx24KOxvvZ-TTIkpGvvj1cn_IJUVK6nfzx4/exec', {
+      fetch("https://script.google.com/macros/s/AKfycbzixwdbKlD0H2Jyg59f7VpUA_-LiCxBDFx24KOxvvZ-TTIkpGvvj1cn_IJUVK6nfzx4/exec", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json"
+        }
       })
       .then(res => res.json())
-      .then(result => {
-        document.getElementById("result").textContent = "✔ บันทึกสำเร็จ: " + result.status;
+      .then(response => {
+        document.getElementById("response").innerText = "บันทึกสำเร็จ!";
         form.reset();
       })
-      .catch(() => {
-        document.getElementById("result").textContent = "❌ บันทึกล้ม! เกิดปัญหาร";
+      .catch(error => {
+        document.getElementById("response").innerText = "เกิดข้อผิดพลาด: " + error;
       });
-    }
+    });
   </script>
 </body>
 </html>
-
