@@ -53,7 +53,7 @@
   </div>
 
   <iframe name="hidden_frame" style="display:none;"></iframe>
-  <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
+  <form id="submitForm" action="https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec" method="POST" target="hidden_frame">
     <input type="hidden" name="year">
     <input type="hidden" name="month">
     <input type="hidden" name="date">
@@ -61,6 +61,7 @@
     <input type="hidden" name="type">
     <input type="hidden" name="time">
     <input type="hidden" name="datail">
+    <input type="hidden" name="action">
   </form>
 
   <div class="overlay" id="overlay"></div>
@@ -195,6 +196,7 @@
       form.type.value = popupType.value;
       form.time.value = popupTime.value;
       form.datail.value = popupDetail.value;
+      form.action.value = "save";
 
       const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}</div>`;
       activeCell.innerHTML = html;
@@ -203,7 +205,18 @@
     }
 
     function deleteData() {
-      if (activeCell) activeCell.innerHTML = "";
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
+      form.type.value = "";
+      form.time.value = "";
+      form.datail.value = "";
+      form.action.value = "delete";
+
+      activeCell.innerHTML = "";
+      form.submit();
       closePopup();
     }
 
