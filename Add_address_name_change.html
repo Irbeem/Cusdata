@@ -38,7 +38,6 @@
   <h2>CS Calendar (Interactive + Submit by Form)</h2>
   <label>Month: <select id="month"></select></label>
   <label>Year: <select id="year"></select></label>
-
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
@@ -46,8 +45,8 @@
     </table>
   </div>
 
-  <!-- ซ่อนฟอร์มที่จะส่ง -->
-  <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" hidden>
+  <iframe name="hidden_frame" style="display:none;"></iframe>
+  <form id="submitForm" action="https://script.google.com/macros/library/d/1yzdaMoczYfq_BjWr_dZJdhdHfZ6XfjHdiVohcuUvsOXplBRojYz6NEYb/9" method="POST" target="hidden_frame">
     <input type="hidden" name="year">
     <input type="hidden" name="month">
     <input type="hidden" name="date">
@@ -57,7 +56,6 @@
     <input type="hidden" name="datail">
   </form>
 
-  <!-- Popup กรอกข้อมูล -->
   <div class="overlay" id="overlay"></div>
   <div class="modal" id="popupForm">
     <h3>กรอกข้อมูล</h3>
@@ -80,7 +78,8 @@
   </div>
 
   <script>
-    const names = ["Surin", "Jirasak", "Prapat", "Kitisak", "Nutrada", "Preamaksorn", "Pongpat", "Naruechai", "Komsan", "Autthawut", "Patipat", "Jedsada", "Wirun", "Chalemkiet", "Techit"];
+    let names = [];
+    let activeCell = null;
 
     const monthSel = document.getElementById("month");
     const yearSel = document.getElementById("year");
@@ -91,7 +90,6 @@
     const popupType = document.getElementById("popupType");
     const popupTime = document.getElementById("popupTime");
     const popupDetail = document.getElementById("popupDetail");
-    let activeCell = null;
 
     function init() {
       const now = new Date();
@@ -105,7 +103,19 @@
         if (y === now.getFullYear()) opt.selected = true;
         yearSel.add(opt);
       }
-      renderTable();
+
+      // Load names from Google Sheet 'Names'
+      const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+      const NAMES_SHEET = 'Names';
+      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${NAMES_SHEET}`;
+
+      fetch(url)
+        .then(res => res.text())
+        .then(txt => {
+          const json = JSON.parse(txt.substring(47).slice(0, -2));
+          names = json.table.rows.map(r => r.c[0]?.v).filter(Boolean);
+          renderTable();
+        });
     }
 
     function renderTable() {
@@ -143,7 +153,6 @@
     }
 
     function saveData() {
-      if (!activeCell) return;
       const form = document.getElementById("submitForm");
       form.year.value = yearSel.value;
       form.month.value = monthSel.value;
@@ -155,7 +164,6 @@
 
       const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}</div>`;
       activeCell.innerHTML = html;
-
       form.submit();
       closePopup();
     }
