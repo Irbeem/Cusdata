@@ -1,319 +1,223 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="google" content="notranslate">
-  <title>ALL DATA</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <meta charset="UTF-8">
+  <title>CS Calendar</title>
   <style>
-  
-  .controls { margin: 10px 0; width: 200%; }
-  .hidden { display: none; }
-    table { border-collapse: collapse; width: 100%; font-size: 14px; }
-
-    th{
-      background-color: #cce5ff; /* สีฟ้าอ่อน */
-      color: #000;               /* ตัวอักษรสีดำ */
+    body {
+      font-family: sans-serif;
+      padding: 1rem;
+    }
+    .calendar-wrapper {
+      overflow-x: auto;
+      overflow-y: auto;
+      max-width: 100%;
+      max-height: 80vh;
+      margin-top: 1rem;
+    }
+    table {
+      border-collapse: collapse;
+      width: max-content;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px;
+      width: 120px;
+      height: 80px;
+      text-align: left;
+      vertical-align: top;
+      background: white;
+      overflow: hidden;
+      cursor: pointer;
+    }
+    thead th {
       position: sticky;
-      top: 135px;
-      z-index: 1;
+      top: 0;
+      z-index: 2;
+      background: #f8f8f8;
     }
-
-    td { border: 1px solid #ccc; padding: 4px; text-align: left; }
-
-    input[type="text"] { width: 200px; }
-
-    .controls { margin: 10px 0; position: sticky; }
-    .hidden { display: none; }
-    .button-group {
-      display: flex;
-      gap: 25px;
-    }
-
-    .btn {
-      background-color: #2563eb; /* สีฟ้า */
-      color: white;
-      padding: 10px 14px;
-      border: none;
-      border-radius: 6px;
-      text-decoration: none;
+    td:first-child,
+    th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 3;
+      background: #f1f1f1;
       font-weight: bold;
-      transition: background-color 0.2s ease;
     }
-
-    .btn:hover {
-      background-color: #1d4ed8;
+    .event {
+      display: block;
+      padding: 2px;
+      font-size: 0.85rem;
     }
-
+    .Warranty { background-color: #72d572; }
+    .Service { background-color: #2a36b1; color: white; }
+    .Inspection { background-color: #00bcd4; color: white; }
+    .Sales { background-color: #c41411; color: white; }
+    .Oth { background-color: #fff176; }
+    .sun { background-color: #c41411 !important; }
+    .mon { background-color: #fffacc !important; }
+    .tue { background-color: #ffd1e3 !important; }
+    .wed { background-color: #d0f0c0 !important; }
+    .thu { background-color: #ffe0b3 !important; }
+    .fri { background-color: #d0e6ff !important; }
+    .sat { background-color: #e0ccff !important; }
+    @media (max-width: 768px) {
+      table, th, td {
+        font-size: 0.75rem;
+        min-width: 80px;
+        max-height: 60px;
+      }
+    }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 999;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .modal.active {
+      display: block;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.4);
+      z-index: 998;
+      display: none;
+    }
+    .overlay.active {
+      display: block;
+    }
   </style>
 </head>
-
-
 <body>
-<!-- แถบควบคุมให้อยู่คงที่ด้านบน -->
-<div style="position: sticky; top: 0; background: white; padding: 10px; z-index: 999; width: 250%; border-bottom: 1px solid #ccc;">
-  <h2>ALL DATA</h2>
+  <h2>CS Calendar (Interactive Input)</h2>
+  <label>Month: <select id="month"></select></label>
+  <label>Year: <select id="year"></select></label>
+  <label>Name: <select id="nameFilter"></select></label>
 
-  <div class="controls hidden" id="controlPanel">
-    <button class="btn" onclick="resetFilter()">📋 Show All 📋</button>
-    🔍 <input type="text" id="searchInput" placeholder="...Search...">
-    <button class="btn" onclick="searchAndScroll()">🔍 Search 🔍</button>
-    <button class="btn" onclick="filterRows()">🧮 Filter 🧮</button>
-    <button class="btn" id="saveChangesBtn" onclick="saveChanges()">💾&nbsp;Save data 💾</button>
-    <button class="btn" id="exportExcelBtn" onclick="exportToExcel()">💾 Export to Excel</button>
-    <button class="btn" id="exportCsvBtn" onclick="exportToCSV()">💾 Export to CSV</button>
-    <button class="btn" onclick="signOut()">🔒 LogOut 🔒</button>
-    </div>
+  <div class="calendar-wrapper">
+    <table id="calendar-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-
-  <table id="dataTable" class="hidden">
-    <thead id="tableHead"></thead>
-    <tbody id="tableBody"></tbody>
-  </table>
+  <div class="overlay" id="overlay"></div>
+  <div class="modal" id="popupForm">
+    <h3>Edit Entry</h3>
+    <div>ชื่อ: <span id="popupName"></span></div>
+    <div>วันที่: <span id="popupDate"></span></div>
+    <label>Type: <select id="popupType">
+      <option value="Service">Service</option>
+      <option value="Warranty">Warranty</option>
+      <option value="Inspection">Inspection</option>
+      <option value="Sales">Sales</option>
+      <option value="Oth">Oth</option>
+    </select></label><br>
+    <label>Time: <input type="text" id="popupTime"></label><br>
+    <label>Detail: <input type="text" id="popupDetail"></label><br>
+    <button onclick="saveData()">Save</button>
+    <button onclick="deleteData()">Delete</button>
+    <button onclick="closePopup()">Cancel</button>
+  </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCSYG70O7gB17kwrXwL_S5e9dDwec7zhS0",
-      authDomain: "custdata-92ebe.firebaseapp.com",
-      databaseURL: "https://custdata-92ebe-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "custdata-92ebe",
-    };
+    const nameFilter = document.getElementById("nameFilter");
+    const monthSel = document.getElementById("month");
+    const yearSel = document.getElementById("year");
+    const overlay = document.getElementById("overlay");
+    const popup = document.getElementById("popupForm");
+    const popupName = document.getElementById("popupName");
+    const popupDate = document.getElementById("popupDate");
+    const popupType = document.getElementById("popupType");
+    const popupTime = document.getElementById("popupTime");
+    const popupDetail = document.getElementById("popupDetail");
 
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    const db = firebase.database();
+    let activeCell = null;
+    const names = ["Alice", "Bob", "Charlie"];
 
-    const fields = [
-      'Year', 'Month', 'Address', 'Date of Entry', 'Setmaker or EndUser', 'Customer SAP Num', 'Customer name',
-      'Abbreviation', 'Sale Rep', 'Area', 'in or outside', 'Agency', 'Customer machine name',
-      'Order Number', 'Robot type', '-', 'Type', 'Serial Number of Robot',
-      'Robot Manufacture date', 'Controller', 'Serial Number of Controller',
-      'Controller Manufacture date', 'System application', 'USE application',
-      'SYSTEM', 'PARAM', 'utility name', 'Option', 'machine maker',
-      'Scrap date', 'MSAF', 'Contract Number or PO Number'
-    ];
-
-    const tableHead = document.getElementById("tableHead");
-    const tableBody = document.getElementById("tableBody");
-    const controlPanel = document.getElementById("controlPanel");
-    const dataTable = document.getElementById("dataTable");
-
-    let userRole = "viewer";
-    const editedData = {};
-
-    auth.onAuthStateChanged(async user => {
-      if (!user) {
-        alert("Please Login");
-        window.location.href = "index.html";
-        return;
+    function init() {
+      const now = new Date();
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.text = i;
+        if (i === now.getMonth() + 1) opt.selected = true;
+        monthSel.appendChild(opt);
       }
+      const year = now.getFullYear();
+      for (let y = year - 1; y <= year + 1; y++) {
+        const opt = document.createElement("option");
+        opt.value = y;
+        opt.text = y;
+        if (y === year) opt.selected = true;
+        yearSel.appendChild(opt);
+      }
+      nameFilter.innerHTML = '<option value="">All</option>';
+      names.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name;
+        opt.text = name;
+        nameFilter.appendChild(opt);
+      });
+      renderTable();
+    }
 
-      const roleSnap = await db.ref("users/" + user.uid + "/role").get();
-      userRole = roleSnap.val() || "viewer";
-
-      controlPanel.classList.remove("hidden");
-      dataTable.classList.remove("hidden");
-
-      loadData();
-               // ซ่อนปุ่ม export ถ้าเป็น viewer
-      if (userRole === "viewer") {
-    	  document.getElementById("exportExcelBtn").style.display = "none";
-    	  document.getElementById("exportCsvBtn").style.display = "none";
-	  document.getElementById("saveChangesBtn").style.display = "none";
-  	}
-
-    });
-
-
-
-    const createRow = (key, data) => {
-      const tr = document.createElement("tr");
-      fields.forEach(field => {
-        const td = document.createElement("td");
-        td.textContent = data[field] || "";
-        td.dataset.key = key;
-        td.dataset.field = field;
-
-        if (userRole === "admin" || userRole === "editor") {
-          td.contentEditable = true;
+    function renderTable() {
+      const days = new Date(+yearSel.value, +monthSel.value, 0).getDate();
+      const thead = document.querySelector("#calendar-table thead");
+      const tbody = document.querySelector("#calendar-table tbody");
+      thead.innerHTML = "<tr><th>Name</th>" + Array.from({length: days}, (_, i) => `<th>${i+1}</th>`).join("") + "</tr>";
+      tbody.innerHTML = names.map(name => {
+        let row = `<tr><td>${name}</td>`;
+        for (let d = 1; d <= days; d++) {
+          row += `<td data-name="${name}" data-day="${d}" onclick="openPopup(this)"></td>`;
         }
+        return row + "</tr>";
+      }).join("");
+    }
 
-        tr.appendChild(td);
-      });
+    function openPopup(td) {
+      activeCell = td;
+      const name = td.dataset.name;
+      const date = td.dataset.day;
+      popupName.textContent = name;
+      popupDate.textContent = date;
+      popupType.value = "Service";
+      popupTime.value = "";
+      popupDetail.value = "";
+      overlay.classList.add("active");
+      popup.classList.add("active");
+    }
 
-      const tdDelete = document.createElement("td");
-      if (userRole === "admin") {
-        tdDelete.innerHTML = `<button onclick="deleteData('${key}')">ลบ</button>`;
+    function closePopup() {
+      overlay.classList.remove("active");
+      popup.classList.remove("active");
+    }
+
+    function saveData() {
+      if (activeCell) {
+        const info = `<div class='event ${popupType.value}'>${popupType.value}<br>${popupTime.value}<br>${popupDetail.value}</div>`;
+        activeCell.innerHTML = info;
       }
-      tr.appendChild(tdDelete);
-      return tr;
-    };
-
-    const loadData = () => {
-      db.ref("robot_data").on("value", snapshot => {
-        const data = snapshot.val();
-        if (!data) return;
-
-        tableHead.innerHTML = "";
-        tableBody.innerHTML = "";
-
-        const headerRow = document.createElement("tr");
-        fields.forEach(f => {
-          const th = document.createElement("th");
-          th.textContent = f;
-          headerRow.appendChild(th);
-        });
-        headerRow.appendChild(document.createElement("th"));
-        tableHead.appendChild(headerRow);
-
-        Object.entries(data).forEach(([key, entry]) => {
-          const row = createRow(key, entry);
-          tableBody.appendChild(row);
-        });
-      });
-    };
-
-    const deleteData = (key) => {
-      if (userRole !== "admin") return;
-      if (confirm("ต้องการลบข้อมูลนี้ใช่หรือไม่?")) {
-        db.ref("robot_data/" + key).remove();
-      }
-    };
-
-    tableBody.addEventListener("blur", (e) => {
-      const td = e.target;
-      if (td.tagName === "TD" && td.dataset.key && td.dataset.field) {
-        if (userRole === "admin" || userRole === "editor") {
-          const key = td.dataset.key;
-          const field = td.dataset.field;
-          const value = td.textContent;
-
-          if (!editedData[key]) editedData[key] = {};
-          editedData[key][field] = value;
-        }
-      }
-    }, true);
-
-    function saveChanges() {
-      const updates = Object.entries(editedData);
-      if (updates.length === 0) {
-        alert("ไม่มีข้อมูลที่ถูกแก้ไข");
-        return;
-      }
-
-      const promises = updates.map(([key, fields]) => {
-        return db.ref("robot_data/" + key).update(fields);
-      });
-
-      Promise.all(promises)
-        .then(() => {
-          alert("Already save!");
-          Object.keys(editedData).forEach(key => delete editedData[key]);
-        })
-        .catch((error) => {
-          alert("Error : " + error.message);
-        });
+      closePopup();
     }
 
-
-function searchAndScroll() {
-  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
-  const rows = tableBody.querySelectorAll("tr");
-  let found = false;
-
-  rows.forEach(row => {
-    const rowText = row.textContent.toLowerCase();
-
-    // ลบการเน้นก่อน
-    row.style.backgroundColor = "";
-
-    if (!found && rowText.includes(searchTerm)) {
-      // เลื่อนไปยังแถว
-      row.scrollIntoView({ behavior: "smooth", block: "center" });
-
-      // เน้นแถว
-      row.style.backgroundColor = "#ffff99";
-
-      // ลบสีหลัง 3 วินาที
-      setTimeout(() => row.style.backgroundColor = "", 20000);
-
-      found = true;
-    }
-  });
-
-  if (!found) {
-    alert("No data");
-  }
-}
-
-
-function filterRows() {
-  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
-
-  db.ref("robot_data").once("value").then(snapshot => {
-    const data = snapshot.val();
-    if (!data) return;
-
-    tableBody.innerHTML = ""; // เคลียร์ข้อมูลเก่า
-
-    let matchCount = 0;
-
-    Object.entries(data).forEach(([key, entry]) => {
-      const rowText = Object.values(entry).join(" ").toLowerCase();
-
-      if (rowText.includes(searchTerm)) {
-        const row = createRow(key, entry);
-        tableBody.appendChild(row);
-        matchCount++;
-      }
-    });
-
-    if (matchCount === 0) {
-      alert("Not found data");
-    }
-  });
-}
-
-
-function resetFilter() {
-  document.getElementById("searchInput").value = ""; // เคลียร์ช่องค้นหา
-  const rows = tableBody.querySelectorAll("tr");
-  rows.forEach(row => {
-    row.style.display = ""; // แสดงทุกแถว
-  });
-loadData();
-}
-
-    function exportToExcel() {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.table_to_sheet(document.getElementById("dataTable"));
-      XLSX.utils.book_append_sheet(wb, ws, "RobotData");
-      XLSX.writeFile(wb, "robot_data.xlsx");
+    function deleteData() {
+      if (activeCell) activeCell.innerHTML = "";
+      closePopup();
     }
 
-    function exportToCSV() {
-      const ws = XLSX.utils.table_to_sheet(document.getElementById("dataTable"));
-      const csv = XLSX.utils.sheet_to_csv(ws);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "robot_data.csv";
-      a.click();
-    }
-
-    function signOut() {
-      auth.signOut().then(() => {
-        alert("LogOut complete");
-        window.location.href = "index.html";
-      }).catch((error) => {
-        alert("LogOut Error : " + error.message);
-      });
-    }
+    init();
   </script>
 </body>
 </html>
