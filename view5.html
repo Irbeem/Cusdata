@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ฟอร์มบันทึกข้อมูลลง Google Sheet</title>
+  <meta charset="utf-8">
+  <title>บันทึกข้อมูลลง Google Sheet</title>
 </head>
 <body>
-  <h2>ฟอร์มบันทึกข้อมูล</h2>
   <form id="myForm">
-    <label>ปี (year): <input type="number" name="year" required></label><br><br>
-    <label>เดือน (month): <input type="number" name="month" required></label><br><br>
-    <label>วันที่ (date): <input type="number" name="date" required></label><br><br>
-    <label>ชื่อ (name): <input type="text" name="name" required></label><br><br>
-    <label>ประเภท (type): <input type="text" name="type" required></label><br><br>
-    <label>เวลา (time): <input type="text" name="time" required></label><br><br>
-    <label>รายละเอียด (datail): <textarea name="datail" required></textarea></label><br><br>
-    <button type="submit">ส่งข้อมูล</button>
+    ปี: <input type="number" name="year"><br>
+    เดือน: <input type="number" name="month"><br>
+    วันที่: <input type="number" name="date"><br>
+    ชื่อ: <input type="text" name="name"><br>
+    ประเภท: <input type="text" name="type"><br>
+    เวลา: <input type="text" name="time"><br>
+    รายละเอียด: <textarea name="datail"></textarea><br>
+    <input type="submit" value="ส่งข้อมูล">
   </form>
 
   <p id="response"></p>
@@ -22,30 +22,20 @@
     document.getElementById('myForm').addEventListener('submit', function(e) {
       e.preventDefault();
       const form = e.target;
-      const data = {
-        year: form.year.value,
-        month: form.month.value,
-        date: form.date.value,
-        name: form.name.value,
-        type: form.type.value,
-        time: form.time.value,
-        datail: form.datail.value
-      };
+      const data = Object.fromEntries(new FormData(form).entries());
 
-      fetch("https://script.google.com/macros/s/AKfycbzixwdbKlD0H2Jyg59f7VpUA_-LiCxBDFx24KOxvvZ-TTIkpGvvj1cn_IJUVK6nfzx4/exec", {
+      fetch("https://script.google.com/macros/s/AKfycbxjLEYJszYmwqE7KshEmXDG6lkLtX4Dk7QruFkWxOAvOEPGeuFknRUgsn9cZZoP3pDb/exec", {
         method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-          "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
       })
       .then(res => res.json())
-      .then(response => {
-        document.getElementById("response").innerText = "บันทึกสำเร็จ!";
+      .then(result => {
+        document.getElementById("response").textContent = "บันทึกสำเร็จ!";
         form.reset();
       })
-      .catch(error => {
-        document.getElementById("response").innerText = "เกิดข้อผิดพลาด: " + error;
+      .catch(err => {
+        document.getElementById("response").textContent = "เกิดข้อผิดพลาด: " + err;
       });
     });
   </script>
