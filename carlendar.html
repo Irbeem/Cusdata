@@ -118,7 +118,9 @@
         if (y === now.getFullYear()) opt.selected = true;
         yearSel.add(opt);
       }
-
+       // รีเฟรช ปฏิทินเมื่อเปลี่ยน เดือนปี
+        monthSel.addEventListener("change", renderTable);
+        yearSel.addEventListener("change", renderTable);
       const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
       Promise.all([
