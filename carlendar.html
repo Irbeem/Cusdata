@@ -145,8 +145,8 @@
       ])
       .then(([namesTxt, dataTxt]) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
-        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
-
+        //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
+        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
         const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
         const cols = dataJson.table.cols.map(c => c.label);
         allData = dataJson.table.rows.map(r => {
