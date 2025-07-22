@@ -1,6 +1,6 @@
 
 <!DOCTYPE html>
-<!DOCTYPE html>
+
 <html lang="th">
 <head>
   <meta charset="UTF-8">
@@ -40,13 +40,32 @@
       position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: white; border: 1px solid #ccc; padding: 20px; z-index: 999;
       box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      width: 320px; border-radius: 8px;
     }
+    .modal h3 { margin-top: 0; text-align: center; }
+    .modal label { display: block; margin-top: 10px; font-weight: bold; }
+    .modal input[type="text"], .modal select {
+      width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    .modal .btn-group {
+      margin-top: 12px; text-align: right;
+    }
+    .modal button {
+      padding: 6px 12px; margin-left: 6px;
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .modal button:hover { opacity: 0.9; }
+    .modal button.save { background: #4CAF50; color: white; }
+    .modal button.delete { background: #f44336; color: white; }
+    .modal button.cancel { background: #bbb; }
+    .join-list { margin-top: 8px; padding-left: 20px; }
+    .join-list span { display: inline-block; margin: 2px 5px; background: #eee; padding: 2px 6px; border-radius: 4px; }
   </style>
 </head>
 <body>
   <h2>CS Calendar (Interactive + Submit by Form)</h2>
-  <label>Month: <select id="month"></select></label>
-  <label>Year: <select id="year"></select></label>
+  <label>Month: <select id="month" onchange="renderTable()"></select></label>
+  <label>Year: <select id="year" onchange="renderTable()"></select></label>
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
@@ -66,12 +85,13 @@
     <input type="hidden" name="action">
   </form>
 
-  <div class="overlay" id="overlay"></div>
+ <div class="overlay" id="overlay"></div>
   <div class="modal" id="popupForm">
-    <h3>กรอกข้อมูล</h3>
-    <div>ชื่อ: <span id="popupName"></span></div>
-    <div>วันที่: <span id="popupDate"></span></div>
-    <label>ประเภท:
+    <h3>Job</h3>
+    <div>Name: <span id="popupName"></span></div>
+    <div>date: <span id="popupDate"></span></div>
+
+    <label>Type:
       <select id="popupType">
         <option value="Service">Service</option>
         <option value="Warranty">Warranty</option>
@@ -79,14 +99,25 @@
         <option value="Sales">Sales</option>
         <option value="Oth">Oth</option>
       </select>
-    </label><br>
-    <label>เวลา: <input type="text" id="popupTime"></label><br>
-    <label>รายละเอียด: <input type="text" id="popupDetail"></label><br>
-    <button type="button" onclick="saveData()">Save</button>
-    <button type="button" onclick="deleteData()">Delete</button>
-    <button type="button" onclick="closePopup()">Cancel</button>
-  </div>
+    </label>
 
+    <label>Time: <input type="text" id="popupTime"></label>
+    <label>Detail: <input type="text" id="popupDetail"></label>
+
+    <label>Joiner:
+      <div style="display: flex;">
+        <select id="joinSelect" style="flex:1; margin-right: 6px;"></select>
+        <button type="button" onclick="addJoin()" style="flex-shrink:0;">+</button>
+      </div>
+    </label>
+    <div class="join-list" id="joinList"></div>
+
+    <div class="btn-group">
+      <button type="button" class="save" onclick="saveData()">Save</button>
+      <button type="button" class="delete" onclick="deleteData()">Delete</button>
+      <button type="button" class="cancel" onclick="closePopup()">Cancel</button>
+    </div>
+  </div>
   <script>
     let names = [], allData = [];
     let activeCell = null;
@@ -191,19 +222,52 @@
 
     function saveData() {
       const form = document.getElementById("submitForm");
-      form.year.value = yearSel.value;
-      form.month.value = monthSel.value;
-      form.date.value = activeCell.dataset.day;
-      form.name.value = activeCell.dataset.name;
-      form.type.value = popupType.value;
-      form.time.value = popupTime.value;
-      form.datail.value = popupDetail.value;
-      form.action.value = "save";
+      const joinList = Array.from(document.getElementById("joinList").querySelectorAll("span")).map(e => e.textContent);
 
-      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}</div>`;
+      const data = {
+        year: yearSel.value,
+        month: monthSel.value,
+        date: activeCell.dataset.day,
+        name: activeCell.dataset.name,
+        type: popupType.value,
+        time: popupTime.value,
+        datail: popupDetail.value,
+        action: "save"
+      };
+
+      // Submit for owner
+      submitForm(data);
+
+      // Submit for each join
+      joinList.forEach(jn => {
+        const joinData = Object.assign({}, data, { name: jn });
+        submitForm(joinData);
+      });
+
+      const html = `<div class='event ${data.type}'>${data.type}<br>${data.time}<br>${data.datail}</div>`;
       activeCell.innerHTML = html;
-      form.submit();
       closePopup();
+    }
+
+    function submitForm(dataObj) {
+      const form = document.getElementById("submitForm");
+      for (let key in dataObj) {
+        if (form[key]) form[key].value = dataObj[key];
+      }
+      form.submit();
+    }
+
+    function addJoin() {
+      const select = document.getElementById("joinSelect");
+      const value = select.value;
+      if (!value) return;
+      const joinList = document.getElementById("joinList");
+      const names = Array.from(joinList.querySelectorAll("span")).map(e => e.textContent);
+      if (!names.includes(value)) {
+        const span = document.createElement("span");
+        span.textContent = value;
+        joinList.appendChild(span);
+      }
     }
 
     function deleteData() {
