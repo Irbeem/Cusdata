@@ -218,8 +218,12 @@
       form.action.value = "delete";
 
       activeCell.innerHTML = "";
-      form.submit();
-      closePopup();
+
+        setTimeout(() => {
+    form.submit();
+    closePopup();
+  }, 50);
+
     }
 
     init();
