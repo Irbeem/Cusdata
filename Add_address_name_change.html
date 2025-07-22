@@ -206,20 +206,31 @@
     }
 
     function deleteData() {
-      const form = document.getElementById("submitForm");
-      form.year.value = yearSel.value;
-      form.month.value = monthSel.value;
-      form.date.value = activeCell.dataset.day;
-      form.name.value = activeCell.dataset.name;
-      form.type.value = "";
-      form.time.value = "";
-      form.datail.value = "";
-      form.action.value = "delete";
+  const form = document.getElementById("submitForm");
+  form.year.value = yearSel.value;
+  form.month.value = monthSel.value;
+  form.date.value = activeCell.dataset.day;
+  form.name.value = activeCell.dataset.name;
+  form.type.value = "";
+  form.time.value = "";
+  form.datail.value = "";
+  form.action.value = "delete";
 
-      activeCell.innerHTML = "";
-      form.submit();
-      closePopup();
-    }
+  // ✅ debug ก่อน submit
+  console.log("DELETE SUBMIT:", {
+    year: form.year.value,
+    month: form.month.value,
+    date: form.date.value,
+    name: form.name.value,
+    action: form.action.value
+  });
+
+  // ✅ delay submit ให้ browser ตั้งค่าแน่ๆ
+  setTimeout(() => {
+    form.submit();
+    closePopup();
+  }, 50);
+}
 
     init();
   </script>
