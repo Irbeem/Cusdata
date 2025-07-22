@@ -23,6 +23,7 @@
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
+    .Training { background: #2a36b1; color: white; }
     .Inspection { background: #00bcd4; color: white; }
     .Sales { background: #c41411; color: white; }
     .Oth { background: #fff176; }
@@ -166,11 +167,11 @@
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
-      const summary = { Warranty: 0, Service: 0, Inspection: 0, Sales: 0, Oth: 0 };
+      const summary = { Warranty: 0, Service: 0, Training: 0, Inspection: 0, Sales: 0, Oth: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
-          const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}<br>${d.datail}</div>`;
+          const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}</div>`;
           (dataMap[d.name][d.date] ||= []).push(html);
           if (summary[d.type] !== undefined) summary[d.type]++;
         }
