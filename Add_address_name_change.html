@@ -269,6 +269,18 @@
         joinList.appendChild(span);
       }
     }
+    // Populate joinSelect
+    window.addEventListener("DOMContentLoaded", () => {
+      const select = document.getElementById("joinSelect");
+      if (typeof names !== "undefined") {
+        names.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+      }
+    });
 
     function deleteData() {
       const form = document.getElementById("submitForm");
