@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="th">
@@ -206,20 +207,20 @@
     }
 
     function deleteData() {
-  const form = document.getElementById("submitForm");
-  form.year.value = yearSel.value;
-  form.month.value = monthSel.value;
-  form.date.value = activeCell.dataset.day;
-  form.name.value = activeCell.dataset.name;
-  form.type.value = "";
-  form.time.value = "";
-  form.datail.value = "";
-  form.action.value = "delete";
-  setTimeout(() => {
-    form.submit();
-    closePopup();
-  }, 50);
-}
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
+      form.type.value = "";
+      form.time.value = "";
+      form.datail.value = "";
+      form.action.value = "delete";
+
+      activeCell.innerHTML = "";
+      form.submit();
+      closePopup();
+    }
 
     init();
   </script>
