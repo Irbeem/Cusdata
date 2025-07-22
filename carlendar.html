@@ -18,6 +18,7 @@
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
+    .Training { background: #2a36b1; color: white; }
     .Inspection { background: #00bcd4; color: white; }
     .Sales { background: #c41411; color: white; }
     .Oth { background: #fff176; }
@@ -66,20 +67,21 @@
 
   <div class="overlay" id="overlay"></div>
   <div class="modal" id="popupForm">
-    <h3>กรอกข้อมูล</h3>
-    <div>ชื่อ: <span id="popupName"></span></div>
-    <div>วันที่: <span id="popupDate"></span></div>
-    <label>ประเภท:
+    <h3>Booking</h3>
+    <div>Name: <span id="popupName"></span></div>
+    <div>Date: <span id="popupDate"></span></div>
+    <label>Job Type:
       <select id="popupType">
         <option value="Service">Service</option>
-        <option value="Warranty">Warranty</option>
         <option value="Inspection">Inspection</option>
+        <option value="Training">Training</option>
+        <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
         <option value="Oth">Oth</option>
       </select>
     </label><br>
-    <label>เวลา: <input type="text" id="popupTime"></label><br>
-    <label>รายละเอียด: <input type="text" id="popupDetail"></label><br>
+    <label>Time: <input type="text" id="popupTime"></label><br>
+    <label>Job detail: <input type="text" id="popupDetail"></label><br>
     <button type="button" onclick="saveData()">Save</button>
     <button type="button" onclick="deleteData()">Delete</button>
     <button type="button" onclick="closePopup()">Cancel</button>
@@ -172,7 +174,7 @@
         return `<tr>${row.join('')}</tr>`;
       }).join('');
 
-      const sumRow = [`<td><b>รวม</b></td>`];
+      const sumRow = [`<td><b>Summary</b></td>`];
       for (let d = 1; d <= days; d++) sumRow.push(`<td></td>`);
       tbody.innerHTML += `<tr style="background:#f9f9f9">${sumRow.join('')}</tr>`;
 
@@ -181,9 +183,9 @@
       const totalDiv = document.createElement("div");
       totalDiv.id = "summaryBox";
       totalDiv.innerHTML = `
-        <h4>📊 สรุปจำนวนงานในเดือน ${month}/${year}</h4>
+        <h4>📊 Summary job ${month}/${year}</h4>
         <ul>
-          ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} รายการ</li>`).join("")}
+          ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}
         </ul>
       `;
       document.querySelector(".calendar-wrapper").appendChild(totalDiv);
