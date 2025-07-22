@@ -1,6 +1,3 @@
-
-
-<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -46,8 +43,8 @@
 </head>
 <body>
   <h2>CS Calendar (Interactive + Submit by Form)</h2>
-  <label>Month: <select id="month"></select></label>
-  <label>Year: <select id="year"></select></label>
+  <label>Month: <select id="month" onchange="renderTable()"></select></label>
+  <label>Year: <select id="year" onchange="renderTable()"></select></label>
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
@@ -118,9 +115,7 @@
         if (y === now.getFullYear()) opt.selected = true;
         yearSel.add(opt);
       }
-       // รีเฟรช ปฏิทินเมื่อเปลี่ยน เดือนปี
-        monthSel.addEventListener("change", renderTable);
-        yearSel.addEventListener("change", renderTable);
+
       const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
       Promise.all([
@@ -151,11 +146,13 @@
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
+      const summary = { Warranty: 0, Service: 0, Inspection: 0, Sales: 0, Oth: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
           const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}<br>${d.datail}</div>`;
           (dataMap[d.name][d.date] ||= []).push(html);
+          if (summary[d.type] !== undefined) summary[d.type]++;
         }
       });
 
@@ -174,6 +171,22 @@
         }
         return `<tr>${row.join('')}</tr>`;
       }).join('');
+
+      const sumRow = [`<td><b>รวม</b></td>`];
+      for (let d = 1; d <= days; d++) sumRow.push(`<td></td>`);
+      tbody.innerHTML += `<tr style="background:#f9f9f9">${sumRow.join('')}</tr>`;
+
+      const oldSummary = document.getElementById("summaryBox");
+      if (oldSummary) oldSummary.remove();
+      const totalDiv = document.createElement("div");
+      totalDiv.id = "summaryBox";
+      totalDiv.innerHTML = `
+        <h4>📊 สรุปจำนวนงานในเดือน ${month}/${year}</h4>
+        <ul>
+          ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} รายการ</li>`).join("")}
+        </ul>
+      `;
+      document.querySelector(".calendar-wrapper").appendChild(totalDiv);
     }
 
     function openPopup(td) {
@@ -207,6 +220,7 @@
       activeCell.innerHTML = html;
       form.submit();
       closePopup();
+      setTimeout(renderTable, 1000);
     }
 
     function deleteData() {
@@ -221,21 +235,18 @@
       form.action.value = "delete";
 
       activeCell.innerHTML = "";
-
-
-        console.log("Deleting:", {
-    year: form.year.value,
-    month: form.month.value,
-    date: form.date.value,
-    name: form.name.value,
-    action: form.action.value
-  });
-      
-        setTimeout(() => {
-    form.submit();
-    closePopup();
-  }, 50);
-
+      console.log("Deleting:", {
+        year: form.year.value,
+        month: form.month.value,
+        date: form.date.value,
+        name: form.name.value,
+        action: form.action.value
+      });
+      setTimeout(() => {
+        form.submit();
+        closePopup();
+        setTimeout(renderTable, 1000);
+      }, 50);
     }
 
     init();
