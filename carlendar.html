@@ -195,10 +195,6 @@
         return `<tr>${row.join('')}</tr>`;
       }).join('');
 
-      const sumRow = [`<td><b>Summary</b></td>`];
-      for (let d = 1; d <= days; d++) sumRow.push(`<td></td>`);
-      tbody.innerHTML += `<tr style="background:#f9f9f9">${sumRow.join('')}</tr>`;
-
       const oldSummary = document.getElementById("summaryBox");
       if (oldSummary) oldSummary.remove();
       const totalDiv = document.createElement("div");
