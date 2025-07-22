@@ -215,17 +215,6 @@
   form.time.value = "";
   form.datail.value = "";
   form.action.value = "delete";
-
-  // ✅ debug ก่อน submit
-  console.log("DELETE SUBMIT:", {
-    year: form.year.value,
-    month: form.month.value,
-    date: form.date.value,
-    name: form.name.value,
-    action: form.action.value
-  });
-
-  // ✅ delay submit ให้ browser ตั้งค่าแน่ๆ
   setTimeout(() => {
     form.submit();
     closePopup();
