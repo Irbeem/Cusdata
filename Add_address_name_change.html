@@ -219,6 +219,15 @@
 
       activeCell.innerHTML = "";
 
+
+        console.log("Deleting:", {
+    year: form.year.value,
+    month: form.month.value,
+    date: form.date.value,
+    name: form.name.value,
+    action: form.action.value
+  });
+      
         setTimeout(() => {
     form.submit();
     closePopup();
