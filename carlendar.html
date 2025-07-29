@@ -63,7 +63,7 @@
   </style>
 </head>
 <body>
-  <h2>CS Calendar</h2>
+  <h2>CS Calendar new</h2>
   <label>Month: <select id="month" onchange="renderTable()"></select></label>
   <label>Year: <select id="year" onchange="renderTable()"></select></label>
   <div class="calendar-wrapper">
@@ -82,6 +82,10 @@
     <input type="hidden" name="type">
     <input type="hidden" name="time">
     <input type="hidden" name="datail">
+    <input type="hidden" name="customer">
+    <input type="hidden" name="place">
+    <input type="hidden" name="jobowner">
+    <input type="hidden" name="charge">
     <input type="hidden" name="action">
   </form>
 
@@ -103,6 +107,18 @@
     </label><br>
     <label>Time: <input type="text" id="popupTime"></label><br>
     <label>Job detail: <input type="text" id="popupDetail"></label><br>
+    <label>Customer: <input type="text" id="popupCustomer"></label><br>
+    <label>Place: <input type="text" id="popupPlace"></label><br>
+    <label>Job owner: <input type="text" id="popupJobowner"></label><br>
+    <label>Charge:
+        <select id="popupCharge">
+        <option value="Charge">Charge</option>
+        <option value="Nocharge">Nocharge</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Oth">Oth</option>
+      </select>
+    </label><br>
     <button type="button" onclick="saveData()">Save</button>
     <button type="button" onclick="deleteData()">Delete</button>
     <button type="button" onclick="closePopup()">Cancel</button>
@@ -125,7 +141,11 @@
     const popupType = document.getElementById("popupType");
     const popupTime = document.getElementById("popupTime");
     const popupDetail = document.getElementById("popupDetail");
-
+    const popupCustomer = document.getElementById("popupCustomer");
+    const popupPlace = document.getElementById("popupPlace");
+    const popupJobowner = document.getElementById("popupJobowner");
+    const popupCharge = document.getElementById("popupCharge");
+    
     function init() {
       const now = new Date();
       for (let i = 1; i <= 12; i++) {
@@ -173,7 +193,7 @@
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
-          const tooltip = `${d.type}\n${d.time}\n${d.datail}`;
+          const tooltip = `${d.type}\n${d.time}\n${d.datail}\n${d.customer}\n${d.place}\n${d.jobowner}\n${d.charge}`;
           const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.time}</div>`;
           //const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}</div>`;
           (dataMap[d.name][d.date] ||= []).push(html);
@@ -223,6 +243,10 @@
       popupType.value = "Service";
       popupTime.value = "";
       popupDetail.value = "";
+      popupCustomer.value = "";
+      popupPlace.value = "";
+      popupJobowner.value = "";
+      popupCharge.value = "Charge";
       overlay.classList.add("active");
       popup.classList.add("active");
     }
@@ -241,9 +265,13 @@
       form.type.value = popupType.value;
       form.time.value = popupTime.value;
       form.datail.value = popupDetail.value;
+      form.customer.value= popupCustomer.value;
+      form.place.value= popupPlace.value;
+      form.jobowner.value= popupJobowner.value;
+      form.charge.value= popupCharge.value;
       form.action.value = "save";
 
-      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}</div>`;
+      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
       activeCell.innerHTML = html;
       form.submit();
       closePopup();
