@@ -146,18 +146,30 @@
     const popupJobowner = document.getElementById("popupJobowner");
     const popupCharge = document.getElementById("popupCharge");
     
-    function init() {
-      const now = new Date();
-      for (let i = 1; i <= 12; i++) {
-        const opt = new Option(i, i);
-        if (i === now.getMonth() + 1) opt.selected = true;
-        monthSel.add(opt);
-      }
-      for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
-        const opt = new Option(y, y);
-        if (y === now.getFullYear()) opt.selected = true;
-        yearSel.add(opt);
-      }
+function init() {
+  const now = new Date();
+
+  // ✅ ดึงค่าจาก localStorage ถ้ามี
+  const savedMonth = parseInt(localStorage.getItem('savedMonth'));
+  const savedYear = parseInt(localStorage.getItem('savedYear'));
+
+  // ✅ fallback ถ้าไม่มี หรือเป็น NaN
+  const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
+  const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
+
+  // สร้าง dropdown เดือน
+  for (let i = 1; i <= 12; i++) {
+    const opt = new Option(i, i);
+    if (i === defaultMonth) opt.selected = true;
+    monthSel.add(opt);
+  }
+
+  // สร้าง dropdown ปี
+  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+    const opt = new Option(y, y);
+    if (y === defaultYear) opt.selected = true;
+    yearSel.add(opt);
+  }
 
       const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
@@ -275,8 +287,9 @@
       activeCell.innerHTML = html;
       form.submit();
       closePopup();
-      setTimeout(renderTable, 2000);
-      init();
+      localStorage.setItem('savedMonth', monthSel.value);
+      localStorage.setItem('savedYear', yearSel.value);
+      location.reload();
     }
 
     function deleteData() {
@@ -300,11 +313,13 @@
         name: form.name.value,
         action: form.action.value
       });
-      setTimeout(() => {
-        form.submit();
-        closePopup();
-        setTimeout(renderTable, 2000);
-      }, 2000);
+      form.submit();
+      closePopup();
+
+       // ✅ เก็บเดือนปีไว้ก่อน reload
+      localStorage.setItem('savedMonth', monthSel.value);
+      localStorage.setItem('savedYear', yearSel.value);
+      location.reload();
     }
 
     init();
