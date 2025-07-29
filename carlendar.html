@@ -25,6 +25,7 @@
     .Service { background: #2a36b1; color: white; }
     .Training { background: #2a36b1; color: white; }
     .Inspection { background: #00bcd4; color: white; }
+    .Meeting { background: #212121; color: white; }
     .Sales { background: #c41411; color: white; }
     .Oth { background: #fff176; }
     .sun { background: #c41411 !important; }
@@ -92,6 +93,7 @@
     <label>Job Type:
       <select id="popupType">
         <option value="Service">Service</option>
+        <option value="Meeting">Meeting</option>
         <option value="Inspection">Inspection</option>
         <option value="Training">Training</option>
         <option value="Warranty">Warranty</option>
@@ -167,7 +169,7 @@
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
-      const summary = { Warranty: 0, Service: 0, Training: 0, Inspection: 0, Sales: 0, Oth: 0 };
+      const summary = { Warranty: 0, Service: 0,Meeting: 0, Training: 0, Inspection: 0, Sales: 0, Oth: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
@@ -239,7 +241,7 @@
       activeCell.innerHTML = html;
       form.submit();
       closePopup();
-      setTimeout(renderTable, 1000);
+      setTimeout(renderTable, 2000);
     }
 
     function deleteData() {
@@ -264,7 +266,7 @@
       setTimeout(() => {
         form.submit();
         closePopup();
-        setTimeout(renderTable, 1000);
+        setTimeout(renderTable, 2000);
       }, 50);
     }
 
