@@ -280,6 +280,8 @@
     }
 
     function deleteData() {
+      if (!confirm("Delete?")) return;
+      
       const form = document.getElementById("submitForm");
       form.year.value = yearSel.value;
       form.month.value = monthSel.value;
