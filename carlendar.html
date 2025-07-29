@@ -180,12 +180,17 @@
           if (summary[d.type] !== undefined) summary[d.type]++;
         }
       });
-const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-const daysHeader = Array.from({length: days}, (_, i) => {
-  const date = new Date(year, month - 1, i + 1);
-  return `<th class="${dayClass[date.getDay()]}">${i+1}</th>`;
-});
 
+  const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      
+  const daysHeader = Array.from({length: days}, (_, i) => {
+  const date = new Date(year, month - 1, i + 1);
+  const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+  return `<th class="${dayClass[date.getDay()]}">
+            <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+            <div style="font-size: 1.2em;">${i + 1}</div>
+          </th>`;
+});
       
       thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
 
