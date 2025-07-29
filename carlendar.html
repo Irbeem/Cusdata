@@ -292,7 +292,8 @@ function init() {
       closePopup();
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      location.reload();
+      setTimeout(() => location.reload(), 3000);
+      //location.reload();
     }
 
     function deleteData() {
@@ -322,7 +323,8 @@ function init() {
        // ✅ เก็บเดือนปีไว้ก่อน reload
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      location.reload();
+      setTimeout(() => location.reload(), 3000);
+      //location.reload();
     }
 
     init();
