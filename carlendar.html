@@ -205,8 +205,8 @@ function init() {
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
-          const tooltip = `${d.type}\n${d.time}\n${d.datail}\n${d.customer}\n${d.place}\n${d.jobowner}\n${d.charge}`;
-          const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.time}</div>`;
+          const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
+          const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer}</div>`;
           //const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}</div>`;
           (dataMap[d.name][d.date] ||= []).push(html);
           if (summary[d.type] !== undefined) summary[d.type]++;
