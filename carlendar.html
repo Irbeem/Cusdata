@@ -180,7 +180,7 @@
           if (summary[d.type] !== undefined) summary[d.type]++;
         }
       });
-
+const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 const daysHeader = Array.from({length: days}, (_, i) => {
   const date = new Date(year, month - 1, i + 1);
   return `<th class="${dayClass[date.getDay()]}">${i+1}</th>`;
