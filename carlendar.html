@@ -246,6 +246,9 @@ function init() {
         </ul>
       `;
       document.querySelector(".calendar-wrapper").appendChild(totalDiv);
+
+    localStorage.removeItem('savedMonth');
+    localStorage.removeItem('savedYear');
     }
 
     function openPopup(td) {
