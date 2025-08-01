@@ -20,9 +20,9 @@
         <option value="">-- กำลังโหลด --</option>
       </select>
     </label>
-    <label>ปี: <input type="number" name="year" required value="2025"></label>
-    <label>เดือน: <input type="number" name="month" required value="7"></label>
-    <label>วันที่: <input type="number" name="date" required value="1"></label>
+    <label>ปี: <input type="number" name="year" id="yearInput" required></label>
+    <label>เดือน: <input type="number" name="month" id="monthInput" required></label>
+    <label>วันที่: <input type="number" name="date" id="dateInput" required></label>
     <label>ประเภทงาน:
       <select name="type">
         <option value="Service">Service</option>
@@ -90,6 +90,13 @@
 
     // เริ่มต้นโหลด
     loadNames();
+    // ตั้งค่าปี เดือน วันที่ เป็นปัจจุบัน
+(function setTodayDefault() {
+  const today = new Date();
+  document.getElementById('yearInput').value = today.getFullYear();
+  document.getElementById('monthInput').value = today.getMonth() + 1;
+  document.getElementById('dateInput').value = today.getDate();
+})();
   </script>
 </body>
 </html>
