@@ -13,22 +13,25 @@
   </style>
 </head>
 <body>
-  <h2>📅 บันทึกงาน</h2>
+  <h2>📅 บันทึกงานหลายวัน / หลายคน</h2>
   <form id="saveForm">
     <label>ชื่อ:
-      <select name="name" id="nameDropdown" required>
+      <select name="name" id="nameDropdown" multiple required>
         <option value="">-- กำลังโหลด --</option>
       </select>
     </label>
     <label>ปี: <input type="number" name="year" id="yearInput" required></label>
     <label>เดือน: <input type="number" name="month" id="monthInput" required></label>
-    <label>วันที่: <input type="number" name="date" id="dateInput" required></label>
+    <label>วันที่:
+      <select name="date" id="dateSelect" multiple required>
+        <script>for (let i = 1; i <= 31; i++) document.write(`<option value="${i}">${i}</option>`);</script>
+      </select>
+    </label>
     <label>ประเภทงาน:
       <select name="type">
         <option value="Service">Service</option>
         <option value="Meeting">Meeting</option>
         <option value="Inspection">Inspection</option>
-        <option value="Telephone">Telephone</option>
         <option value="Training">Training</option>
         <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
@@ -48,18 +51,18 @@
         <option value="Nocharge">Nocharge</option>
         <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
-        <option value="Other">Other</option>
+        <option value="Oth">Oth</option>
       </select>
     </label>
     <input type="hidden" name="action" value="save">
-    <button type="submit">บันทึก</button>
+    <button type="submit">บันทึกงาน</button>
   </form>
 
   <div id="result"></div>
 
   <script>
-    const GOOGLE_SHEET_NAMES_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec'; 
-    const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec'; 
+    const GOOGLE_SHEET_NAMES_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec';
+    const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec';
 
     async function loadNames() {
       try {
@@ -73,31 +76,42 @@
       }
     }
 
+    // ตั้งค่าวันเดือนปีปัจจุบัน
+    const now = new Date();
+    document.getElementById('yearInput').value = now.getFullYear();
+    document.getElementById('monthInput').value = now.getMonth() + 1;
+
     document.getElementById('saveForm').addEventListener('submit', async function(e) {
       e.preventDefault();
       const form = new FormData(this);
-      try {
-        const res = await fetch(SUBMIT_URL, {
-          method: 'POST',
-          body: form
-        });
-        const text = await res.text();
-        document.getElementById("result").textContent = "✅ บันทึกสำเร็จ: " + text;
-        if (liff && liff.closeWindow) liff.closeWindow();
-      } catch (err) {
-       // document.getElementById("result").textContent = "❌ เกิดข้อผิดพลาด: " + err;
+      const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
+      const dates = Array.from(document.getElementById("dateSelect").selectedOptions).map(opt => opt.value);
+
+      let count = 0;
+      for (const name of names) {
+        for (const date of dates) {
+          const copy = new FormData();
+          for (let [key, val] of form.entries()) {
+            copy.append(key, val);
+          }
+          copy.set("name", name);
+          copy.set("date", date);
+
+          await fetch(SUBMIT_URL, {
+            method: 'POST',
+            body: copy
+          });
+
+          count++;
+        }
       }
+
+      document.getElementById("result").textContent = `✅ บันทึกงาน ${count} รายการเรียบร้อย`;
+      if (liff && liff.closeWindow) liff.closeWindow();
     });
 
-    // เริ่มต้นโหลด
     loadNames();
-  // ตั้งค่าปี เดือน วันที่ เป็นปัจจุบัน
-    (function setTodayDefault() {
-      const today = new Date();
-      document.getElementById('yearInput').value = today.getFullYear();
-      document.getElementById('monthInput').value = today.getMonth() + 1;
-      document.getElementById('dateInput').value = today.getDate();
-    })();
   </script>
 </body>
 </html>
+
