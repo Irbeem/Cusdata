@@ -1,1 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>CS Calendar - LIFF Popup</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h2>📅 บันทึกงาน</h2>
+  <form id="saveForm">
+    <label>ชื่อ:
+      <select name="name" id="nameDropdown" required>
+        <option value="">-- กำลังโหลด --</option>
+      </select>
+    </label>
+    <label>ปี: <input type="number" name="year" required value="2025"></label>
+    <label>เดือน: <input type="number" name="month" required value="7"></label>
+    <label>วันที่: <input type="number" name="date" required value="1"></label>
+    <label>ประเภทงาน:
+      <select name="type">
+        <option value="Service">Service</option>
+        <option value="Meeting">Meeting</option>
+        <option value="Inspection">Inspection</option>
+        <option value="Training">Training</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Leave">Leave</option>
+        <option value="SafetyHealth">SafetyHealth</option>
+        <option value="Oth">Oth</option>
+      </select>
+    </label>
+    <label>เวลา: <input type="text" name="time"></label>
+    <label>รายละเอียด: <input type="text" name="datail"></label>
+    <label>ลูกค้า: <input type="text" name="customer"></label>
+    <label>สถานที่: <input type="text" name="place"></label>
+    <label>ผู้รับผิดชอบ: <input type="text" name="jobowner"></label>
+    <label>ประเภทค่าใช้จ่าย:
+      <select name="charge">
+        <option value="Charge">Charge</option>
+        <option value="Nocharge">Nocharge</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Oth">Oth</option>
+      </select>
+    </label>
+    <input type="hidden" name="action" value="save">
+    <button type="submit">บันทึก</button>
+  </form>
 
+  <div id="result"></div>
+
+  <script>
+    const GOOGLE_SHEET_NAMES_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec'; 
+    const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec'; 
+
+    async function loadNames() {
+      try {
+        const res = await fetch(GOOGLE_SHEET_NAMES_URL);
+        const names = await res.json();
+        const dropdown = document.getElementById('nameDropdown');
+        dropdown.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+      } catch (err) {
+        console.error("Error loading names:", err);
+        alert("ไม่สามารถโหลดรายชื่อได้");
+      }
+    }
+
+    document.getElementById('saveForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const form = new FormData(this);
+      try {
+        const res = await fetch(SUBMIT_URL, {
+          method: 'POST',
+          body: form
+        });
+        const text = await res.text();
+        document.getElementById("result").textContent = "✅ บันทึกสำเร็จ: " + text;
+        if (liff && liff.closeWindow) liff.closeWindow();
+      } catch (err) {
+        document.getElementById("result").textContent = "❌ เกิดข้อผิดพลาด: " + err;
+      }
+    });
+
+    // เริ่มต้นโหลด
+    loadNames();
+  </script>
+</body>
+</html>
