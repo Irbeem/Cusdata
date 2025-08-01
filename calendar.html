@@ -25,6 +25,7 @@
     .Service { background: #2a36b1; color: white; }
     .Training { background: #2a36b1; color: white; }
     .Inspection { background: #00bcd4; color: white; }
+    .Telephone { background: #2a36b1; color: white; }
     .Meeting { background: #212121; color: white; }
     .Sales { background: #c41411; color: white; }
     .Leave { background: #c41411; color: white; }
@@ -101,6 +102,7 @@
         <option value="Service">Service</option>
         <option value="Meeting">Meeting</option>
         <option value="Inspection">Inspection</option>
+        <option value="Telephone">Telephone</option>
         <option value="Training">Training</option>
         <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
@@ -205,7 +207,7 @@ function init() {
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
-      const summary = { Service: 0, Meeting: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Oth: 0 };
+      const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Oth: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
