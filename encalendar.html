@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>CS Calendar</title>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    .calendar-wrapper { overflow-x: auto; max-height: 80vh; margin-top: 1rem; }
+    table { border-collapse: collapse; width: max-content; }
+    th, td {
+      border: 1px solid #ccc; padding: 6px; width: 120px; height: 80px;
+      text-align: left; vertical-align: top; background: white; cursor: pointer;
+    }
+    thead th {
+      position: sticky; top: 0;
+      font-size: 2.1em;
+      text-align: center;
+      vertical-align: middle;
+    }
+    td:first-child, th:first-child {
+      position: sticky; left: 0; background: #f1f1f1; font-weight: bold;
+    }
+    .event { font-size: 0.85rem; padding: 2px; display: block; }
+    .Warranty { background: #72d572; }
+    .Service { background: #2a36b1; color: white; }
+    .Training { background: #2a36b1; color: white; }
+    .Inspection { background: #00bcd4; color: white; }
+    .Telephone { background: #2a36b1; color: white; }
+    .Meeting { background: #212121; color: white; }
+    .Sales { background: #c41411; color: white; }
+    .Leave { background: #c41411; color: white; }
+    .SafetyHealth { background: #c41411; color: white; }
+    .Oth { background: #fff176; }
+    .sun { background: #c41411 !important; }
+    .mon { background: #fffacc !important; }
+    .tue { background: #ffd1e3 !important; }
+    .wed { background: #d0f0c0 !important; }
+    .thu { background: #ffe0b3 !important; }
+    .fri { background: #d0e6ff !important; }
+    .sat { background: #e0ccff !important; }
+    .overlay, .modal { display: none; }
+    .overlay.active, .modal.active { display: block; }
+    .overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.4); z-index: 998;
+    }
+    .modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: white; border: 1px solid #ccc; padding: 20px; z-index: 999;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+      width: 300px; border-radius: 8px;
+    }
+    .modal h3 { margin-top: 0; text-align: center; }
+    .modal label { display: block; margin-top: 10px; font-weight: bold; }
+    .modal input[type="text"], .modal select {
+      width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    .modal button {
+      margin-top: 12px; padding: 6px 12px; margin-right: 6px;
+      border: none; border-radius: 4px; cursor: pointer;
+    }
+    .modal button:hover { opacity: 0.9; }
+    .modal button:nth-child(1) { background: #4CAF50; color: white; }
+    .modal button:nth-child(2) { background: #f44336; color: white; }
+    .modal button:nth-child(3) { background: #bbb; }
+  </style>
+</head>
+<body>
+  <h2>CS Calendar new</h2>
+  <label>Month: <select id="month" onchange="renderTable()"></select></label>
+  <label>Year: <select id="year" onchange="renderTable()"></select></label>
+  <div class="calendar-wrapper">
+    <table id="calendar-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <iframe name="hidden_frame" style="display:none;"></iframe>
+  <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
+    <input type="hidden" name="year">
+    <input type="hidden" name="month">
+    <input type="hidden" name="date">
+    <input type="hidden" name="name">
+    <input type="hidden" name="type">
+    <input type="hidden" name="time">
+    <input type="hidden" name="datail">
+    <input type="hidden" name="customer">
+    <input type="hidden" name="place">
+    <input type="hidden" name="jobowner">
+    <input type="hidden" name="charge">
+    <input type="hidden" name="action">
+  </form>
+
+  <div class="overlay" id="overlay"></div>
+  <div class="modal" id="popupForm">
+    <h3>Booking</h3>
+    <div>Name: <span id="popupName"></span></div>
+    <div>Date: <span id="popupDate"></span></div>
+    <label>Job Type:
+      <select id="popupType">
+        <option value="Service">Service</option>
+        <option value="Meeting">Meeting</option>
+        <option value="Inspection">Inspection</option>
+        <option value="Telephone">Telephone</option>
+        <option value="Training">Training</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Leave">Leave</option>
+        <option value="SafetyHealth">SafetyHealth</option>
+        <option value="Oth">Oth</option>
+      </select>
+    </label><br>
+    <label>Time: <input type="text" id="popupTime"></label><br>
+    <label>Job detail: <input type="text" id="popupDetail"></label><br>
+    <label>Customer: <input type="text" id="popupCustomer"></label><br>
+    <label>Place: <input type="text" id="popupPlace"></label><br>
+    <label>Job owner: <input type="text" id="popupJobowner"></label><br>
+    <label>Charge:
+        <select id="popupCharge">
+        <option value="Charge">Charge</option>
+        <option value="Nocharge">Nocharge</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Oth">Oth</option>
+      </select>
+    </label><br>
+    <button type="button" onclick="saveData()">Save</button>
+    <button type="button" onclick="deleteData()">Delete</button>
+    <button type="button" onclick="closePopup()">Cancel</button>
+  </div>
+
+  <script>
+    let names = [], allData = [];
+    let activeCell = null;
+
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const CALENDAR_SHEET = 'Carlendar';
+    const NAMES_SHEET = 'Names';
+
+    const monthSel = document.getElementById("month");
+    const yearSel = document.getElementById("year");
+    const overlay = document.getElementById("overlay");
+    const popup = document.getElementById("popupForm");
+    const popupName = document.getElementById("popupName");
+    const popupDate = document.getElementById("popupDate");
+    const popupType = document.getElementById("popupType");
+    const popupTime = document.getElementById("popupTime");
+    const popupDetail = document.getElementById("popupDetail");
+    const popupCustomer = document.getElementById("popupCustomer");
+    const popupPlace = document.getElementById("popupPlace");
+    const popupJobowner = document.getElementById("popupJobowner");
+    const popupCharge = document.getElementById("popupCharge");
+    
+function init() {
+  const now = new Date();
+
+  // ✅ ดึงค่าจาก localStorage ถ้ามี
+  const savedMonth = parseInt(localStorage.getItem('savedMonth'));
+  const savedYear = parseInt(localStorage.getItem('savedYear'));
+
+  // ✅ fallback ถ้าไม่มี หรือเป็น NaN
+  const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
+  const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
+
+  // สร้าง dropdown เดือน
+  for (let i = 1; i <= 12; i++) {
+    const opt = new Option(i, i);
+    if (i === defaultMonth) opt.selected = true;
+    monthSel.add(opt);
+  }
+
+  // สร้าง dropdown ปี
+  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+    const opt = new Option(y, y);
+    if (y === defaultYear) opt.selected = true;
+    yearSel.add(opt);
+  }
+
+      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+      Promise.all([
+        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+      ])
+      .then(([namesTxt, dataTxt]) => {
+        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+        //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
+        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
+        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+        const cols = dataJson.table.cols.map(c => c.label);
+        allData = dataJson.table.rows.map(r => {
+          const o = {};
+          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+          return o;
+        });
+
+        renderTable();
+      });
+    }
+
+    function renderTable() {
+      const year = +yearSel.value;
+      const month = +monthSel.value;
+      const days = new Date(year, month, 0).getDate();
+      const thead = document.querySelector("#calendar-table thead");
+      const tbody = document.querySelector("#calendar-table tbody");
+
+      const dataMap = {};
+      const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Oth: 0 };
+      names.forEach(name => dataMap[name] = {});
+      allData.forEach(d => {
+        if (+d.year === year && +d.month === month) {
+          const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
+          const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer}</div>`;
+          //const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}</div>`;
+          (dataMap[d.name][d.date] ||= []).push(html);
+          if (summary[d.type] !== undefined) summary[d.type]++;
+        }
+      });
+
+  const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      
+  const daysHeader = Array.from({length: days}, (_, i) => {
+  const date = new Date(year, month - 1, i + 1);
+  const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+  return `<th class="${dayClass[date.getDay()]}">
+            <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+            <div style="font-size: 1.2em;">${i + 1}</div>
+          </th>`;
+});
+      
+      thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
+
+      tbody.innerHTML = names.map(name => {
+        const row = [`<td>${name}</td>`];
+        for (let d = 1; d <= days; d++) {
+          const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+          row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        }
+        return `<tr>${row.join('')}</tr>`;
+      }).join('');
+
+      const oldSummary = document.getElementById("summaryBox");
+      if (oldSummary) oldSummary.remove();
+      const totalDiv = document.createElement("div");
+      totalDiv.id = "summaryBox";
+      totalDiv.innerHTML = `
+        <h4>📊 Summary job ${month}/${year}</h4>
+        <ul>
+          ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}
+        </ul>
+      `;
+      document.querySelector(".calendar-wrapper").appendChild(totalDiv);
+
+    localStorage.removeItem('savedMonth');
+    localStorage.removeItem('savedYear');
+    }
+
+    function openPopup(td) {
+      activeCell = td;
+      popupName.textContent = td.dataset.name;
+      popupDate.textContent = td.dataset.day;
+      popupType.value = "Service";
+      popupTime.value = "";
+      popupDetail.value = "";
+      popupCustomer.value = "";
+      popupPlace.value = "";
+      popupJobowner.value = "";
+      popupCharge.value = "Charge";
+      overlay.classList.add("active");
+      popup.classList.add("active");
+    }
+
+    function closePopup() {
+      overlay.classList.remove("active");
+      popup.classList.remove("active");
+    }
+
+    function saveData() {
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
+      form.type.value = popupType.value;
+      form.time.value = popupTime.value;
+      form.datail.value = popupDetail.value;
+      form.customer.value= popupCustomer.value;
+      form.place.value= popupPlace.value;
+      form.jobowner.value= popupJobowner.value;
+      form.charge.value= popupCharge.value;
+      form.action.value = "save";
+
+      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
+      activeCell.innerHTML = html;
+      form.submit();
+      closePopup();
+      localStorage.setItem('savedMonth', monthSel.value);
+      localStorage.setItem('savedYear', yearSel.value);
+      setTimeout(() => location.reload(), 3000);
+      //location.reload();
+    }
+
+    function deleteData() {
+      if (!confirm("Delete?")) return;
+      
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
+      form.type.value = "";
+      form.time.value = "";
+      form.datail.value = "";
+      form.action.value = "delete";
+
+      activeCell.innerHTML = "";
+      console.log("Deleting:", {
+        year: form.year.value,
+        month: form.month.value,
+        date: form.date.value,
+        name: form.name.value,
+        action: form.action.value
+      });
+      form.submit();
+      closePopup();
+
+       // ✅ เก็บเดือนปีไว้ก่อน reload
+      localStorage.setItem('savedMonth', monthSel.value);
+      localStorage.setItem('savedYear', yearSel.value);
+      setTimeout(() => location.reload(), 3000);
+      //location.reload();
+    }
+
+init();
+  </script>
+</body>
+</html>
+
