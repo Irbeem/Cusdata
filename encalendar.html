@@ -186,7 +186,7 @@ function init() {
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
-      const summary = { Setup: 0, Meeting: 0, Sales: 0,Leave: 0, Oth: 0 };
+      const summary = { Setup: 0, Meeting: 0, Sales: 0,Leave: 0, Other: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
