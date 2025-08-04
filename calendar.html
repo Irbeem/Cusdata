@@ -207,7 +207,7 @@ function init() {
       const tbody = document.querySelector("#calendar-table tbody");
 
       const dataMap = {};
-      const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Oth: 0 };
+      const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Other: 0 };
       names.forEach(name => dataMap[name] = {});
       allData.forEach(d => {
         if (+d.year === year && +d.month === month) {
@@ -337,5 +337,6 @@ init();
   </script>
 </body>
 </html>
+
 
 
