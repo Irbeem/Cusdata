@@ -70,10 +70,15 @@
 
     document.getElementById('saveForm').addEventListener('submit', async function(e) {
       e.preventDefault();
+    
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = "กำลังบันทึก...";
+    
       const form = new FormData(this);
       const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
       const dates = Array.from(document.getElementById("dateSelect").selectedOptions).map(opt => opt.value);
-
+    
       let count = 0;
       for (const name of names) {
         for (const date of dates) {
@@ -83,20 +88,26 @@
           }
           copy.set("name", name);
           copy.set("date", date);
-
+    
           await fetch(SUBMIT_URL, {
             method: 'POST',
             body: copy
           });
-
+    
           count++;
         }
       }
-
+    
       document.getElementById("result").textContent = `✅ บันทึกงาน ${count} รายการเรียบร้อย`;
       if (liff && liff.closeWindow) liff.closeWindow();
+    
+      // ✅ เปิดปุ่มอีกครั้ง
+      submitBtn.disabled = false;
+      submitBtn.textContent = "บันทึกงาน";
     });
 
+
+    
     loadNames();
   </script>
 </body>
