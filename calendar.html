@@ -206,13 +206,16 @@ function init() {
     const thead = document.querySelector("#calendar-table thead");
     const tbody = document.querySelector("#calendar-table tbody");
   
-    // 👇 รวมชื่อจาก Names และจาก Carlendar แบบไม่ซ้ำ
-    const allNamesSet = new Set(names);
+    // 👇 รวมชื่อจาก Names และจาก Carlendar แบบไม่ซ้ำ โดยเรียง Names ไว้ก่อน
+    const extraNames = new Set();
     allData.forEach(d => {
-      if (d.name) allNamesSet.add(d.name);
+      if (d.name && !names.includes(d.name)) {
+        extraNames.add(d.name);
+      }
     });
-    const allNames = [...allNamesSet].sort();
-  
+
+    const allNames = [...names, ...[...extraNames].sort()];
+    
     // 🔄 เตรียมข้อมูลตาราง
     const dataMap = {};
     const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Other: 0 };
@@ -346,6 +349,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
