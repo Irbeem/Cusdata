@@ -27,7 +27,8 @@
     .Inspection { background: #00bcd4; color: white; }
     .Telephone { background: #2a36b1; color: white; }
     .Meeting { background: #212121; color: white; }
-    .Sales { background: #c41411; color: white; }
+    .Sales { background: #78909c; color: white; }
+    .Holiday { background: #c41411; color: white; }
     .Leave { background: #c41411; color: white; }
     .SafetyHealth { background: #c41411; color: white; }
     .Other { background: #fff176; }
@@ -106,6 +107,7 @@
         <option value="Training">Training</option>
         <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
+        <option value="Holiday">Holiday</option>
         <option value="Leave">Leave</option>
         <option value="SafetyHealth">SafetyHealth</option>
         <option value="Other">Other</option>
@@ -218,7 +220,7 @@ function init() {
     
     // 🔄 เตรียมข้อมูลตาราง
     const dataMap = {};
-    const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Other: 0 };
+    const summary = { Service: 0, Meeting: 0, Telephone: 0, Training: 0, Inspection: 0, Warranty: 0, Sales: 0,Leave: 0, SafetyHealth: 0, Other: 0 };
     allNames.forEach(name => dataMap[name] = {});
     allData.forEach(d => {
       if (+d.year === year && +d.month === month) {
@@ -349,6 +351,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
