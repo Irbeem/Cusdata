@@ -200,63 +200,75 @@ function init() {
     }
 
     function renderTable() {
-      const year = +yearSel.value;
-      const month = +monthSel.value;
-      const days = new Date(year, month, 0).getDate();
-      const thead = document.querySelector("#calendar-table thead");
-      const tbody = document.querySelector("#calendar-table tbody");
+    const year = +yearSel.value;
+    const month = +monthSel.value;
+    const days = new Date(year, month, 0).getDate();
+    const thead = document.querySelector("#calendar-table thead");
+    const tbody = document.querySelector("#calendar-table tbody");
+  
+    // 👇 รวมชื่อจาก Names และจาก Carlendar แบบไม่ซ้ำ โดยเรียง Names ไว้ก่อน
+    const extraNames = new Set();
+    allData.forEach(d => {
+      if (d.name && !names.includes(d.name)) {
+        extraNames.add(d.name);
+      }
+    });
 
-      const dataMap = {};
-      const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Other: 0 };
-      names.forEach(name => dataMap[name] = {});
-      allData.forEach(d => {
-        if (+d.year === year && +d.month === month) {
-          const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
-          const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer}</div>`;
-          //const html = `<div class='event ${d.type}'>${d.type}<br>${d.time}</div>`;
-          (dataMap[d.name][d.date] ||= []).push(html);
-          if (summary[d.type] !== undefined) summary[d.type]++;
-        }
-      });
-
-  const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-      
-  const daysHeader = Array.from({length: days}, (_, i) => {
-  const date = new Date(year, month - 1, i + 1);
-  const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-  return `<th class="${dayClass[date.getDay()]}">
-            <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-            <div style="font-size: 1.2em;">${i + 1}</div>
-          </th>`;
-});
-      
-      thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
-
-      tbody.innerHTML = names.map(name => {
-        const row = [`<td>${name}</td>`];
-        for (let d = 1; d <= days; d++) {
-          const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-          row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
-        }
-        return `<tr>${row.join('')}</tr>`;
-      }).join('');
-
-      const oldSummary = document.getElementById("summaryBox");
-      if (oldSummary) oldSummary.remove();
-      const totalDiv = document.createElement("div");
-      totalDiv.id = "summaryBox";
-      totalDiv.innerHTML = `
-        <h4>📊 Summary job ${month}/${year}</h4>
-        <ul>
-          ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}
-        </ul>
-      `;
-      document.querySelector(".calendar-wrapper").appendChild(totalDiv);
-
+    const allNames = [...names, ...[...extraNames].sort()];
+    
+    // 🔄 เตรียมข้อมูลตาราง
+    const dataMap = {};
+    const summary = { Service: 0, Meeting: 0,Telephone: 0, Training: 0, Inspection: 0,Warranty: 0, Sales: 0,Leave: 0,SafetyHealth: 0, Other: 0 };
+    allNames.forEach(name => dataMap[name] = {});
+    allData.forEach(d => {
+      if (+d.year === year && +d.month === month) {
+        const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
+        const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer}</div>`;
+        (dataMap[d.name][d.date] ||= []).push(html);
+        if (summary[d.type] !== undefined) summary[d.type]++;
+      }
+    });
+  
+    // 🗓️ หัวตารางวันที่
+    const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const daysHeader = Array.from({ length: days }, (_, i) => {
+      const date = new Date(year, month - 1, i + 1);
+      const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+      return `<th class="${dayClass[date.getDay()]}">
+                <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+                <div style="font-size: 1.2em;">${i + 1}</div>
+              </th>`;
+    });
+    thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
+  
+    // 📆 สร้างแต่ละแถวของชื่อ
+    tbody.innerHTML = allNames.map(name => {
+      const row = [`<td>${name}</td>`];
+      for (let d = 1; d <= days; d++) {
+        const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+        row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+      }
+      return `<tr>${row.join('')}</tr>`;
+    }).join('');
+  
+    // 📊 Summary
+    const oldSummary = document.getElementById("summaryBox");
+    if (oldSummary) oldSummary.remove();
+    const totalDiv = document.createElement("div");
+    totalDiv.id = "summaryBox";
+    totalDiv.innerHTML = `
+      <h4>📊 Summary job ${month}/${year}</h4>
+      <ul>
+        ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}
+      </ul>
+    `;
+    document.querySelector(".calendar-wrapper").appendChild(totalDiv);
+  
+    // 🧠 เคลียร์ localStorage ที่ใช้จำเดือน/ปี
     localStorage.removeItem('savedMonth');
     localStorage.removeItem('savedYear');
-    }
-
+  }
+    
     function openPopup(td) {
       activeCell = td;
       popupName.textContent = td.dataset.name;
