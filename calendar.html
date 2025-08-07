@@ -128,13 +128,7 @@
       </select>
     </label><br>
     <label>Customer: <input type="text" id="popupCustomer"></label><br>
-    
-    <label>เวลาเข้า:
-    <select id="popupTimeStart"></select>
-    </label>
-    <label>เวลาออก:
-    <select id="popupTimeEnd"></select>
-    </label><br>
+    <label>Time: <input type="text" id="popupTime"></label><br>
     <label>Job detail: <input type="text" id="popupDetail"></label><br>
     <label>Place: <input type="text" id="popupPlace"></label><br>
     <label>Job owner: <input type="text" id="popupJobowner"></label><br>
@@ -167,7 +161,7 @@
     const popupName = document.getElementById("popupName");
     const popupDate = document.getElementById("popupDate");
     const popupType = document.getElementById("popupType");
-    //const popupTime = document.getElementById("popupTime");
+    const popupTime = document.getElementById("popupTime");
     const popupDetail = document.getElementById("popupDetail");
     const popupCustomer = document.getElementById("popupCustomer");
     const popupPlace = document.getElementById("popupPlace");
@@ -318,9 +312,7 @@ function init() {
       form.date.value = activeCell.dataset.day;
       form.name.value = activeCell.dataset.name;
       form.type.value = popupType.value;
-      const timeStart = document.getElementById("popupTimeStart").value;
-      const timeEnd = document.getElementById("popupTimeEnd").value;
-      form.time.value = timeStart && timeEnd ? `${timeStart}-${timeEnd}` : timeStart || "";
+      form.time.value = popupTime.value;
       form.datail.value = popupDetail.value;
       form.customer.value= popupCustomer.value;
       form.place.value= popupPlace.value;
@@ -369,29 +361,13 @@ function init() {
       //location.reload();
     }
 
-function generateTimeOptions(startHour, endHour, interval, selectElement, offsetMinutes = 0) {
-  for (let h = startHour; h <= endHour; h++) {
-    for (let m = 0; m < 60; m += interval) {
-      let hour = h;
-      let minute = m + offsetMinutes;
-      if (minute >= 60) {
-        hour += 1;
-        minute -= 60;
-      }
-      if (hour > endHour) continue;
-      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-      const opt = new Option(timeStr, timeStr);
-      selectElement.add(opt);
-    }
-  }
-}
     
 init();
-generateTimeOptions(8, 23, 30, document.getElementById("popupTimeStart")); 
-generateTimeOptions(9, 24, 30, document.getElementById("popupTimeEnd"));   
+
   </script>
 </body>
 </html>
+
 
 
 
