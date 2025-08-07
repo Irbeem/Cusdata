@@ -42,8 +42,7 @@
       </select>
     </label>
     <label>ลูกค้า: <input type="text" name="customer"></label>
-    <label>เวลาเข้า: <input type="time" id="popupTimeStart"></label><br>
-    <label>เวลาออก: <input type="time" id="popupTimeEnd"></label><br>
+    <label>เวลา: <input type="text" name="time"></label>
     <label>รายละเอียด: <input type="text" name="datail"></label>
     <label>สถานที่: <input type="text" name="place"></label>
     <label>ผู้รับผิดชอบ: <input type="text" name="jobowner"></label>
@@ -89,9 +88,7 @@
       const submitBtn = this.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.textContent = "กำลังบันทึก...";
-      const timeStart = document.getElementById("popupTimeStart").value;
-      const timeEnd = document.getElementById("popupTimeEnd").value;
-      form.time.value = timeStart && timeEnd ? `${timeStart}-${timeEnd}` : timeStart || "";
+
       const form = new FormData(this);
       const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
       const dates = Array.from(document.getElementById("dateSelect").selectedOptions).map(opt => opt.value);
