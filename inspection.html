@@ -91,7 +91,7 @@
 
       <!-- TIMES -->
       <div class="sect">
-        <h3>Time / Monitoring</h3>
+        <h3>Monitoring Time</h3>
         <table>
           <thead><tr><th>Item</th><th class="center" style="width:120px">Times/Value</th><th>Note</th></tr></thead>
           <tbody>
@@ -132,20 +132,20 @@
 
       <!-- DATA / BACKUP -->
       <div class="sect">
-        <h3>Data / Backup</h3>
+        <h3>Backup Data</h3>
         <table>
           <thead><tr><th>Item</th><th class="center">Result</th><th>Detail</th></tr></thead>
           <tbody>
-            <tr><td>CMOS Data</td><td class="center">{OKNG('cmos')</td><td>Device :<input class="w" id="cmos_date"></td></tr>
-            <tr><td>Individual Data Check</td><td class="center">{OKNG('idata')</td><td>Device :<input class="w" id="idata_date" ></td></tr>
-            <tr><td>Data Save</td><td class="center">{OKNG('dsave')</td><td>Device :<input class="w" id="dsave_note" placeholder="สื่อบันทึก/สถานที่จัดเก็บ"></td></tr>
+            <tr><td>CMOS Data</td><td class="center">{OKNG('cmos')</td><td>Device :<input class="w" id="cmos_date" placeholder="Device></td></tr>
+            <tr><td>Individual Data</td><td class="center">{OKNG('idata')</td><td>Device :<input class="w" id="idata_date" placeholder="Device></td></tr>
+            <tr><td>Data Save Server</td><td class="center">{OKNG('dsave')</td><td>Device :<input class="w" id="dsave_note" placeholder="Backup Place"></td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- LUBRICATION / GREASE -->
       <div class="sect">
-        <h3>Grease / Reducer / Bearing / Balancer</h3>
+        <h3>Reducer</h3>
         <table>
           <thead><tr><th>Item</th><th class="center">Reducer</th><th>Supply grease</th><th>Steel dust</th><th>Note</th></tr></thead>
           <tbody>
@@ -160,9 +160,10 @@
         </table>
       </div>
 
-      <!-- SERVOMOTOR / EARTH / BALANCE -->
+      <!-- SERVOMOTOR -->
       <div class="sect">
-        <h3>Servomotor Resistance / Earth / Balance / Drop Value</h3>
+        <h3>Servomotor</h3>
+		<div class="note">Normal condition: Balance phase different < 0.2, Earth > 10 MΩ,  Drop Value < 20 times</div>
         <table>
           <thead>
             <tr>
@@ -201,7 +202,6 @@
 
 	  </tbody>
         </table>
-        <div class="note">Normal condition: Balance phase different < 0.2, Earth > 10 MΩ,  Drop Value < 20 times</div>
       </div>
 
       <!-- FOOTER / SIGNATURE -->
