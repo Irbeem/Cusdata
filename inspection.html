@@ -114,8 +114,8 @@
             <tr><td>Panel E-Stop / Playback Panel E-Stop</td><td class="center">{OKNG('pestop')</td><td><input class="w" id="pestop_val"></td><td><input class="w" id="pestop_note"></td></tr>
             <tr><td>P.P. E-Stop L / Take off jumper safety finish</td><td class="center">{OKNG('ppestop')</td><td><input class="w" id="pp_val"></td><td><input class="w" id="pp_note"></td></tr>
             <tr><td>Shock Sensor</td><td class="center">{OKNG('shock')</td><td><input class="w" id="shock_val"></td><td><input class="w" id="shock_note"></td></tr>
-            <tr><td>Overrun Stop Axis / Time</td><td class="center">{OKNG('overrun')</td><td><input class="w" id="overrun_val"></td><td><input class="w" id="overrun_note"></td></tr>
-            <tr><td>Wave data Check</td><td class="center">{OKNG('wave')</td><td><input class="w" id="wave_val"></td><td><input class="w" id="wave_note"></td></tr>
+            <tr><td>Overrun Stop</td><td class="center">{OKNG('overrun')</td><td><input class="w" id="overrun_val"></td><td><input class="w" id="overrun_note"></td></tr>
+            <tr><td>Wave data</td><td class="center">{OKNG('wave')</td><td><input class="w" id="wave_val"></td><td><input class="w" id="wave_note"></td></tr>
             <tr><td>External No.1 (Battery)</td><td class="center">{OKNG('ext1')</td><td>more than 3.4V<input class="w" id="EX-1BAT_val"></td><td>Last change: <input class="w" id="EX-1BAT" type="date"></tr>
             <tr><td>External No.2 (Battery)</td><td class="center">{OKNG('ext2')</td><td>more than 3.4V<input class="w" id="EX-2BAT_val"></td><td>Last change: <input class="w" id="EX-2BAT" type="date"></tr>
             <tr><td>Controller Battery</td><td class="center">{OKNG('bat_ctl')</td><td>more than 3.4V<input class="w" id="CONBAT_val"></td><td>Last change: <input class="w" id="CONBAT" type="date"></tr>
@@ -149,8 +149,13 @@
         <table>
           <thead><tr><th>Item</th><th class="center">Result</th><th>Value/Detail</th><th>Note</th></tr></thead>
           <tbody>
-            <tr><td>Value of steel dust in grease</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution</td><td><input class="w" id="dust_note"></td></tr>
-            <tr><td>Supply grease (S/L/U/R/B/T Axis)</td><td class="center">{OKNG('grease')</td><td><input class="w" id="grease_val"></td><td><input class="w" id="grease_note"></td></tr>
+            <tr><td>Steel dust S</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gs_val"></td><td><input class="w" id="sdust_note"></td></tr>
+            <tr><td>Steel dust L</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gl_val"></td><td><input class="w" id="ldust_note"></td></tr>
+			<tr><td>Steel dust U</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gu_val"></td><td><input class="w" id="udust_note"></td></tr>
+			<tr><td>Steel dust R</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gr_val"></td><td><input class="w" id="rdust_note"></td></tr>
+			<tr><td>Steel dust B</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gb_val"></td><td><input class="w" id="bdust_note"></td></tr>
+			<tr><td>Steel dust T</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution<input class="w" id="gt_val"></td><td><input class="w" id="tdust_note"></td></tr>
+			<tr><td>Supply grease (S/L/U/R/B/T Axis)</td><td class="center">{OKNG('grease')</td><td><input class="w" id="grease_val"></td><td><input class="w" id="grease_note"></td></tr>
             <tr><td>Speed reducer (S/L/U/R/B/T)</td><td class="center">{OKNG('reducer')</td><td><input class="w" id="reducer_val"></td><td><input class="w" id="reducer_note"></td></tr>
             <tr><td>Bearing / Balancer</td><td class="center">{OKNG('bearing')</td><td><input class="w" id="bearing_val"></td><td><input class="w" id="bearing_note"></td></tr>
           </tbody>
