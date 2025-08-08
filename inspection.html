@@ -60,8 +60,8 @@
 <body>
   <div class="wrap">
     <div class="toolbar no-print">
-      <button onclick="window.print()" class="primary">🖨 พิมพ์ (A4)</button>
-      <button onclick="clearAll()">ล้างข้อมูล</button>
+      <button onclick="window.print()" class="primary">🖨 Print (A4)</button>
+      <button onclick="clearAll()">Refresh</button>
     </div>
 
     <div class="sheet" id="sheet">
@@ -93,23 +93,21 @@
       <div class="sect">
         <h3>Time / Monitoring</h3>
         <table>
-          <thead><tr><th>รายการ</th><th class="center" style="width:120px">เวลา/ค่า</th><th>หมายเหตุ</th></tr></thead>
+          <thead><tr><th>Item</th><th class="center" style="width:120px">Times/Value</th><th>Note</th></tr></thead>
           <tbody>
             <tr><td>Power on time</td><td class="center"><input class="w" id="t_power"></td><td><input class="w" id="t_power_note"></td></tr>
-            <tr><td>Working on time</td><td class="center"><input class="w" id="t_work"></td><td><input class="w" id="t_work_note"></td></tr>
-            <tr><td>Playback time <span class="muted">(Not applicable)</span></td><td class="center"><input class="w" id="t_play"></td><td><input class="w" id="t_play_note"></td></tr>
             <tr><td>Servo on time</td><td class="center"><input class="w" id="t_servo"></td><td><input class="w" id="t_servo_note"></td></tr>
-            <tr><td>Monitoring time / No problem</td><td class="center"><input class="w" id="t_mon"></td><td><input class="w" id="t_mon_note"></td></tr>
+            <tr><td>Playback time </td><td class="center"><input class="w" id="t_play"></td><td><input class="w" id="t_play_note"></td></tr>
           </tbody>
         </table>
       </div>
 
       <!-- CHECKLIST 1 -->
       <div class="sect">
-        <h3>Controller / Panel / Pendant / External / Safety</h3>
+        <h3>Controller / Panel / Pendant / External / Safety</h3> <div class="Note"> △ Caution </div>
         <table>
           <thead>
-            <tr><th style="width:34%">หัวข้อ</th><th class="center" style="width:18%">ผลตรวจ</th><th>ค่า/รายละเอียด</th><th>หมายเหตุ</th></tr>
+            <tr><th style="width:34%">Item</th><th class="center" style="width:18%">Result</th><th>Value/Detail</th><th>หมายเหตุ</th></tr>
           </thead>
           <tbody>
             <tr><td>Stop Function (Running / Hold / Controller)</td><td class="center">{OKNG('stop')</td><td><input class="w" id="stop_val"></td><td><input class="w" id="stop_note"></td></tr>
@@ -118,26 +116,25 @@
             <tr><td>Shock Sensor</td><td class="center">{OKNG('shock')</td><td><input class="w" id="shock_val"></td><td><input class="w" id="shock_note"></td></tr>
             <tr><td>Overrun Stop Axis / Time</td><td class="center">{OKNG('overrun')</td><td><input class="w" id="overrun_val"></td><td><input class="w" id="overrun_note"></td></tr>
             <tr><td>Wave data Check</td><td class="center">{OKNG('wave')</td><td><input class="w" id="wave_val"></td><td><input class="w" id="wave_note"></td></tr>
-            <tr><td>External No.1 (Battery)</td><td class="center">{OKNG('ext1')</td><td>Last change: more than 3.4V</td><td><input class="w" id="ext1_note"></td></tr>
-            <tr><td>External No.2 (Battery)</td><td class="center">{OKNG('ext2')</td><td>Last change: more than 3.4V</td><td><input class="w" id="ext2_note"></td></tr>
-            <tr><td>Controller Battery</td><td class="center">{OKNG('bat_ctl')</td><td>Last change: more than 3.4V</td><td><input class="w" id="bat_ctl_note"></td></tr>
-            <tr><td>Robot Battery</td><td class="center">{OKNG('bat_robot')</td><td>Last change: more than 3.4V</td><td><input class="w" id="bat_robot_note"></td></tr>
+            <tr><td>External No.1 (Battery)</td><td class="center">{OKNG('ext1')</td><td>more than 3.4V<input class="w" id="EX-1BAT_val"></td><td>Last change: <input class="w" id="EX-1BAT" type="date"></tr>
+            <tr><td>External No.2 (Battery)</td><td class="center">{OKNG('ext2')</td><td>more than 3.4V<input class="w" id="EX-2BAT_val"></td><td>Last change: <input class="w" id="EX-2BAT" type="date"></tr>
+            <tr><td>Controller Battery</td><td class="center">{OKNG('bat_ctl')</td><td>more than 3.4V<input class="w" id="CONBAT_val"></td><td>Last change: <input class="w" id="CONBAT" type="date"></tr>
+            <tr><td>Robot Battery</td><td class="center">{OKNG('bat_robot')</td><td>more than 3.4V<input class="w" id="ROBBAT_val"></td><td>Last change: <input class="w" id="ROBBAT" type="date"></tr>
             <tr><td>Cooling Fan (panel / side / air condition)</td><td class="center">{OKNG('fan')</td><td>Model NG (ถ้ามี): <input class="w" id="fan_model"></td><td><input class="w" id="fan_note"></td></tr>
             <tr><td>Connector / Controller / Robot</td><td class="center">{OKNG('conn')</td><td><input class="w" id="conn_val"></td><td><input class="w" id="conn_note"></td></tr>
             <tr><td>Gas check / Purge System</td><td class="center">{OKNG('gas')</td><td>Take off jumper purge finish</td><td><input class="w" id="gas_note"></td></tr>
-            <tr><td>Voltage Check (380V R, 200V B, 440V)</td><td class="center">{OKNG('volt')</td><td>Normal rate +10%, -15%</td><td><input class="w" id="volt_note"></td></tr>
+            <tr><td>Voltage Check (380V , 200V , 440V)</td><td class="center">{OKNG('volt')</td><td>Normal rate +10%, -15%<input class="w" id="InputVolt"></td><td><input class="w" id="volt_note"></td></tr>
             <tr><td>Welder</td><td class="center">{OKNG('welder')</td><td><input class="w" id="welder_val"></td><td><input class="w" id="welder_note"></td></tr>
             <tr><td>Timing belt / Clean</td><td class="center">{OKNG('timing')</td><td><input class="w" id="timing_val"></td><td><input class="w" id="timing_note"></td></tr>
           </tbody>
         </table>
-        <div class="note">△ Caution, × Not Good</div>
       </div>
 
       <!-- DATA / BACKUP -->
       <div class="sect">
         <h3>Data / Backup</h3>
         <table>
-          <thead><tr><th>หัวข้อ</th><th class="center">ผลตรวจ</th><th>รายละเอียด</th></tr></thead>
+          <thead><tr><th>Item</th><th class="center">Result</th><th>Detail</th></tr></thead>
           <tbody>
             <tr><td>CMOS Data</td><td class="center">{OKNG('cmos')</td><td>Last change: <input class="w" id="cmos_date" type="date"></td></tr>
             <tr><td>Individual Data Check</td><td class="center">{OKNG('idata')</td><td>Last change: <input class="w" id="idata_date" type="date"></td></tr>
@@ -150,7 +147,7 @@
       <div class="sect">
         <h3>Grease / Reducer / Bearing / Balancer</h3>
         <table>
-          <thead><tr><th>หัวข้อ</th><th class="center">ผลตรวจ</th><th>ค่า/รายละเอียด</th><th>หมายเหตุ</th></tr></thead>
+          <thead><tr><th>Item</th><th class="center">Result</th><th>Value/Detail</th><th>Note</th></tr></thead>
           <tbody>
             <tr><td>Value of steel dust in grease</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution</td><td><input class="w" id="dust_note"></td></tr>
             <tr><td>Supply grease (S/L/U/R/B/T Axis)</td><td class="center">{OKNG('grease')</td><td><input class="w" id="grease_val"></td><td><input class="w" id="grease_note"></td></tr>
@@ -167,24 +164,47 @@
           <thead>
             <tr>
               <th style="width:110px">Axis</th>
+	      <th class="center" style="width:110px">Balance</th>
               <th class="center" style="width:110px">Earth (MΩ)</th>
-              <th class="center" style="width:110px">Balance</th>
               <th class="center" style="width:110px">Drop Value</th>
-              <th>Time</th>
               <th>หมายเหตุ</th>
             </tr>
           </thead>
           <tbody>
-            {AX('S'){AX('L'){AX('U'){AX('R'){AX('B'){AX('T'){AX('Ex-1'){AX('Ex-2')
-          </tbody>
+            <tr><td class="center">S</td><td class="center"><input class="w" id="S_bal"></td><td class="center"><input class="w" id="S_earth"></td><td class="center">
+		<input class="w"id="S_drop"></td><td><input class="w" id="S_note"></td></tr>
+
+  	       <tr><td class="center">L</td><td class="center"><input class="w" id="L_bal"></td><td class="center"><input class="w" id="L_earth"></td><td class="center">
+		<input class="w" id="L_drop"></td><td><input class="w" id="L_note"></td></tr>
+          
+            <tr><td class="center">U</td><td class="center"><input class="w" id="U_bal"></td><td class="center"><input class="w" id="U_earth"></td><td class="center">
+		<input class="w"id="U_drop"></td><td><input class="w" id="U_note"></td></tr>
+
+  	       <tr><td class="center">R</td><td class="center"><input class="w" id="R_bal"></td><td class="center"><input class="w" id="R_earth"></td><td class="center">
+		<input class="w" id="R_drop"></td><td><input class="w" id="R_note"></td></tr>
+
+            <tr><td class="center">B</td><td class="center"><input class="w" id="B_bal"></td><td class="center"><input class="w" id="B_earth"></td><td class="center">
+		<input class="w"id="B_drop"></td><td><input class="w" id="B_note"></td></tr>
+
+  	       <tr><td class="center">T</td><td class="center"><input class="w" id="T_bal"></td><td class="center"><input class="w" id="T_earth"></td><td class="center">
+		<input class="w" id="T_drop"></td><td><input class="w" id="T_note"></td></tr>
+
+            <tr><td class="center">Ex-1</td><td class="center"><input class="w" id="Ex-1_bal"></td><td class="center"><input class="w" id="Ex-1_earth"></td><td class="center">
+		<input class="w"id="Ex-1_drop"></td><td><input class="w" id="Ex-1_note"></td></tr>
+
+  	       <tr><td class="center">Ex-2</td><td class="center"><input class="w" id="Ex-2_bal"></td><td class="center"><input class="w" id="Ex-2_earth"></td><td class="center">
+		<input class="w" id="Ex-2_drop"></td><td><input class="w" id="Ex-2_note"></td></tr>
+
+
+	  </tbody>
         </table>
-        <div class="note">เกณฑ์: Earth > 10 MΩ, Balance < 0.2, Drop Value > 20 = NG</div>
+        <div class="note">Normal condition: Balance phase different < 0.2, Earth > 10 MΩ,  Drop Value < 20 times</div>
       </div>
 
       <!-- FOOTER / SIGNATURE -->
       <div class="signs">
-        <div class="signbox"><div class="line">ผู้ตรวจสอบ / Inspector</div></div>
-        <div class="signbox"><div class="line">ผู้อนุมัติ / Approved by</div></div>
+        <div class="signbox"><div class="line">Inspector</div></div>
+        <div class="signbox"><div class="line">Approved</div></div>
       </div>
     </div>
   </div>
