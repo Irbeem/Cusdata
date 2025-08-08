@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MOTOMAN INSPECTION SHEET – REV15 (Standard & Paint)</title>
+  <style>
+    :root{--accent:#111827;--border:#d1d5db;--muted:#6b7280;--ink:#111827;--bg:#f9fafb}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans Thai",sans-serif}
+    .wrap{max-width:900px;margin:20px auto;padding:12px}
+    .toolbar{display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px}
+    button{border:1px solid var(--border);background:#fff;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
+    button.primary{background:#111827;color:#fff}
+
+    .sheet{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px}
+    .hdr{display:grid;grid-template-columns:120px 1fr 170px;gap:12px;align-items:center}
+    .logo{width:120px;height:70px;border:1px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+    .title{text-align:center}
+    .title h1{font-size:18px;margin:0}
+    .rev{font-size:12px;text-align:right;color:var(--muted)}
+
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:8px}
+    .field{grid-column:span 3;display:flex;gap:6px;align-items:center}
+    .field label{font-size:12px;color:var(--muted);min-width:110px}
+    .field input,.field select{flex:1;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px}
+
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:12px}
+    th,td{border:1px solid var(--border);padding:6px 6px;vertical-align:top}
+    th{background:#f3f4f6}
+    .center{text-align:center}
+    .right{text-align:right}
+    .muted{color:var(--muted)}
+
+    .sect{margin-top:10px}
+    .sect h3{font-size:13px;margin:8px 0 6px}
+
+    .chk{display:flex;gap:8px;align-items:center;justify-content:center}
+    .chk label{display:flex;gap:4px;align-items:center}
+
+    .flex{display:flex;gap:10px}
+    .signs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+    .signbox{height:90px;border:1px dashed var(--border);border-radius:8px;padding:8px;display:flex;flex-direction:column;justify-content:flex-end}
+    .signbox .line{border-top:1px solid var(--border);text-align:center;padding-top:4px;font-size:12px}
+
+    .note{font-size:11px;margin-top:8px;color:#374151}
+
+    @media print{
+      body{background:#fff}
+      .toolbar{display:none !important}
+      .wrap{max-width:unset;margin:0;padding:0}
+      .sheet{border:none;border-radius:0;padding:0}
+      @page{size:A4 portrait;margin:10mm}
+      thead{display:table-header-group}
+      tfoot{display:table-row-group}
+      tr{page-break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar no-print">
+      <button onclick="window.print()" class="primary">🖨 พิมพ์ (A4)</button>
+      <button onclick="clearAll()">ล้างข้อมูล</button>
+    </div>
+
+    <div class="sheet" id="sheet">
+      <!-- HEADER -->
+      <div class="hdr">
+        <div class="logo" id="logo">LOGO</div>
+        <div class="title">
+          <h1>Motoman-Inspection sheet</h1>
+          <div class="muted">Type MOTOMAN — YASNAC — SYSTEM INFO</div>
+        </div>
+        <div class="rev">Rev. <input id="rev" style="width:110px" value="27/04/66"/></div>
+      </div>
+
+      <!-- TOP META -->
+      <div class="grid" style="margin-top:8px">
+        <div class="field" style="grid-column:span 6"><label>Customer</label><input id="cust"></div>
+        <div class="field" style="grid-column:span 3"><label>Date</label><input type="date" id="date"></div><br>
+        <div class="field" style="grid-column:span 6"><label>Application</label><input id="app"></div>
+        <div class="field" style="grid-column:span 3"><label>Machine No.</label><input id="mno"></div><br>
+        <div class="field" style="grid-column:span 6"><label>Installation Date</label><input type="date" id="inst"></div>
+        <div class="field" style="grid-column:span 3"><label>Order No.</label><input id="ord"></div><br>
+        <div class="field" style="grid-column:span 6"><label>Motoman Serial No.</label><input id="msn"></div>
+        <div class="field" style="grid-column:span 3"><label>Type</label><input id="type"></div><br>
+        <div class="field" style="grid-column:span 6"><label>Moto feeder_pos Type</label><input id="mfp"></div>
+        <div class="field" style="grid-column:span 3"><label>Inspector</label><input id="insp"></div>
+      </div>
+
+      <!-- TIMES -->
+      <div class="sect">
+        <h3>Time / Monitoring</h3>
+        <table>
+          <thead><tr><th>รายการ</th><th class="center" style="width:120px">เวลา/ค่า</th><th>หมายเหตุ</th></tr></thead>
+          <tbody>
+            <tr><td>Power on time</td><td class="center"><input class="w" id="t_power"></td><td><input class="w" id="t_power_note"></td></tr>
+            <tr><td>Working on time</td><td class="center"><input class="w" id="t_work"></td><td><input class="w" id="t_work_note"></td></tr>
+            <tr><td>Playback time <span class="muted">(Not applicable)</span></td><td class="center"><input class="w" id="t_play"></td><td><input class="w" id="t_play_note"></td></tr>
+            <tr><td>Servo on time</td><td class="center"><input class="w" id="t_servo"></td><td><input class="w" id="t_servo_note"></td></tr>
+            <tr><td>Monitoring time / No problem</td><td class="center"><input class="w" id="t_mon"></td><td><input class="w" id="t_mon_note"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- CHECKLIST 1 -->
+      <div class="sect">
+        <h3>Controller / Panel / Pendant / External / Safety</h3>
+        <table>
+          <thead>
+            <tr><th style="width:34%">หัวข้อ</th><th class="center" style="width:18%">ผลตรวจ</th><th>ค่า/รายละเอียด</th><th>หมายเหตุ</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Stop Function (Running / Hold / Controller)</td><td class="center">{OKNG('stop')</td><td><input class="w" id="stop_val"></td><td><input class="w" id="stop_note"></td></tr>
+            <tr><td>Panel E-Stop / Playback Panel E-Stop</td><td class="center">{OKNG('pestop')</td><td><input class="w" id="pestop_val"></td><td><input class="w" id="pestop_note"></td></tr>
+            <tr><td>P.P. E-Stop L / Take off jumper safety finish</td><td class="center">{OKNG('ppestop')</td><td><input class="w" id="pp_val"></td><td><input class="w" id="pp_note"></td></tr>
+            <tr><td>Shock Sensor</td><td class="center">{OKNG('shock')</td><td><input class="w" id="shock_val"></td><td><input class="w" id="shock_note"></td></tr>
+            <tr><td>Overrun Stop Axis / Time</td><td class="center">{OKNG('overrun')</td><td><input class="w" id="overrun_val"></td><td><input class="w" id="overrun_note"></td></tr>
+            <tr><td>Wave data Check</td><td class="center">{OKNG('wave')</td><td><input class="w" id="wave_val"></td><td><input class="w" id="wave_note"></td></tr>
+            <tr><td>External No.1 (Battery)</td><td class="center">{OKNG('ext1')</td><td>Last change: more than 3.4V</td><td><input class="w" id="ext1_note"></td></tr>
+            <tr><td>External No.2 (Battery)</td><td class="center">{OKNG('ext2')</td><td>Last change: more than 3.4V</td><td><input class="w" id="ext2_note"></td></tr>
+            <tr><td>Controller Battery</td><td class="center">{OKNG('bat_ctl')</td><td>Last change: more than 3.4V</td><td><input class="w" id="bat_ctl_note"></td></tr>
+            <tr><td>Robot Battery</td><td class="center">{OKNG('bat_robot')</td><td>Last change: more than 3.4V</td><td><input class="w" id="bat_robot_note"></td></tr>
+            <tr><td>Cooling Fan (panel / side / air condition)</td><td class="center">{OKNG('fan')</td><td>Model NG (ถ้ามี): <input class="w" id="fan_model"></td><td><input class="w" id="fan_note"></td></tr>
+            <tr><td>Connector / Controller / Robot</td><td class="center">{OKNG('conn')</td><td><input class="w" id="conn_val"></td><td><input class="w" id="conn_note"></td></tr>
+            <tr><td>Gas check / Purge System</td><td class="center">{OKNG('gas')</td><td>Take off jumper purge finish</td><td><input class="w" id="gas_note"></td></tr>
+            <tr><td>Voltage Check (380V R, 200V B, 440V)</td><td class="center">{OKNG('volt')</td><td>Normal rate +10%, -15%</td><td><input class="w" id="volt_note"></td></tr>
+            <tr><td>Welder</td><td class="center">{OKNG('welder')</td><td><input class="w" id="welder_val"></td><td><input class="w" id="welder_note"></td></tr>
+            <tr><td>Timing belt / Clean</td><td class="center">{OKNG('timing')</td><td><input class="w" id="timing_val"></td><td><input class="w" id="timing_note"></td></tr>
+          </tbody>
+        </table>
+        <div class="note">△ Caution, × Not Good</div>
+      </div>
+
+      <!-- DATA / BACKUP -->
+      <div class="sect">
+        <h3>Data / Backup</h3>
+        <table>
+          <thead><tr><th>หัวข้อ</th><th class="center">ผลตรวจ</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>CMOS Data</td><td class="center">{OKNG('cmos')</td><td>Last change: <input class="w" id="cmos_date" type="date"></td></tr>
+            <tr><td>Individual Data Check</td><td class="center">{OKNG('idata')</td><td>Last change: <input class="w" id="idata_date" type="date"></td></tr>
+            <tr><td>Data Save</td><td class="center">{OKNG('dsave')</td><td>Finish / <input class="w" id="dsave_note" placeholder="สื่อบันทึก/สถานที่จัดเก็บ"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- LUBRICATION / GREASE -->
+      <div class="sect">
+        <h3>Grease / Reducer / Bearing / Balancer</h3>
+        <table>
+          <thead><tr><th>หัวข้อ</th><th class="center">ผลตรวจ</th><th>ค่า/รายละเอียด</th><th>หมายเหตุ</th></tr></thead>
+          <tbody>
+            <tr><td>Value of steel dust in grease</td><td class="center">{OKNG('dust')</td><td> >0.100 = NG, 0.05–0.100 = Caution</td><td><input class="w" id="dust_note"></td></tr>
+            <tr><td>Supply grease (S/L/U/R/B/T Axis)</td><td class="center">{OKNG('grease')</td><td><input class="w" id="grease_val"></td><td><input class="w" id="grease_note"></td></tr>
+            <tr><td>Speed reducer (S/L/U/R/B/T)</td><td class="center">{OKNG('reducer')</td><td><input class="w" id="reducer_val"></td><td><input class="w" id="reducer_note"></td></tr>
+            <tr><td>Bearing / Balancer</td><td class="center">{OKNG('bearing')</td><td><input class="w" id="bearing_val"></td><td><input class="w" id="bearing_note"></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- SERVOMOTOR / EARTH / BALANCE -->
+      <div class="sect">
+        <h3>Servomotor Resistance / Earth / Balance / Drop Value</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:110px">Axis</th>
+              <th class="center" style="width:110px">Earth (MΩ)</th>
+              <th class="center" style="width:110px">Balance</th>
+              <th class="center" style="width:110px">Drop Value</th>
+              <th>Time</th>
+              <th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {AX('S'){AX('L'){AX('U'){AX('R'){AX('B'){AX('T'){AX('Ex-1'){AX('Ex-2')
+          </tbody>
+        </table>
+        <div class="note">เกณฑ์: Earth > 10 MΩ, Balance < 0.2, Drop Value > 20 = NG</div>
+      </div>
+
+      <!-- FOOTER / SIGNATURE -->
+      <div class="signs">
+        <div class="signbox"><div class="line">ผู้ตรวจสอบ / Inspector</div></div>
+        <div class="signbox"><div class="line">ผู้อนุมัติ / Approved by</div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // helpers to render OK/NG/△ radios inline
+    function okng(name){
+      return `
+        <div class="chk">
+          <label><input type="radio" name="${name}" value="OK"> OK</label>
+          <label><input type="radio" name="${name}" value="△"> △</label>
+          <label><input type="radio" name="${name}" value="NG"> NG</label>
+        </div>`;
+    }
+    function axisRow(ax){
+      return `<tr>
+        <td class="center">${ax}</td>
+        <td class="center"><input class="w" id="${ax}_earth"></td>
+        <td class="center"><input class="w" id="${ax}_bal"></td>
+        <td class="center"><input class="w" id="${ax}_drop"></td>
+        <td><input class="w" id="${ax}_time"></td>
+        <td><input class="w" id="${ax}_note"></td>
+      </tr>`;
+    }
+    // simple template filler for OK/NG chip and Axis rows
+    document.body.innerHTML = document.body.innerHTML
+      .replaceAll('{OKNG(','§OKNG(')
+      .replaceAll('{AX(','§AX(');
+
+    function renderTemplates(){
+      document.querySelectorAll('*').forEach(el=>{
+        if(el.innerHTML && el.innerHTML.includes('§OKNG(')){
+          el.innerHTML = el.innerHTML.replace(/§OKNG\('([^']+)'\)/g,(m,p)=>okng(p));
+        }
+        if(el.innerHTML && el.innerHTML.includes('§AX(')){
+          el.innerHTML = el.innerHTML.replace(/§AX\('([^']+)'\)/g,(m,p)=>axisRow(p));
+        }
+      });
+    }
+    renderTemplates();
+
+    // inputs width utility
+    const style = document.createElement('style');
+    style.innerHTML = `.w{width:100%;border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px}`;
+    document.head.appendChild(style);
+
+    // logo upload
+    const logo = document.getElementById('logo');
+    logo.addEventListener('click', ()=>{
+      const i=document.createElement('input'); i.type='file'; i.accept='image/*';
+      i.onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ logo.style.backgroundImage=`url(${r.result})`; logo.style.backgroundSize='cover'; logo.style.backgroundPosition='center'; logo.textContent=''; logo.style.border='none'; }; r.readAsDataURL(f); };
+      i.click();
+    });
+
+    // clear all
+    function clearAll(){ document.querySelectorAll('input').forEach(i=>{ if(i.type==='radio') i.checked=false; else i.value=''; }); }
+
+    // default dates
+    const today = new Date();
+    const iso = new Date(today.getTime()-today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    document.getElementById('date').value = iso;
+  </script>
+</body>
+</html>
