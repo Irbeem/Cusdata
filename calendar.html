@@ -200,7 +200,7 @@ function init() {
   }
 
   // สร้าง dropdown ปี
-  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+  for (let y = 2023; y <= now.getFullYear() + 1; y++) {
     const opt = new Option(y, y);
     if (y === defaultYear) opt.selected = true;
     yearSel.add(opt);
@@ -380,6 +380,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
