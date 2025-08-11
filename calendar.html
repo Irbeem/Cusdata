@@ -336,6 +336,13 @@ function init() {
 
       const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
       activeCell.innerHTML = html;
+      console.log("Saving:", {
+        year: form.year.value,
+        month: form.month.value,
+        date: form.date.value,
+        name: form.name.value,
+        action: form.action.value
+      });
       form.submit();
       closePopup();
       localStorage.setItem('savedMonth', monthSel.value);
@@ -398,6 +405,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
