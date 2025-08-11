@@ -343,36 +343,69 @@ function init() {
       //location.reload();
     }
 
-    function deleteData() {
-      if (!confirm("Delete?")) return;
+function deleteData() {
+  if (!confirm("Delete?")) return;
+
+  const formData = new FormData();
+  formData.set("year", yearSel.value);
+  formData.set("month", monthSel.value);
+  formData.set("date", activeCell.dataset.day);
+  formData.set("name", activeCell.dataset.name);
+  formData.set("type", popupType.value);
+  formData.set("time", popupTime.value);
+  formData.set("datail", "");
+  formData.set("action", "delete");
+
+  activeCell.innerHTML = "";
+  closePopup();
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
+
+  fetch(document.getElementById("submitForm").action, {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.text())
+  .then(responseText => {
+    console.log("Server Response:", responseText);
+    location.reload(); // ✅ Reload หลังจาก server ตอบกลับแล้ว
+  })
+  .catch(err => {
+    console.error("Error:", err);
+    alert("ลบไม่สำเร็จ");
+  });
+}
+    
+    // function deleteData() {
+    //   if (!confirm("Delete?")) return;
       
-      const form = document.getElementById("submitForm");
-      form.year.value = yearSel.value;
-      form.month.value = monthSel.value;
-      form.date.value = activeCell.dataset.day;
-      form.name.value = activeCell.dataset.name;
-      form.type.value = popupType.value;
-      form.time.value = popupTime.value;
-      form.datail.value = "";
-      form.action.value = "delete";
+    //   const form = document.getElementById("submitForm");
+    //   form.year.value = yearSel.value;
+    //   form.month.value = monthSel.value;
+    //   form.date.value = activeCell.dataset.day;
+    //   form.name.value = activeCell.dataset.name;
+    //   form.type.value = popupType.value;
+    //   form.time.value = popupTime.value;
+    //   form.datail.value = "";
+    //   form.action.value = "delete";
 
-      activeCell.innerHTML = "";
-      console.log("Deleting:", {
-        year: form.year.value,
-        month: form.month.value,
-        date: form.date.value,
-        name: form.name.value,
-        action: form.action.value
-      });
-      form.submit();
-      closePopup();
+    //   activeCell.innerHTML = "";
+    //   console.log("Deleting:", {
+    //     year: form.year.value,
+    //     month: form.month.value,
+    //     date: form.date.value,
+    //     name: form.name.value,
+    //     action: form.action.value
+    //   });
+    //   form.submit();
+    //   closePopup();
 
-       // ✅ เก็บเดือนปีไว้ก่อน reload
-      localStorage.setItem('savedMonth', monthSel.value);
-      localStorage.setItem('savedYear', yearSel.value);
-      setTimeout(() => location.reload(), 3500);
-      //location.reload();
-    }
+    //    // ✅ เก็บเดือนปีไว้ก่อน reload
+    //   localStorage.setItem('savedMonth', monthSel.value);
+    //   localStorage.setItem('savedYear', yearSel.value);
+    //   setTimeout(() => location.reload(), 3500);
+    //   //location.reload();
+    // }
 
     
 init();
@@ -380,6 +413,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
