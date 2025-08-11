@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>CS Calendar - LIFF Popup</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 1rem; }
+    label { display: block; margin-top: 10px; }
+    input, select { width: 100%; padding: 8px; margin-top: 4px; }
+    button { margin-top: 12px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #45a049; }
+  </style>
+</head>
+<body>
+  <h2>📅 บันทึกงานหลายวัน / หลายคน</h2>
+  <form id="saveForm">
+    <label>ชื่อ:
+      <select name="name" id="nameDropdown" multiple required>
+        <option value="">-- กำลังโหลด --</option>
+      </select>
+    </label>
+    <label>ปี: <input type="number" name="year" id="yearInput" required></label>
+    <label>เดือน: <input type="number" name="month" id="monthInput" required></label>
+    <label>วันที่:
+      <select name="date" id="dateSelect" multiple required>
+        <script>for (let i = 1; i <= 31; i++) document.write(`<option value="${i}">${i}</option>`);</script>
+      </select>
+    </label>
+    <label>ประเภทงาน:
+      <select name="type">
+        <option value="Service">Service</option>
+        <option value="Meeting">Meeting</option>
+        <option value="Inspection">Inspection</option>
+        <option value="Training">Training</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Holiday">Holiday</option>
+        <option value="Leave">Leave</option>
+        <option value="SafetyHealth">SafetyHealth</option>
+        <option value="Other">Other</option>
+      </select>
+    </label>
+    <label>ลูกค้า: <input type="text" name="customer"></label>
+    <label>เวลา: <input type="text" name="time"></label>
+    <label>รายละเอียด: <input type="text" name="datail"></label>
+    <label>สถานที่: <input type="text" name="place"></label>
+    <label>ผู้รับผิดชอบ: <input type="text" name="jobowner"></label>
+    <label>ประเภทค่าใช้จ่าย:
+      <select name="charge">
+        <option value="Nocharge">Nocharge</option>
+        <option value="Charge">Charge</option>
+        <option value="Warranty">Warranty</option>
+        <option value="Sales">Sales</option>
+        <option value="Other">Other</option>
+      </select>
+    </label>
+    <input type="hidden" name="action" value="save">
+    <button type="submit">บันทึกงาน</button>
+  </form>
+
+  <div id="result"></div>
+
+  <script>
+    const GOOGLE_SHEET_NAMES_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec';
+    const SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec';
+
+    async function loadNames() {
+      try {
+        const res = await fetch(GOOGLE_SHEET_NAMES_URL);
+        const names = await res.json();
+        const dropdown = document.getElementById('nameDropdown');
+        dropdown.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+      } catch (err) {
+        console.error("Error loading names:", err);
+        alert("ไม่สามารถโหลดรายชื่อได้");
+      }
+    }
+
+    // ตั้งค่าวันเดือนปีปัจจุบัน
+    const now = new Date();
+    document.getElementById('yearInput').value = now.getFullYear();
+    document.getElementById('monthInput').value = now.getMonth() + 1;
+
+    document.getElementById('saveForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = "กำลังบันทึก...";
+
+      const form = new FormData(this);
+      const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
+      const dates = Array.from(document.getElementById("dateSelect").selectedOptions).map(opt => opt.value);
+
+      let count = 0;
+      for (const name of names) {
+        for (const date of dates) {
+          const copy = new FormData();
+          for (let [key, val] of form.entries()) {
+            copy.append(key, val);
+          }
+          copy.set("name", name);
+          copy.set("date", date);
+
+          await fetch(SUBMIT_URL, {
+            method: 'POST',
+            body: copy
+          });
+
+          count++;
+        }
+      }
+
+      document.getElementById("result").textContent = `✅ บันทึกงาน ${count} รายการเรียบร้อย`;
+      if (liff && liff.closeWindow) liff.closeWindow();
+ 
+      // ✅ เปิดปุ่มอีกครั้ง
+      submitBtn.disabled = false;
+      submitBtn.textContent = "บันทึกงาน";
+    });
+
+    loadNames();
+  </script>
+</body>
+</html>
