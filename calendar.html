@@ -373,13 +373,14 @@ function init() {
         name: form.name.value,
         action: form.action.value
       });
-      form.submit();
+      //form.submit();
       closePopup();
 
        // ✅ เก็บเดือนปีไว้ก่อน reload
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      setTimeout(() => location.reload(), 3500);
+      submitAndWait();   // <<<
+      //setTimeout(() => location.reload(), 3500);
       //location.reload();
     }
 
@@ -399,12 +400,22 @@ function init() {
     }
   });
 
+  function submitAndWait() {
+  const iframe = document.getElementById('hidden_frame');
+  // รอให้ Apps Script โหลดเสร็จ (response กลับเข้า iframe)
+  iframe.onload = () => {
+    iframe.onload = null;          // กัน onload ยิงซ้ำ
+    location.reload();             // ค่อยรีเฟรชหลังสคริปต์ทำเสร็จ
+  };
+  document.getElementById('submitForm').submit();
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
