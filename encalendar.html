@@ -41,10 +41,18 @@
       background: rgba(0,0,0,0.4); z-index: 998;
     }
     .modal {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: white; border: 1px solid #ccc; padding: 20px; z-index: 999;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      width: 300px; border-radius: 8px;
+      position: fixed;
+      top: 10%; 
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 999;
+      width: 300px;
+      border-radius: 8px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     .modal h3 { margin-top: 0; text-align: center; }
     .modal label { display: block; margin-top: 10px; font-weight: bold; }
@@ -59,6 +67,7 @@
     .modal button:nth-child(1) { background: #4CAF50; color: white; }
     .modal button:nth-child(2) { background: #f44336; color: white; }
     .modal button:nth-child(3) { background: #bbb; }
+    .selected-row td {background: #fff4b3 !important; }   /* เหลืองอ่อน */
   </style>
 </head>
 <body>
@@ -72,7 +81,7 @@
     </table>
   </div>
 
-  <iframe name="hidden_frame" style="display:none;"></iframe>
+  <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
   <form id="submitForm" action="https://script.google.com/macros/s/AKfycbyrKQWIeTa4Doy6Z5nIgonCz269icXUiSIINolqHasyKtbp1o5d0JSYYfyaVXpmxI-IMQ/exec" method="POST" target="hidden_frame">
     <input type="hidden" name="year">
     <input type="hidden" name="month">
@@ -277,7 +286,8 @@ function init() {
       closePopup();
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      setTimeout(() => location.reload(), 3000);
+      submitAndWait();   // <<<
+      //setTimeout(() => location.reload(), 3000);
       //location.reload();
     }
 
@@ -302,15 +312,47 @@ function init() {
         name: form.name.value,
         action: form.action.value
       });
-      form.submit();
+      //form.submit();
       closePopup();
 
        // ✅ เก็บเดือนปีไว้ก่อน reload
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      setTimeout(() => location.reload(), 3000);
+      submitAndWait();   // <<<
+      //setTimeout(() => location.reload(), 3000);
       //location.reload();
     }
+
+      // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
+  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+    const td = e.target.closest('td');
+    if (!td) return;
+    // เฉพาะคอลัมน์แรก (ช่องชื่อ)
+    if (td.cellIndex === 0) {
+      const tr = td.parentElement;
+      // ลบไฮไลท์เดิม
+      document
+        .querySelectorAll('#calendar-table tbody tr.selected-row')
+        .forEach(r => r.classList.remove('selected-row'));
+      // ใส่ไฮไลท์ใหม่
+      tr.classList.add('selected-row');
+    }
+  });
+
+   function submitAndWait() {
+    const iframe = document.getElementById('hidden_frame'); // ตอนนี้จะไม่เป็น null แล้ว
+    if (!iframe) { 
+      // กันพลาด ถ้ายังหาไม่เจอให้ fallback เป็นรีโหลดแบบเดิม
+      document.getElementById('submitForm').submit();
+      setTimeout(() => location.reload(), 2000);
+      return;
+    }
+    iframe.onload = () => {
+      iframe.onload = null;      // กันยิงซ้ำ
+      location.reload();         // รีเฟรชหลัง Apps Script ตอบกลับ
+    };
+    document.getElementById('submitForm').submit();
+  }
 
 init();
   </script>
