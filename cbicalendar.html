@@ -64,6 +64,7 @@
     .modal button:nth-child(1) { background: #4CAF50; color: white; }
     .modal button:nth-child(2) { background: #f44336; color: white; }
     .modal button:nth-child(3) { background: #bbb; }
+    .selected-row td {background: #fff4b3 !important; }   /* เหลืองอ่อน */
   </style>
 </head>
 <body>
@@ -372,6 +373,22 @@ function init() {
       setTimeout(() => location.reload(), 3500);
       //location.reload();
     }
+
+      // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
+  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+    const td = e.target.closest('td');
+    if (!td) return;
+    // เฉพาะคอลัมน์แรก (ช่องชื่อ)
+    if (td.cellIndex === 0) {
+      const tr = td.parentElement;
+      // ลบไฮไลท์เดิม
+      document
+        .querySelectorAll('#calendar-table tbody tr.selected-row')
+        .forEach(r => r.classList.remove('selected-row'));
+      // ใส่ไฮไลท์ใหม่
+      tr.classList.add('selected-row');
+    }
+  });
 
 init();
   </script>
