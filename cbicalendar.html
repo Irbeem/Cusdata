@@ -68,6 +68,18 @@
 </head>
 <body>
   <h2>CS CBI Calendar
+  <a href="https://irbeem.github.io/Cusdata/cbibooking.html" style="
+  display: inline-block;
+  margin: 10px 0;
+  padding: 8px 16px;
+  background-color: #1976d2;
+  color: white;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  ">
+  🗓️ Multiple booking
+  </a>
   <!-- 🔗 ปุ่มลิงก์ไปยังเว็บไซต์อื่น -->
   <a href="https://irbeem.github.io/Cusdata/calendar.html" style="
   display: inline-block;
@@ -82,8 +94,8 @@
   🔄 To BKK calendar
   </a>
   </h2>
-  <label>Month: <select id="month" onchange="renderTable()"></select></label>
-  <label>Year: <select id="year" onchange="renderTable()"></select></label>
+  <label style="font-size:20px;">Month: <select id="month" onchange="renderTable()" style="font-size:20px; padding:8px;"></select></label>
+  <label style="font-size:20px;"> Year: <select id="year" onchange="renderTable()" style="font-size:20px; padding:8px;"></select></label>
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
