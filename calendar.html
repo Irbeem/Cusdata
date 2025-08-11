@@ -400,21 +400,27 @@ function init() {
     }
   });
 
-  function submitAndWait() {
-  const iframe = document.getElementById('hidden_frame');
-  // รอให้ Apps Script โหลดเสร็จ (response กลับเข้า iframe)
-  iframe.onload = () => {
-    iframe.onload = null;          // กัน onload ยิงซ้ำ
-    location.reload();             // ค่อยรีเฟรชหลังสคริปต์ทำเสร็จ
-  };
-  document.getElementById('submitForm').submit();
-}
+ function submitAndWait() {
+    const iframe = document.getElementById('hidden_frame'); // ตอนนี้จะไม่เป็น null แล้ว
+    if (!iframe) { 
+      // กันพลาด ถ้ายังหาไม่เจอให้ fallback เป็นรีโหลดแบบเดิม
+      document.getElementById('submitForm').submit();
+      setTimeout(() => location.reload(), 2000);
+      return;
+    }
+    iframe.onload = () => {
+      iframe.onload = null;      // กันยิงซ้ำ
+      location.reload();         // รีเฟรชหลัง Apps Script ตอบกลับ
+    };
+    document.getElementById('submitForm').submit();
+  }
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
