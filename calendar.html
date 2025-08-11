@@ -344,94 +344,43 @@ function init() {
     }
 
    
-    // function deleteData() {
-    //   if (!confirm("Delete?")) return;
+    function deleteData() {
+      if (!confirm("Delete?")) return;
       
-    //   const form = document.getElementById("submitForm");
-    //   form.year.value = yearSel.value;
-    //   form.month.value = monthSel.value;
-    //   form.date.value = activeCell.dataset.day;
-    //   form.name.value = activeCell.dataset.name;
-    //   form.type.value = popupType.value;
-    //   form.time.value = popupTime.value;
-    //   form.datail.value = "";
-    //   form.action.value = "delete";
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value;
+      form.month.value = monthSel.value;
+      form.date.value = activeCell.dataset.day;
+      form.name.value = activeCell.dataset.name;
+      form.type.value = popupType.value;
+      form.time.value = popupTime.value;
+      form.datail.value = "";
+      form.action.value = "delete";
 
-    //   activeCell.innerHTML = "";
-    //   console.log("Deleting:", {
-    //     year: form.year.value,
-    //     month: form.month.value,
-    //     date: form.date.value,
-    //     name: form.name.value,
-    //     action: form.action.value
-    //   });
-    //   form.submit();
-    //   closePopup();
+      activeCell.innerHTML = "";
+      console.log("Deleting:", {
+        year: form.year.value,
+        month: form.month.value,
+        date: form.date.value,
+        name: form.name.value,
+        action: form.action.value
+      });
+      form.submit();
+      closePopup();
 
-    //    // ✅ เก็บเดือนปีไว้ก่อน reload
-    //   localStorage.setItem('savedMonth', monthSel.value);
-    //   localStorage.setItem('savedYear', yearSel.value);
-    //   setTimeout(() => location.reload(), 3500);
-    //   //location.reload();
-    // }
-
-  const WEBAPP_URL = document.getElementById("submitForm").action;
-
-  // helper: แปลง object -> x-www-form-urlencoded
-  function toFormUrlEncoded(obj) {
-    return Object.entries(obj)
-      .map(([k,v]) => encodeURIComponent(k) + '=' + encodeURIComponent(v ?? ''))
-      .join('&');
-  }
-
-  async function postAndWait(params) {
-    const res = await fetch(WEBAPP_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      body: toFormUrlEncoded(params)
-    });
-    return res.text(); // GAS ตอบเป็น text เช่น "Saved" / "Deleted"
-  }
-
-async function deleteData() {
-    if (!confirm('Delete?')) return;
-
-    const params = {
-      year: yearSel.value,
-      month: monthSel.value,
-      date: activeCell.dataset.day,
-      name: activeCell.dataset.name,
-      type: popupType.value,   // ใส่ไปเผื่อฝั่ง GAS ใช้จับคู่
-      time: popupTime.value,
-      datail: '',
-      action: 'delete'
-    };
-
-    activeCell.innerHTML = '';
-    closePopup();
-    localStorage.setItem('savedMonth', monthSel.value);
-    localStorage.setItem('savedYear', yearSel.value);
-
-    try {
-      const txt = await postAndWait(params);
-      console.log('Server:', txt);
-      if (txt.includes('Deleted')) {
-        location.reload();
-      } else {
-        alert('ลบไม่สำเร็จ: ' + txt);
-      }
-    } catch (err) {
-      console.error(err);
-      alert('เกิดข้อผิดพลาดในการลบ');
+       // ✅ เก็บเดือนปีไว้ก่อน reload
+      localStorage.setItem('savedMonth', monthSel.value);
+      localStorage.setItem('savedYear', yearSel.value);
+      setTimeout(() => location.reload(), 3500);
+      //location.reload();
     }
-  }
-   
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
