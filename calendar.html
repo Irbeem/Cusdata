@@ -343,11 +343,12 @@ function init() {
         name: form.name.value,
         action: form.action.value
       });
-      form.submit();
+      //form.submit();
       closePopup();
       localStorage.setItem('savedMonth', monthSel.value);
       localStorage.setItem('savedYear', yearSel.value);
-      setTimeout(() => location.reload(), 3500);
+      submitAndWait();   // <<<
+      //setTimeout(() => location.reload(), 3500);
       //location.reload();
     }
 
@@ -420,6 +421,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
