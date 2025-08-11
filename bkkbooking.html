@@ -119,6 +119,7 @@
       // ✅ เปิดปุ่มอีกครั้ง
       submitBtn.disabled = false;
       submitBtn.textContent = "บันทึกงาน";
+      setTimeout(() => location.reload(), 1500);
     });
 
     loadNames();
