@@ -46,10 +46,18 @@
       background: rgba(0,0,0,0.4); z-index: 998;
     }
     .modal {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: white; border: 1px solid #ccc; padding: 20px; z-index: 999;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-      width: 300px; border-radius: 8px;
+      position: fixed;
+      top: 10%; 
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      z-index: 999;
+      width: 300px;
+      border-radius: 8px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     .modal h3 { margin-top: 0; text-align: center; }
     .modal label { display: block; margin-top: 10px; font-weight: bold; }
@@ -421,6 +429,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
