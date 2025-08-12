@@ -23,6 +23,7 @@
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
+    .Standby { background: #009688; color: white; }
     .Training { background: #2a36b1; color: white; }
     .Inspection { background: #00bcd4; color: white; }
     .TrainingSafety { background: #259b24; color: white; }
@@ -138,6 +139,7 @@
     <label>Job Type:
       <select id="popupType">
         <option value="Service">Service</option>
+        <option value="Standby">Standby</option>
         <option value="Meeting">Meeting</option>
         <option value="Inspection">Inspection</option>
         <option value="Telephone">Telephone</option>
@@ -311,7 +313,7 @@ function init() {
     
     // 🔄 เตรียมข้อมูลตาราง
     const dataMap = {};
-    const summary = { Service: 0, Meeting: 0, Telephone: 0, Training: 0,TrainingSafety: 0, Inspection: 0, Warranty: 0, Sales: 0,Leave: 0, SafetyHealth: 0, Other: 0 };
+    const summary = { Service: 0, Standby: 0, Meeting: 0, Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0, Warranty: 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
     allNames.forEach(name => dataMap[name] = {});
     allData.forEach(d => {
       if (+d.year === year && +d.month === month) {
@@ -553,6 +555,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
