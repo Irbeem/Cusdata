@@ -161,6 +161,16 @@
     <button type="button" onclick="closePopup()">Cancel</button>
   </div>
 
+  <!-- Modal อ่านรายละเอียด (detailModal)12/8/25 -->
+  <div class="modal" id="detailModal">
+    <h3>รายละเอียดงาน</h3>
+    <div id="detailContent"></div>
+    <div style="margin-top:12px;">
+      <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
+      <button type="button" onclick="closeDetails()">Close</button>
+    </div>
+  </div>
+
   <script>
     let names = [], allData = [];
     let activeCell = null;
@@ -182,52 +192,95 @@
     const popupPlace = document.getElementById("popupPlace");
     const popupJobowner = document.getElementById("popupJobowner");
     const popupCharge = document.getElementById("popupCharge");
+
+    const LONG_PRESS_MS = 600; // หน่วง 0.6s ถือเป็นแตะค้าง 12/8/25
+    let longPressTimer = null;
+    let touchMoved = false;
     
-function init() {
-  const now = new Date();
-
-  // ✅ ดึงค่าจาก localStorage ถ้ามี
-  const savedMonth = parseInt(localStorage.getItem('savedMonth'));
-  const savedYear = parseInt(localStorage.getItem('savedYear'));
-
-  // ✅ fallback ถ้าไม่มี หรือเป็น NaN
-  const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
-  const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
-
-  // สร้าง dropdown เดือน
-  for (let i = 1; i <= 12; i++) {
-    const opt = new Option(i, i);
-    if (i === defaultMonth) opt.selected = true;
-    monthSel.add(opt);
-  }
-
-  // สร้าง dropdown ปี
-  for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
-    const opt = new Option(y, y);
-    if (y === defaultYear) opt.selected = true;
-    yearSel.add(opt);
-  }
-
-      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-
-      Promise.all([
-        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
-      ])
-      .then(([namesTxt, dataTxt]) => {
-        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
-        //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
-        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
-        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
-        const cols = dataJson.table.cols.map(c => c.label);
-        allData = dataJson.table.rows.map(r => {
-          const o = {};
-          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
-          return o;
-        });
-
-        renderTable();
+    function handleTouchStart(e) {
+      // เป้าหมายคือ <td>
+      const td = e.currentTarget;
+      touchMoved = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => {
+        // แตะค้างสำเร็จ => เปิดแก้ไขทันที
+        openPopup(td);
+      }, LONG_PRESS_MS);
+    }
+    
+    function handleTouchMove() {
+      // มีการเลื่อน => ยกเลิก long press
+      touchMoved = true;
+      clearTimeout(longPressTimer);
+    }
+    
+    function handleTouchEnd() {
+      // ปล่อยนิ้ว -> ยกเลิกตัวจับเวลา (แตะปกติยังคงทำงานผ่าน onclick/cellClick เดิม)
+      clearTimeout(longPressTimer);
+    }
+    
+    function handleContextMenu(e) {
+      // คลิกขวาเปิดแก้ไขทันที (เดสก์ท็อป)
+      e.preventDefault();
+      const td = e.currentTarget;
+      openPopup(td);
+    }
+    
+    function attachHandlersToCells() {
+      // ผูก event ให้ทุกเซลล์ (ยกเว้น header)
+      document.querySelectorAll('#calendar-table tbody td').forEach(td => {
+        td.addEventListener('touchstart', handleTouchStart, { passive: true });
+        td.addEventListener('touchmove', handleTouchMove, { passive: true });
+        td.addEventListener('touchend', handleTouchEnd);
+        td.addEventListener('contextmenu', handleContextMenu);
       });
+    }
+    
+    function init() {
+    const now = new Date();
+  
+    // ✅ ดึงค่าจาก localStorage ถ้ามี
+    const savedMonth = parseInt(localStorage.getItem('savedMonth'));
+    const savedYear = parseInt(localStorage.getItem('savedYear'));
+  
+    // ✅ fallback ถ้าไม่มี หรือเป็น NaN
+    const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
+    const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
+  
+    // สร้าง dropdown เดือน
+    for (let i = 1; i <= 12; i++) {
+      const opt = new Option(i, i);
+      if (i === defaultMonth) opt.selected = true;
+      monthSel.add(opt);
+    }
+  
+    // สร้าง dropdown ปี
+    for (let y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
+      const opt = new Option(y, y);
+      if (y === defaultYear) opt.selected = true;
+      yearSel.add(opt);
+    }
+  
+        const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  
+        Promise.all([
+          fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+          fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+        ])
+        .then(([namesTxt, dataTxt]) => {
+          const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+          //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
+          names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
+          const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+          const cols = dataJson.table.cols.map(c => c.label);
+          allData = dataJson.table.rows.map(r => {
+            const o = {};
+            r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+            return o;
+          });
+  
+          renderTable();
+        });
     }
 
     function renderTable() {
@@ -386,36 +439,105 @@ function init() {
       //location.reload();
     }
 
-  // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
-  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-    const td = e.target.closest('td');
-    if (!td) return;
-    // เฉพาะคอลัมน์แรก (ช่องชื่อ)
-    if (td.cellIndex === 0) {
-      const tr = td.parentElement;
-      // ลบไฮไลท์เดิม
-      document
-        .querySelectorAll('#calendar-table tbody tr.selected-row')
-        .forEach(r => r.classList.remove('selected-row'));
-      // ใส่ไฮไลท์ใหม่
-      tr.classList.add('selected-row');
-    }
-  });
+      // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
+      document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+        const td = e.target.closest('td');
+        if (!td) return;
+        // เฉพาะคอลัมน์แรก (ช่องชื่อ)
+        if (td.cellIndex === 0) {
+          const tr = td.parentElement;
+          // ลบไฮไลท์เดิม
+          document
+            .querySelectorAll('#calendar-table tbody tr.selected-row')
+            .forEach(r => r.classList.remove('selected-row'));
+          // ใส่ไฮไลท์ใหม่
+          tr.classList.add('selected-row');
+        }
+      });
 
- function submitAndWait() {
-    const iframe = document.getElementById('hidden_frame'); // ตอนนี้จะไม่เป็น null แล้ว
-    if (!iframe) { 
-      // กันพลาด ถ้ายังหาไม่เจอให้ fallback เป็นรีโหลดแบบเดิม
-      document.getElementById('submitForm').submit();
-      setTimeout(() => location.reload(), 2000);
-      return;
+     function submitAndWait() {
+        const iframe = document.getElementById('hidden_frame'); // ตอนนี้จะไม่เป็น null แล้ว
+        if (!iframe) { 
+          // กันพลาด ถ้ายังหาไม่เจอให้ fallback เป็นรีโหลดแบบเดิม
+          document.getElementById('submitForm').submit();
+          setTimeout(() => location.reload(), 2000);
+          return;
+        }
+        iframe.onload = () => {
+          iframe.onload = null;      // กันยิงซ้ำ
+          location.reload();         // รีเฟรชหลัง Apps Script ตอบกลับ
+        };
+        document.getElementById('submitForm').submit();
+      }
+
+    function cellClick(td) {
+      activeCell = td;
+      // ตรวจสอบว่ามีงานในช่องนี้ไหม (ค้นจาก allData)
+      const year = +yearSel.value;
+      const month = +monthSel.value;
+      const day = +td.dataset.day;
+      const name = td.dataset.name;
+    
+      const items = allData.filter(d =>
+        +d.year === year && +d.month === month && +d.date === day && String(d.name) === String(name)
+      );
+    
+      if (items.length > 0) {
+        // ถ้ามีงาน -> แสดงรายละเอียด
+        showDetails(items, { name, day, month, year });
+      } else {
+        // ไม่มีงาน -> เปิด popup ใส่ข้อมูลใหม่เลย
+        openPopup(td);
+      }
     }
-    iframe.onload = () => {
-      iframe.onload = null;      // กันยิงซ้ำ
-      location.reload();         // รีเฟรชหลัง Apps Script ตอบกลับ
-    };
-    document.getElementById('submitForm').submit();
-  }
+    
+    function showDetails(items, meta) {
+      const box = document.getElementById('detailContent');
+      // สร้าง HTML รายการงานทั้งหมดในวันนั้นของคนนั้น
+      const html = items.map((d, i) => {
+        const lines = [
+          `<b>${i+1}. ${d.type || '-'}</b>`,
+          d.customer ? `Customer: ${d.customer}` : '',
+          d.time ? `Time: ${d.time}` : '',
+          d.datail ? `Detail: ${d.datail}` : '',
+          d.place ? `Place: ${d.place}` : '',
+          d.jobowner ? `Job Owner: ${d.jobowner}` : '',
+          d.charge ? `Charge: ${d.charge}` : ''
+        ].filter(Boolean);
+        return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
+      }).join('') || '<i>No detail</i>';
+    
+      box.innerHTML = `
+        <div style="margin-bottom:6px;color:#555">
+          👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}
+        </div>
+        ${html}
+      `;
+    
+      // เปิด modal รายละเอียด
+      overlay.classList.add("active");
+      document.getElementById('detailModal').classList.add('active');
+    }
+    
+    function closeDetails() {
+      document.getElementById('detailModal').classList.remove('active');
+      overlay.classList.remove("active");
+    }
+    
+    // จากหน้ารายละเอียด กด "เพิ่ม/แก้ไข" เพื่อไปหน้า popup เดิม
+    function openEditFromDetail() {
+      // ปิด modal รายละเอียดก่อน
+      document.getElementById('detailModal').classList.remove('active');
+    
+      // เปิด popup เดิม โดยใช้ activeCell ที่เลือกไว้ล่าสุด
+      if (activeCell) {
+        openPopup(activeCell);
+      } else {
+        // เผื่อกรณีพิเศษ
+        overlay.classList.remove("active");
+      }
+    }
+    
 init();
   </script>
 </body>
