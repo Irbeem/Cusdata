@@ -170,6 +170,16 @@
     <button type="button" onclick="closePopup()">Cancel</button>
   </div>
 
+  <!-- Modal อ่านรายละเอียด (detailModal) -->
+<div class="modal" id="detailModal">
+  <h3>รายละเอียดงาน</h3>
+  <div id="detailContent"></div>
+  <div style="margin-top:12px;">
+    <button type="button" onclick="openEditFromDetail()">เพิ่ม/แก้ไข</button>
+    <button type="button" onclick="closeDetails()">ปิด</button>
+  </div>
+</div>
+
   <script>
     let names = [], allData = [];
     let activeCell = null;
@@ -191,6 +201,49 @@
     const popupPlace = document.getElementById("popupPlace");
     const popupJobowner = document.getElementById("popupJobowner");
     const popupCharge = document.getElementById("popupCharge");
+
+const LONG_PRESS_MS = 600; // หน่วง 0.6s ถือเป็นแตะค้าง
+let longPressTimer = null;
+let touchMoved = false;
+
+function handleTouchStart(e) {
+  // เป้าหมายคือ <td>
+  const td = e.currentTarget;
+  touchMoved = false;
+  clearTimeout(longPressTimer);
+  longPressTimer = setTimeout(() => {
+    // แตะค้างสำเร็จ => เปิดแก้ไขทันที
+    openPopup(td);
+  }, LONG_PRESS_MS);
+}
+
+function handleTouchMove() {
+  // มีการเลื่อน => ยกเลิก long press
+  touchMoved = true;
+  clearTimeout(longPressTimer);
+}
+
+function handleTouchEnd() {
+  // ปล่อยนิ้ว -> ยกเลิกตัวจับเวลา (แตะปกติยังคงทำงานผ่าน onclick/cellClick เดิม)
+  clearTimeout(longPressTimer);
+}
+
+function handleContextMenu(e) {
+  // คลิกขวาเปิดแก้ไขทันที (เดสก์ท็อป)
+  e.preventDefault();
+  const td = e.currentTarget;
+  openPopup(td);
+}
+
+function attachHandlersToCells() {
+  // ผูก event ให้ทุกเซลล์ (ยกเว้น header)
+  document.querySelectorAll('#calendar-table tbody td').forEach(td => {
+    td.addEventListener('touchstart', handleTouchStart, { passive: true });
+    td.addEventListener('touchmove', handleTouchMove, { passive: true });
+    td.addEventListener('touchend', handleTouchEnd);
+    td.addEventListener('contextmenu', handleContextMenu);
+  });
+}
     
 function init() {
   const now = new Date();
@@ -286,7 +339,8 @@ function init() {
       const row = [`<td>${name}</td>`];
       for (let d = 1; d <= days; d++) {
         const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
       }
       return `<tr>${row.join('')}</tr>`;
     }).join('');
@@ -425,12 +479,81 @@ function init() {
     };
     document.getElementById('submitForm').submit();
   }
+
+  function cellClick(td) {
+  activeCell = td;
+  // ตรวจสอบว่ามีงานในช่องนี้ไหม (ค้นจาก allData)
+  const year = +yearSel.value;
+  const month = +monthSel.value;
+  const day = +td.dataset.day;
+  const name = td.dataset.name;
+
+  const items = allData.filter(d =>
+    +d.year === year && +d.month === month && +d.date === day && String(d.name) === String(name)
+  );
+
+  if (items.length > 0) {
+    // ถ้ามีงาน -> แสดงรายละเอียด
+    showDetails(items, { name, day, month, year });
+  } else {
+    // ไม่มีงาน -> เปิด popup ใส่ข้อมูลใหม่เลย
+    openPopup(td);
+  }
+}
+
+function showDetails(items, meta) {
+  const box = document.getElementById('detailContent');
+  // สร้าง HTML รายการงานทั้งหมดในวันนั้นของคนนั้น
+  const html = items.map((d, i) => {
+    const lines = [
+      `<b>${i+1}. ${d.type || '-'}</b>`,
+      d.customer ? `ลูกค้า: ${d.customer}` : '',
+      d.time ? `เวลา: ${d.time}` : '',
+      d.datail ? `รายละเอียด: ${d.datail}` : '',
+      d.place ? `สถานที่: ${d.place}` : '',
+      d.jobowner ? `ผู้รับผิดชอบ: ${d.jobowner}` : '',
+      d.charge ? `ค่าใช้จ่าย: ${d.charge}` : ''
+    ].filter(Boolean);
+    return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
+  }).join('') || '<i>ไม่มีรายละเอียด</i>';
+
+  box.innerHTML = `
+    <div style="margin-bottom:6px;color:#555">
+      👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}
+    </div>
+    ${html}
+  `;
+
+  // เปิด modal รายละเอียด
+  overlay.classList.add("active");
+  document.getElementById('detailModal').classList.add('active');
+}
+
+function closeDetails() {
+  document.getElementById('detailModal').classList.remove('active');
+  overlay.classList.remove("active");
+}
+
+// จากหน้ารายละเอียด กด "เพิ่ม/แก้ไข" เพื่อไปหน้า popup เดิม
+function openEditFromDetail() {
+  // ปิด modal รายละเอียดก่อน
+  document.getElementById('detailModal').classList.remove('active');
+
+  // เปิด popup เดิม โดยใช้ activeCell ที่เลือกไว้ล่าสุด
+  if (activeCell) {
+    openPopup(activeCell);
+  } else {
+    // เผื่อกรณีพิเศษ
+    overlay.classList.remove("active");
+  }
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
