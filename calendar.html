@@ -175,8 +175,8 @@
   <h3>รายละเอียดงาน</h3>
   <div id="detailContent"></div>
   <div style="margin-top:12px;">
-    <button type="button" onclick="openEditFromDetail()">เพิ่ม/แก้ไข</button>
-    <button type="button" onclick="closeDetails()">ปิด</button>
+    <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
+    <button type="button" onclick="closeDetails()">Close</button>
   </div>
 </div>
 
@@ -507,15 +507,15 @@ function showDetails(items, meta) {
   const html = items.map((d, i) => {
     const lines = [
       `<b>${i+1}. ${d.type || '-'}</b>`,
-      d.customer ? `ลูกค้า: ${d.customer}` : '',
-      d.time ? `เวลา: ${d.time}` : '',
-      d.datail ? `รายละเอียด: ${d.datail}` : '',
-      d.place ? `สถานที่: ${d.place}` : '',
-      d.jobowner ? `ผู้รับผิดชอบ: ${d.jobowner}` : '',
-      d.charge ? `ค่าใช้จ่าย: ${d.charge}` : ''
+      d.customer ? `Customer: ${d.customer}` : '',
+      d.time ? `Time: ${d.time}` : '',
+      d.datail ? `Detail: ${d.datail}` : '',
+      d.place ? `Place: ${d.place}` : '',
+      d.jobowner ? `Job Owner: ${d.jobowner}` : '',
+      d.charge ? `Charge: ${d.charge}` : ''
     ].filter(Boolean);
     return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
-  }).join('') || '<i>ไม่มีรายละเอียด</i>';
+  }).join('') || '<i>No detail</i>';
 
   box.innerHTML = `
     <div style="margin-bottom:6px;color:#555">
@@ -553,6 +553,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
