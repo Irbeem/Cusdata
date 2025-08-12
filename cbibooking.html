@@ -15,14 +15,14 @@
 <body>
   <h2>📅 บันทึกงานหลายวัน / หลายคน  (Multiple booking)</h2>
   <form id="saveForm">
-    <label>Name:
+    <label>Name:   (On PC push Ctrl + Name  for multiple select)
       <select name="name" id="nameDropdown" multiple required>
         <option value="">-- กำลังโหลด --</option>
       </select>
     </label>
     <label>Year: <input type="number" name="year" id="yearInput" required></label>
     <label>Month: <input type="number" name="month" id="monthInput" required></label>
-    <label>Date:
+    <label>Date:   (On PC push Ctrl + Date  for multiple select)
       <select name="date" id="dateSelect" multiple required>
         <script>for (let i = 1; i <= 31; i++) document.write(`<option value="${i}">${i}</option>`);</script>
       </select>
