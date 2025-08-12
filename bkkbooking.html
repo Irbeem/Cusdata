@@ -13,21 +13,21 @@
   </style>
 </head>
 <body>
-  <h2>📅 บันทึกงานหลายวัน / หลายคน</h2>
+  <h2>📅 บันทึกงานหลายวัน / หลายคน (Multiple booking)</h2>
   <form id="saveForm">
-    <label>ชื่อ:
+    <label>Name:
       <select name="name" id="nameDropdown" multiple required>
         <option value="">-- กำลังโหลด --</option>
       </select>
     </label>
-    <label>ปี: <input type="number" name="year" id="yearInput" required></label>
-    <label>เดือน: <input type="number" name="month" id="monthInput" required></label>
-    <label>วันที่:
+    <label>Year: <input type="number" name="year" id="yearInput" required></label>
+    <label>Month: <input type="number" name="month" id="monthInput" required></label>
+    <label>Date:
       <select name="date" id="dateSelect" multiple required>
         <script>for (let i = 1; i <= 31; i++) document.write(`<option value="${i}">${i}</option>`);</script>
       </select>
     </label>
-    <label>ประเภทงาน:
+    <label>Type:
       <select name="type">
         <option value="Service">Service</option>
         <option value="Meeting">Meeting</option>
@@ -42,12 +42,12 @@
         <option value="Other">Other</option>
       </select>
     </label>
-    <label>ลูกค้า: <input type="text" name="customer"></label>
-    <label>เวลา: <input type="text" name="time"></label>
-    <label>รายละเอียด: <input type="text" name="datail"></label>
-    <label>สถานที่: <input type="text" name="place"></label>
-    <label>ผู้รับผิดชอบ: <input type="text" name="jobowner"></label>
-    <label>ประเภทค่าใช้จ่าย:
+    <label>Customer: <input type="text" name="customer"></label>
+    <label>Time: <input type="text" name="time"></label>
+    <label>Detail: <input type="text" name="datail"></label>
+    <label>Place: <input type="text" name="place"></label>
+    <label>Job Owner: <input type="text" name="jobowner"></label>
+    <label>Charge:
       <select name="charge">
         <option value="Nocharge">Nocharge</option>
         <option value="Charge">Charge</option>
@@ -57,7 +57,7 @@
       </select>
     </label>
     <input type="hidden" name="action" value="save">
-    <button type="submit">บันทึกงาน</button>
+    <button type="submit">Save</button>
   </form>
 
   <div id="result"></div>
@@ -88,7 +88,7 @@
 
       const submitBtn = this.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      submitBtn.textContent = "กำลังบันทึก...";
+      submitBtn.textContent = "Saving...";
 
       const form = new FormData(this);
       const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
@@ -113,12 +113,12 @@
         }
       }
 
-      document.getElementById("result").textContent = `✅ บันทึกงาน ${count} รายการเรียบร้อย`;
+      document.getElementById("result").textContent = `✅ ${count} Job Saved`;
       if (liff && liff.closeWindow) liff.closeWindow();
  
       // ✅ เปิดปุ่มอีกครั้ง
       submitBtn.disabled = false;
-      submitBtn.textContent = "บันทึกงาน";
+      submitBtn.textContent = "Saved";
       setTimeout(() => location.reload(), 1500);
     });
 
