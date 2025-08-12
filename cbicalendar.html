@@ -330,7 +330,8 @@
       const row = [`<td>${name}</td>`];
       for (let d = 1; d <= days; d++) {
         const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
       }
       return `<tr>${row.join('')}</tr>`;
     }).join('');
