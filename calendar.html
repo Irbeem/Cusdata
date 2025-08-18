@@ -19,8 +19,8 @@
       vertical-align: middle;
     }
     td:first-child, th:first-child { position: sticky; left: 0; background: #f1f1f1; font-weight: bold;}
-    #calendar-table td:first-child { font-size: 20px; font-weight: bold; width: 180px;}
-    
+    <!#calendar-table td:first-child { font-size: 20px; font-weight: bold; width: 180px;}>
+    #calendar-table td:first-child { font-size: clamp(14px, 2vw, 20px);}
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
@@ -564,6 +564,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
