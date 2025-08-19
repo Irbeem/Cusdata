@@ -324,58 +324,56 @@ function attachHandlersToCells() {
 function init() {
   const now = new Date();
 
-  // ✅ ดึงค่าจาก localStorage ถ้ามี
   const savedMonth = parseInt(localStorage.getItem('savedMonth'));
   const savedYear = parseInt(localStorage.getItem('savedYear'));
 
-  // ✅ fallback ถ้าไม่มี หรือเป็น NaN
   const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
   const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
 
-  // สร้าง dropdown เดือน
   for (let i = 1; i <= 12; i++) {
     const opt = new Option(i, i);
     if (i === defaultMonth) opt.selected = true;
     monthSel.add(opt);
   }
 
-  // สร้าง dropdown ปี
   for (let y = 2025; y <= now.getFullYear() + 1; y++) {
     const opt = new Option(y, y);
     if (y === defaultYear) opt.selected = true;
     yearSel.add(opt);
   }
 
-      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-      Promise.all([
-        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
-        //fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
-      ])
-      .then(([namesTxt, dataTxt]) => {
-        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
-        //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
-        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
-        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
-        const cols = dataJson.table.cols.map(c => c.label);
-        allData = dataJson.table.rows.map(r => {
-          const o = {};
-          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
-          return o;
-        });
-        // const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
-        // specialHolidays = holidayJson.table.rows.map(r => {
-        //   return {
-        //     year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
-        //     month:  r.c[1]?.v,
-        //     date:   r.c[2]?.v,
-        //     detail: r.c[3]?.v || ''
-        //   };
-        // }).filter(h => h.month && h.date);
-        renderTable();
-      });
-    }
+  Promise.all([
+    fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text()) // ✅ เพิ่มเข้าไป
+  ])
+  .then(([namesTxt, dataTxt, holidayTxt]) => {
+    const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+    names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary");
+
+    const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+    const cols = dataJson.table.cols.map(c => c.label);
+    allData = dataJson.table.rows.map(r => {
+      const o = {};
+      r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+      return o;
+    });
+
+    const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+    specialHolidays = holidayJson.table.rows.map(r => {
+      return {
+        year:   r.c[0]?.v || '',
+        month:  r.c[1]?.v,
+        date:   r.c[2]?.v,
+        detail: r.c[3]?.v || ''
+      };
+    }).filter(h => h.month && h.date);
+
+    renderTable();
+  });
+}
 
   function renderTable() {
     const year = +yearSel.value;
@@ -446,6 +444,21 @@ function init() {
     // 🧠 เคลียร์ localStorage ที่ใช้จำเดือน/ปี
     localStorage.removeItem('savedMonth');
     localStorage.removeItem('savedYear');
+
+    specialHolidays.forEach(h => {
+    if (h.month === month && (!h.year || +h.year === year)) {
+      const idx = h.date;
+      // ✅ ไฮไลท์หัวตาราง
+      const th = thead.querySelector(`th[data-day="${idx}"]`);
+      if (th) th.classList.add("holiday", "special-holiday");
+  
+      // ✅ ไฮไลท์ทั้งคอลัมน์
+      tbody.querySelectorAll(`td[data-day="${idx}"]`).forEach(td => {
+        td.classList.add("holiday-col", "special-holiday");
+        });
+      }
+    });
+    
     highlightWeekendColumns();
   }
 
@@ -803,6 +816,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
