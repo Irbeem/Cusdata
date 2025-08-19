@@ -350,8 +350,8 @@ function init() {
 
       Promise.all([
         fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+        //fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
       ])
       .then(([namesTxt, dataTxt) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
@@ -817,6 +817,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
