@@ -13,6 +13,16 @@
     #calendar-table td.weekend.sat {
       background: #f3ecff !important;   /* เสาร์ออกม่วงอ่อน */
     }
+    /* header วันที่เป็นวันหยุดพิเศษ */
+    thead th.holiday {
+      background: #ffecb3 !important;  /* เหลืองอ่อน */
+      color: #333;
+    }
+    
+    /* ไฮไลท์ทั้งคอลัมน์วันหยุดใน tbody */
+    #calendar-table td.holiday-col {
+      background: #fff7d6 !important;
+    }
     
     table { border-collapse: collapse; width: max-content; }
     th, td {
@@ -602,6 +612,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
