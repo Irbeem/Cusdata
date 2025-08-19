@@ -146,8 +146,8 @@
   🔄 To CBI calendar
   </a>
   </h2>
-  <label style="font-size:20px;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <label style="font-size:20px;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+  <label style="font-size:40px;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+  <label style="font-size:40px;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
@@ -169,6 +169,7 @@
     <input type="hidden" name="jobowner">
     <input type="hidden" name="charge">
     <input type="hidden" name="action">
+    <input type="hidden" name="holidayDetail">
   </form>
 
   <div class="overlay" id="overlay"></div>
@@ -666,14 +667,15 @@ function openEditFromDetail() {
   });
 }
 
-// ใช้ URL เดียวกับ form action ของคุณ
-const APP_URL = document.getElementById('submitForm').action;
-
 function openHolidayModal(y, m, d) {
-  // เติมค่า default จาก dropdown ปัจจุบันถ้าไม่ได้ส่งมา
-  document.getElementById('holYear').value  = y;                 // เว้นว่าง = ทุกปี
-  document.getElementById('holMonth').value = m;
-  document.getElementById('holDate').value  = d;
+  // ถ้าไม่ได้ส่งมา ให้ดึงค่าจาก dropdown ปัจจุบัน
+  const yy = (y != null ? y : +document.getElementById('year').value);
+  const mm = (m != null ? m : +document.getElementById('month').value);
+  const dd = (d != null ? d : 1);
+
+  document.getElementById('holYear').value   = yy;     // เว้นว่าง = ทุกปี ได้เช่นกัน
+  document.getElementById('holMonth').value  = mm;
+  document.getElementById('holDate').value   = dd;
   document.getElementById('holDetail').value = '';
   document.getElementById('holidayModal').classList.add('active');
 }
@@ -682,43 +684,82 @@ function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
 }
 
-// helper post form-urlencoded
-function postForm(obj) {
-  return fetch(APP_URL, {
-    method: 'POST',
-    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
-    body: Object.entries(obj).map(([k,v]) =>
-      `${encodeURIComponent(k)}=${encodeURIComponent(v ?? '')}`).join('&')
-  }).then(r => r.text());
-}
-
-async function saveHoliday() {
-  const year  = (document.getElementById('holYear').value || '').trim(); // เว้นว่าง = ทุกปี
-  const month = +document.getElementById('holMonth').value;
-  const date  = +document.getElementById('holDate').value;
-  const detail= document.getElementById('holDetail').value || '';
+/* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
+function saveHoliday() {
+  const year   = (document.getElementById('holYear').value || '').trim(); // เว้นได้ = ทุกปี
+  const month  = +document.getElementById('holMonth').value;
+  const date   = +document.getElementById('holDate').value;
+  const detail = document.getElementById('holDetail').value || '';
 
   if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
 
-  try {
-    await postForm({ action:'addHoliday', year, month, date, detail });
-    closeHoliday();
-    location.reload();
-  } catch(e) { alert('บันทึกไม่สำเร็จ: '+e); }
+  const form = document.getElementById('submitForm');
+  form.year.value          = year;   // ว่างได้
+  form.month.value         = month;
+  form.date.value          = date;
+  form.name.value          = '';     // ไม่ใช้
+  form.type.value          = '';
+  form.time.value          = '';
+  form.datail.value        = '';
+  form.customer.value      = '';
+  form.place.value         = '';
+  form.jobowner.value      = '';
+  form.charge.value        = '';
+  form.holidayDetail.value = detail;
+  form.action.value        = 'addHoliday';
+
+  // ส่งด้วยวิธีเดิม
+  // ถ้ามี submitAndWait() แล้วให้เรียกเลย
+  if (typeof submitAndWait === 'function') {
+    // ให้ reload หลัง Apps Script ตอบกลับ
+    const iframe = document.getElementsByName('hidden_frame')[0];
+    iframe.onload = function () {
+      iframe.onload = null;
+      closeHoliday();
+      location.reload();
+    };
+    form.submit();
+  } else {
+    // fallback ถ้าไม่ได้ประกาศ submitAndWait
+    const iframe = document.getElementsByName('hidden_frame')[0];
+    iframe.onload = function () {
+      iframe.onload = null;
+      closeHoliday();
+      location.reload();
+    };
+    form.submit();
+  }
 }
 
-async function deleteHoliday() {
+function deleteHoliday() {
   const year  = (document.getElementById('holYear').value || '').trim();
   const month = +document.getElementById('holMonth').value;
   const date  = +document.getElementById('holDate').value;
 
   if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
 
-  try {
-    await postForm({ action:'removeHoliday', year, month, date });
+  const form = document.getElementById('submitForm');
+  form.year.value          = year;
+  form.month.value         = month;
+  form.date.value          = date;
+  form.name.value          = '';
+  form.type.value          = '';
+  form.time.value          = '';
+  form.datail.value        = '';
+  form.customer.value      = '';
+  form.place.value         = '';
+  form.jobowner.value      = '';
+  form.charge.value        = '';
+  form.holidayDetail.value = '';
+  form.action.value        = 'removeHoliday';
+
+  const iframe = document.getElementsByName('hidden_frame')[0];
+  iframe.onload = function () {
+    iframe.onload = null;
     closeHoliday();
     location.reload();
-  } catch(e) { alert('ลบไม่สำเร็จ: '+e); }
+  };
+  form.submit();
 }
     
 init();
@@ -726,6 +767,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
