@@ -407,30 +407,30 @@ function init() {
       }
     });
 
-        const daysHeader = Array.from({ length: days }, (_, i) => {
-        const d = i + 1;
-        const date = new Date(year, month - 1, d);
-        const dow = date.getDay();
-        const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+      //   const daysHeader = Array.from({ length: days }, (_, i) => {
+      //   const d = i + 1;
+      //   const date = new Date(year, month - 1, d);
+      //   const dow = date.getDay();
+      //   const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
       
-        return `<th class="${dayClass[dow]}"
-                    data-day="${d}" style="user-select:none;"
-                    onclick="openHolidayModal(${year},${month},${d})">
-                  <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-                  <div style="font-size:1.2em;">${d}</div>
-                </th>`;
-      });
+      //   return `<th class="${dayClass[dow]}"
+      //               data-day="${d}" style="user-select:none;"
+      //               onclick="openHolidayModal(${year},${month},${d})">
+      //             <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+      //             <div style="font-size:1.2em;">${d}</div>
+      //           </th>`;
+      // });
   
-    // 🗓️ หัวตารางวันที่
-    // const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    // const daysHeader = Array.from({ length: days }, (_, i) => {
-    //   const date = new Date(year, month - 1, i + 1);
-    //   const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-    //   return `<th class="${dayClass[date.getDay()]}">
-    //             <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-    //             <div style="font-size: 1.2em;">${i + 1}</div>
-    //           </th>`;
-    // });
+    🗓️ หัวตารางวันที่
+    const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const daysHeader = Array.from({ length: days }, (_, i) => {
+      const date = new Date(year, month - 1, i + 1);
+      const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+      return `<th class="${dayClass[date.getDay()]}">
+                <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+                <div style="font-size: 1.2em;">${i + 1}</div>
+              </th>`;
+    });
     thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
   
     // 📆 สร้างแต่ละแถวของชื่อ
@@ -820,6 +820,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
