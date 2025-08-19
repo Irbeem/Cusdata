@@ -435,19 +435,19 @@ function init() {
     // 📆 สร้างแต่ละแถวของชื่อ
     tbody.innerHTML = allNames.map(name => {
       const row = [`<td>${name}</td>`];
-      // for (let d = 1; d <= days; d++) {
-      //   const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-      //   //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
-      //   row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
-      // }
-
       for (let d = 1; d <= days; d++) {
-        let cellClass = "";
-        if (specials.some(h => h.date == d)) cellClass += " special-holiday";
-        // ✅ เพิ่ม default ช่องเปล่า
-        const cellContent = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cellContent}</td>`);
+        const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+        //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
       }
+
+      // for (let d = 1; d <= days; d++) {
+      //   let cellClass = "";
+      //   if (specials.some(h => h.date == d)) cellClass += " special-holiday";
+      //   // ✅ เพิ่ม default ช่องเปล่า
+      //   const cellContent = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+      //   row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cellContent}</td>`);
+      // }
       
       return `<tr>${row.join('')}</tr>`;
     }).join('');
@@ -840,6 +840,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
