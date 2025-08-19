@@ -574,38 +574,38 @@ function init() {
     }
 
   // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
-document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-  const td = e.target.closest('td');
-  if (!td) return;
+// document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+//   const td = e.target.closest('td');
+//   if (!td) return;
 
-  // ถ้าเป็นคอลัมน์แรก (ชื่อคน)
-  if (td.cellIndex === 0) {
-    const name = td.textContent.trim();
+//   // ถ้าเป็นคอลัมน์แรก (ชื่อคน)
+//   if (td.cellIndex === 0) {
+//     const name = td.textContent.trim();
 
-    // ลบไฮไลต์ทั้งหมดก่อน
-    document.querySelectorAll('#calendar-table tbody td.selected-row')
-      .forEach(cell => cell.classList.remove('selected-row'));
+//     // ลบไฮไลต์ทั้งหมดก่อน
+//     document.querySelectorAll('#calendar-table tbody td.selected-row')
+//       .forEach(cell => cell.classList.remove('selected-row'));
 
-    // ใส่ไฮไลต์ทุก cell ที่มี data-name ตรงกับชื่อ
-    document.querySelectorAll(`#calendar-table tbody td[data-name="${name}"]`)
-      .forEach(cell => cell.classList.add('selected-row'));
-  }
-});
+//     // ใส่ไฮไลต์ทุก cell ที่มี data-name ตรงกับชื่อ
+//     document.querySelectorAll(`#calendar-table tbody td[data-name="${name}"]`)
+//       .forEach(cell => cell.classList.add('selected-row'));
+//   }
+// });
     
-  // document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-  //   const td = e.target.closest('td');
-  //   if (!td) return;
-  //   // เฉพาะคอลัมน์แรก (ช่องชื่อ)
-  //   if (td.cellIndex === 0) {
-  //     const tr = td.parentElement;
-  //     // ลบไฮไลท์เดิม
-  //     document
-  //       .querySelectorAll('#calendar-table tbody tr.selected-row')
-  //       .forEach(r => r.classList.remove('selected-row'));
-  //     // ใส่ไฮไลท์ใหม่
-  //     tr.classList.add('selected-row');
-  //   }
-  // });
+  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+    const td = e.target.closest('td');
+    if (!td) return;
+    // เฉพาะคอลัมน์แรก (ช่องชื่อ)
+    if (td.cellIndex === 0) {
+      const tr = td.parentElement;
+      // ลบไฮไลท์เดิม
+      document
+        .querySelectorAll('#calendar-table tbody tr.selected-row')
+        .forEach(r => r.classList.remove('selected-row'));
+      // ใส่ไฮไลท์ใหม่
+      tr.classList.add('selected-row');
+    }
+  });
 
  function submitAndWait() {
   const form   = document.getElementById('submitForm');
@@ -858,6 +858,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
