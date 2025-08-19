@@ -655,7 +655,7 @@ function openEditFromDetail() {
   this.scrollTop += (e.deltaY > 0 ? step : -step);
 });
 
-    function highlightWeekendColumns() {
+  function highlightWeekendColumns() {
   const table = document.getElementById('calendar-table');
   const headCells = table.querySelectorAll('thead th');
   const weekendIdx = [];
@@ -686,25 +686,33 @@ function openEditFromDetail() {
 }
 
 function openHolidayModal(y, m, d) {
-  // ถ้าไม่ได้ส่งมา ให้ดึงค่าจาก dropdown ปัจจุบัน
   const yy = (y != null ? y : +document.getElementById('year').value);
   const mm = (m != null ? m : +document.getElementById('month').value);
   const dd = (d != null ? d : 1);
 
-  document.getElementById('holYear').value   = yy;     // เว้นว่าง = ทุกปี ได้เช่นกัน
+  document.getElementById('holYear').value   = yy;
   document.getElementById('holMonth').value  = mm;
   document.getElementById('holDate').value   = dd;
   document.getElementById('holDetail').value = '';
+
+  // ✅ แสดง overlay ด้วย
+  overlay.classList.add('active');
   document.getElementById('holidayModal').classList.add('active');
 }
 
+function closeHoliday() {
+  // ✅ ปิด overlay ด้วย
+  document.getElementById('holidayModal').classList.remove('active');
+  overlay.classList.remove('active');
+}
+    
 function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
 }
 
 /* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
 function saveHoliday() {
-  const year   = (document.getElementById('holYear').value || '').trim(); // เว้นได้ = ทุกปี
+  const year   = (document.getElementById('holYear').value || '').trim(); // ว่างได้ = ทุกปี
   const month  = +document.getElementById('holMonth').value;
   const date   = +document.getElementById('holDate').value;
   const detail = document.getElementById('holDetail').value || '';
@@ -712,10 +720,10 @@ function saveHoliday() {
   if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
 
   const form = document.getElementById('submitForm');
-  form.year.value          = year;   // ว่างได้
+  form.year.value          = year;
   form.month.value         = month;
   form.date.value          = date;
-  form.name.value          = '';     // ไม่ใช้
+  form.name.value          = '';
   form.type.value          = '';
   form.time.value          = '';
   form.datail.value        = '';
@@ -726,27 +734,26 @@ function saveHoliday() {
   form.holidayDetail.value = detail;
   form.action.value        = 'addHoliday';
 
-  // ส่งด้วยวิธีเดิม
-  // ถ้ามี submitAndWait() แล้วให้เรียกเลย
-  if (typeof submitAndWait === 'function') {
-    // ให้ reload หลัง Apps Script ตอบกลับ
-    const iframe = document.getElementsByName('hidden_frame')[0];
-    iframe.onload = function () {
+  const iframe = document.getElementById('hidden_frame');
+
+  // ✅ ปิด popup ทันที (กันความรู้สึก "ไม่ปิด")
+  closeHoliday();
+
+  // รอ onload แล้วค่อยรีโหลด
+  iframe.onload = () => {
+    iframe.onload = null;
+    location.reload();
+  };
+
+  // Fallback ถ้า onload ไม่มาใน 6 วินาที
+  setTimeout(() => {
+    if (iframe.onload) {
       iframe.onload = null;
-      closeHoliday();
       location.reload();
-    };
-    form.submit();
-  } else {
-    // fallback ถ้าไม่ได้ประกาศ submitAndWait
-    const iframe = document.getElementsByName('hidden_frame')[0];
-    iframe.onload = function () {
-      iframe.onload = null;
-      closeHoliday();
-      location.reload();
-    };
-    form.submit();
-  }
+    }
+  }, 6000);
+
+  form.submit();
 }
 
 function deleteHoliday() {
@@ -771,12 +778,22 @@ function deleteHoliday() {
   form.holidayDetail.value = '';
   form.action.value        = 'removeHoliday';
 
-  const iframe = document.getElementsByName('hidden_frame')[0];
-  iframe.onload = function () {
+  const iframe = document.getElementById('hidden_frame');
+
+  // ✅ ปิด popup ทันที
+  closeHoliday();
+
+  iframe.onload = () => {
     iframe.onload = null;
-    closeHoliday();
     location.reload();
   };
+  setTimeout(() => {
+    if (iframe.onload) {
+      iframe.onload = null;
+      location.reload();
+    }
+  }, 6000);
+
   form.submit();
 }
     
@@ -785,6 +802,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
