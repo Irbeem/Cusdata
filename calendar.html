@@ -112,6 +112,7 @@
     .btn-cancel{ background:#bbb; }
     
     /* (ออปชัน) ไฮไลท์หัวตาราง/ทั้งคอลัมน์เมื่อเป็นวันพิเศษ */
+    .special-holiday,td.special-holiday {background: #ffe6e6 !important;}
     thead th.holiday { background:#ffecb3 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
     
@@ -348,7 +349,8 @@ function init() {
 
       Promise.all([
         fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=SpecialHolidays`).then(r => r.text())   // ✅ เพิ่ม
       ])
       .then(([namesTxt, dataTxt]) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
@@ -361,7 +363,15 @@ function init() {
           r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
           return o;
         });
-
+        const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+        specialHolidays = holidayJson.table.rows.map(r => {
+          return {
+            year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
+            month:  r.c[1]?.v,
+            date:   r.c[2]?.v,
+            detail: r.c[3]?.v || ''
+          };
+        }).filter(h => h.month && h.date);
         renderTable();
       });
     }
@@ -414,14 +424,27 @@ function init() {
     });
     
     thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
-  
+    
+    const specials = specialHolidays.filter(h =>
+      (!h.year || +h.year === year) && +h.month === month
+    );
+    
+    specials.forEach(h => {
+      const th = thead.querySelector(`th:nth-child(${h.date+1})`); // +1 เพราะมีคอลัมน์ Name
+      if (th) {
+        th.classList.add('special-holiday');
+        th.title = h.detail || 'Special Holiday';
+      }
+    });
+    
     // 📆 สร้างแต่ละแถวของชื่อ
     tbody.innerHTML = allNames.map(name => {
       const row = [`<td>${name}</td>`];
       for (let d = 1; d <= days; d++) {
+        let cellClass = "";
+        if (specials.some(h => h.date == d)) cellClass = "special-holiday";  // ✅ เช็กวันหยุดพิเศษ
         const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
-        row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
+        row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
       }
       return `<tr>${row.join('')}</tr>`;
     }).join('');
@@ -802,6 +825,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
