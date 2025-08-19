@@ -36,7 +36,7 @@
       vertical-align: middle;
     }
     td:first-child, th:first-child { position: sticky; left: 0; background: #f1f1f1; font-weight: bold;}
-    <!#calendar-table td:first-child { font-size: 20px; font-weight: bold; width: 180px;}>
+    /*<!#calendar-table td:first-child { font-size: 20px; font-weight: bold; width: 180px;}>*/
     #calendar-table td:first-child { font-size: clamp(20px, 2vw, 40px);}
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
@@ -548,20 +548,38 @@ function init() {
   });
 
  function submitAndWait() {
-    const iframe = document.getElementById('hidden_frame'); // ตอนนี้จะไม่เป็น null แล้ว
-    if (!iframe) { 
-      // กันพลาด ถ้ายังหาไม่เจอให้ fallback เป็นรีโหลดแบบเดิม
-      document.getElementById('submitForm').submit();
-      setTimeout(() => location.reload(), 2000);
-      return;
-    }
-    iframe.onload = () => {
-      iframe.onload = null;      // กันยิงซ้ำ
-      location.reload();         // รีเฟรชหลัง Apps Script ตอบกลับ
-    };
-    document.getElementById('submitForm').submit();
+  const form   = document.getElementById('submitForm');
+  const iframe = document.getElementById('hidden_frame');
+
+  if (!iframe) {
+    // กันพลาด: ถ้าไม่พบ iframe ก็ส่งฟอร์มและรีโหลดแบบหน่วง
+    form.submit();
+    setTimeout(() => location.reload(), 2000);
+    return;
   }
 
+  // ปิด popup/overlay อีกชั้นเพื่อความชัวร์
+  closePopup();
+
+  // เฝ้า onload ของ iframe แล้วค่อยรีโหลด
+  iframe.onload = () => {
+    iframe.onload = null; // กันยิงซ้ำ
+    closePopup();         // เผื่อ overlay ค้าง
+    location.reload();
+  };
+
+  // fallback ถ้า onload ไม่มาใน 6 วินาที
+  setTimeout(() => {
+    if (iframe.onload) {
+      iframe.onload = null;
+      closePopup();
+      location.reload();
+    }
+  }, 6000);
+
+  form.submit();
+}
+    
   function cellClick(td) {
   activeCell = td;
   // ตรวจสอบว่ามีงานในช่องนี้ไหม (ค้นจาก allData)
@@ -767,6 +785,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
