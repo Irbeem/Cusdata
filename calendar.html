@@ -710,10 +710,6 @@ function closeHoliday() {
   overlay.classList.remove('active');
 }
     
-function closeHoliday() {
-  document.getElementById('holidayModal').classList.remove('active');
-}
-
 /* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
 function saveHoliday() {
   const year   = (document.getElementById('holYear').value || '').trim(); // ว่างได้ = ทุกปี
@@ -806,6 +802,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
