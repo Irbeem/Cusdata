@@ -408,9 +408,10 @@ function init() {
     // 🗓️ หัวตารางวันที่
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const daysHeader = Array.from({ length: days }, (_, i) => {
-      const date = new Date(year, month - 1, i + 1);
+      const d = i + 1;
+      const date = new Date(year, month - 1, d);
       const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-      return `<th class="${dayClass[date.getDay()]}">
+      return `<th class="${dayClass[date.getDay()]} onclick="openHolidayModal(${year},${month},${d})">
                 <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
                 <div style="font-size: 1.2em;">${i + 1}</div>
               </th>`;
@@ -816,6 +817,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
