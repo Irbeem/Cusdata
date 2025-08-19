@@ -6,6 +6,13 @@
   <style>
     body { font-family: sans-serif; padding: 1rem; }
     .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
+    /* ไฮไลท์ทั้งคอลัมน์ของวันเสาร์/อาทิตย์ใน tbody */
+    #calendar-table td.weekend {
+      background: #fff1f1 !important;   /* อาทิตย์ออกชมพูอ่อน */
+    }
+    #calendar-table td.weekend.sat {
+      background: #f3ecff !important;   /* เสาร์ออกม่วงอ่อน */
+    }
     
     table { border-collapse: collapse; width: max-content; }
     th, td {
@@ -365,6 +372,7 @@ function init() {
     // 🧠 เคลียร์ localStorage ที่ใช้จำเดือน/ปี
     localStorage.removeItem('savedMonth');
     localStorage.removeItem('savedYear');
+    highlightWeekendColumns();
   }
 
     function openPopup(td) {
@@ -558,12 +566,43 @@ function openEditFromDetail() {
   const step = rowHeight * 2; // เลื่อนทีละ 2 แถว
   this.scrollTop += (e.deltaY > 0 ? step : -step);
 });
+
+    function highlightWeekendColumns() {
+  const table = document.getElementById('calendar-table');
+  const headCells = table.querySelectorAll('thead th');
+  const weekendIdx = [];
+
+  // หา index ของคอลัมน์ที่เป็นอาทิตย์(sun) หรือเสาร์(sat)
+  headCells.forEach((th, idx) => {
+    if (th.classList.contains('sun') || th.classList.contains('sat')) {
+      weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
+    }
+  });
+
+  // เอาไฮไลท์เดิมออกก่อน (ถ้ามี)
+  table.querySelectorAll('tbody td.weekend').forEach(td => {
+    td.classList.remove('weekend', 'sat');
+  });
+
+  // ใส่ไฮไลท์ให้ทุกแถวในคอลัมน์ที่ใช่
+  const rows = table.querySelectorAll('tbody tr');
+  rows.forEach(tr => {
+    weekendIdx.forEach(({ index, cls }) => {
+      const td = tr.querySelector(`td:nth-child(${index})`);
+      if (td) {
+        td.classList.add('weekend');
+        if (cls === 'sat') td.classList.add('sat'); // แยกสีเสาร์/อาทิตย์
+      }
+    });
+  });
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
