@@ -353,7 +353,7 @@ function init() {
         fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
         //fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
       ])
-      .then(([namesTxt, dataTxt, holidayTxt]) => {
+      .then(([namesTxt, dataTxt]) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
         //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
         names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
@@ -802,6 +802,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
