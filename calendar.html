@@ -441,10 +441,8 @@ function init() {
     tbody.innerHTML = allNames.map(name => {
       const row = [`<td>${name}</td>`];
       for (let d = 1; d <= days; d++) {
-        let cellClass = "";
-        if (specials.some(h => h.date == d)) cellClass = "special-holiday";  // ✅ เช็กวันหยุดพิเศษ
         const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
+        row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
       }
       return `<tr>${row.join('')}</tr>`;
     }).join('');
