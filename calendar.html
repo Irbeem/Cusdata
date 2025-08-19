@@ -349,8 +349,8 @@ function init() {
 
       Promise.all([
         fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=SpecialHolidays`).then(r => r.text())   // ✅ เพิ่ม
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+        //fetch(`${base}&sheet=SpecialHolidays`).then(r => r.text())   // ✅ เพิ่ม
       ])
       .then(([namesTxt, dataTxt]) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
@@ -363,15 +363,15 @@ function init() {
           r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
           return o;
         });
-        const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
-        specialHolidays = holidayJson.table.rows.map(r => {
-          return {
-            year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
-            month:  r.c[1]?.v,
-            date:   r.c[2]?.v,
-            detail: r.c[3]?.v || ''
-          };
-        }).filter(h => h.month && h.date);
+        // const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+        // specialHolidays = holidayJson.table.rows.map(r => {
+        //   return {
+        //     year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
+        //     month:  r.c[1]?.v,
+        //     date:   r.c[2]?.v,
+        //     detail: r.c[3]?.v || ''
+        //   };
+        // }).filter(h => h.month && h.date);
         renderTable();
       });
     }
@@ -804,6 +804,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
