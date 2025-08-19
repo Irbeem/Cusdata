@@ -350,8 +350,8 @@ function init() {
 
       Promise.all([
         fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
-        //fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
       ])
       .then(([namesTxt, dataTxt) => {
         const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
@@ -364,15 +364,15 @@ function init() {
           r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
           return o;
         });
-        // const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
-        // specialHolidays = holidayJson.table.rows.map(r => {
-        //   return {
-        //     year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
-        //     month:  r.c[1]?.v,
-        //     date:   r.c[2]?.v,
-        //     detail: r.c[3]?.v || ''
-        //   };
-        // }).filter(h => h.month && h.date);
+        const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+        specialHolidays = holidayJson.table.rows.map(r => {
+          return {
+            year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
+            month:  r.c[1]?.v,
+            date:   r.c[2]?.v,
+            detail: r.c[3]?.v || ''
+          };
+        }).filter(h => h.month && h.date);
         renderTable();
       });
     }
@@ -407,30 +407,31 @@ function init() {
       }
     });
 
-      //   const daysHeader = Array.from({ length: days }, (_, i) => {
-      //   const d = i + 1;
-      //   const date = new Date(year, month - 1, d);
-      //   const dow = date.getDay();
-      //   const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
-      
-      //   return `<th class="${dayClass[dow]}"
-      //               data-day="${d}" style="user-select:none;"
-      //               onclick="openHolidayModal(${year},${month},${d})">
-      //             <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-      //             <div style="font-size:1.2em;">${d}</div>
-      //           </th>`;
-      // });
-  
-    🗓️ หัวตารางวันที่
-    const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    const dayClass = ["sun","mon","tue","wed","thu","fri","sat"];
+
     const daysHeader = Array.from({ length: days }, (_, i) => {
-      const date = new Date(year, month - 1, i + 1);
-      const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-      return `<th class="${dayClass[date.getDay()]}">
-                <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-                <div style="font-size: 1.2em;">${i + 1}</div>
-              </th>`;
-    });
+    const d = i + 1;
+    const date = new Date(year, month - 1, d);
+    const dow = date.getDay();
+    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+
+    return `<th class="${dayClass[dow]}"
+              data-day="${d}" style="user-select:none;"
+              onclick="openHolidayModal(${year},${month},${d})">
+              <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+              <div style="font-size:1.2em;">${d}</div>
+            </th>`;
+  });
+
+    // const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    // const daysHeader = Array.from({ length: days }, (_, i) => {
+    //   const date = new Date(year, month - 1, i + 1);
+    //   const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+    //   return `<th class="${dayClass[date.getDay()]}">
+    //             <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+    //             <div style="font-size: 1.2em;">${i + 1}</div>
+    //           </th>`;
+    // });
     thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
   
     // 📆 สร้างแต่ละแถวของชื่อ
@@ -723,10 +724,6 @@ function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
   overlay.classList.remove('active');
 }
-    
-function closeHoliday() {
-  document.getElementById('holidayModal').classList.remove('active');
-}
 
 /* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
 function saveHoliday() {
@@ -820,6 +817,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
