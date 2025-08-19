@@ -93,6 +93,27 @@
     .modal button:nth-child(2) { background: #f44336; color: white; }
     .modal button:nth-child(3) { background: #bbb; }
     .selected-row td {background: #fff4b3 !important; }   /* เหลืองอ่อน */
+    /* ป๊อปอัปวันหยุดพิเศษ */
+    .modal-sm {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background:#fff; border:1px solid #ccc; padding:16px; z-index:1000;
+      box-shadow:0 5px 15px rgba(0,0,0,.3); width:320px; border-radius:8px; display:none;
+    }
+    .modal-sm.active { display:block; }
+    .modal-sm h3 { margin:0 0 8px; text-align:center; }
+    .modal-sm label { display:block; margin-top:8px; }
+    .modal-sm input[type="text"], .modal-sm input[type="number"] { width:100%; padding:6px; }
+    .modal-sm .row { display:flex; gap:8px; }
+    .modal-sm .row > div { flex:1; }
+    .modal-sm .btns { margin-top:12px; display:flex; gap:8px; }
+    .modal-sm .btns button { flex:1; padding:8px; border:none; border-radius:4px; cursor:pointer; }
+    .btn-save { background:#4CAF50; color:#fff; }
+    .btn-del  { background:#f44336; color:#fff; }
+    .btn-cancel{ background:#bbb; }
+    
+    /* (ออปชัน) ไฮไลท์หัวตาราง/ทั้งคอลัมน์เมื่อเป็นวันพิเศษ */
+    thead th.holiday { background:#ffecb3 !important; color:#333; }
+    #calendar-table td.holiday-col { background:#fff7d6 !important; }
     
   </style>
 </head>
@@ -198,6 +219,37 @@
   <div style="margin-top:12px;">
     <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
     <button type="button" onclick="closeDetails()">Close</button>
+  </div>
+</div>
+
+  <!-- Special Holiday Modal -->
+<div class="modal-sm" id="holidayModal">
+  <h3>Special Holiday</h3>
+  <div class="row">
+    <div>
+      <label>Year
+        <!-- เว้นว่าง = วันหยุดทุกปี -->
+        <input type="number" id="holYear" placeholder="เว้นว่าง = ทุกปี">
+      </label>
+    </div>
+    <div>
+      <label>Month
+        <input type="number" id="holMonth" min="1" max="12">
+      </label>
+    </div>
+    <div>
+      <label>Date
+        <input type="number" id="holDate" min="1" max="31">
+      </label>
+    </div>
+  </div>
+  <label>Detail
+    <input type="text" id="holDetail" placeholder="เช่น วันชดเชย, วันหยุดพิเศษ">
+  </label>
+  <div class="btns">
+    <button class="btn-save"  onclick="saveHoliday()">Save</button>
+    <button class="btn-del"   onclick="deleteHoliday()">Delete</button>
+    <button class="btn-cancel" onclick="closeHoliday()">Cancel</button>
   </div>
 </div>
 
@@ -345,14 +397,21 @@ function init() {
   
     // 🗓️ หัวตารางวันที่
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+
     const daysHeader = Array.from({ length: days }, (_, i) => {
-      const date = new Date(year, month - 1, i + 1);
-      const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-      return `<th class="${dayClass[date.getDay()]}">
-                <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-                <div style="font-size: 1.2em;">${i + 1}</div>
-              </th>`;
+    const d = i + 1;
+    const date = new Date(year, month - 1, d);
+    const dow = date.getDay();
+    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+  
+    return `<th class="${dayClass[dow]}"
+                data-day="${d}" style="user-select:none;"
+                onclick="openHolidayModal(${year},${month},${d})">
+              <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+              <div style="font-size:1.2em;">${d}</div>
+            </th>`;
     });
+    
     thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
   
     // 📆 สร้างแต่ละแถวของชื่อ
@@ -606,12 +665,68 @@ function openEditFromDetail() {
     });
   });
 }
+
+// ใช้ URL เดียวกับ form action ของคุณ
+const APP_URL = document.getElementById('submitForm').action;
+
+function openHolidayModal(y, m, d) {
+  // เติมค่า default จาก dropdown ปัจจุบันถ้าไม่ได้ส่งมา
+  document.getElementById('holYear').value  = y;                 // เว้นว่าง = ทุกปี
+  document.getElementById('holMonth').value = m;
+  document.getElementById('holDate').value  = d;
+  document.getElementById('holDetail').value = '';
+  document.getElementById('holidayModal').classList.add('active');
+}
+
+function closeHoliday() {
+  document.getElementById('holidayModal').classList.remove('active');
+}
+
+// helper post form-urlencoded
+function postForm(obj) {
+  return fetch(APP_URL, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+    body: Object.entries(obj).map(([k,v]) =>
+      `${encodeURIComponent(k)}=${encodeURIComponent(v ?? '')}`).join('&')
+  }).then(r => r.text());
+}
+
+async function saveHoliday() {
+  const year  = (document.getElementById('holYear').value || '').trim(); // เว้นว่าง = ทุกปี
+  const month = +document.getElementById('holMonth').value;
+  const date  = +document.getElementById('holDate').value;
+  const detail= document.getElementById('holDetail').value || '';
+
+  if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
+
+  try {
+    await postForm({ action:'addHoliday', year, month, date, detail });
+    closeHoliday();
+    location.reload();
+  } catch(e) { alert('บันทึกไม่สำเร็จ: '+e); }
+}
+
+async function deleteHoliday() {
+  const year  = (document.getElementById('holYear').value || '').trim();
+  const month = +document.getElementById('holMonth').value;
+  const date  = +document.getElementById('holDate').value;
+
+  if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
+
+  try {
+    await postForm({ action:'removeHoliday', year, month, date });
+    closeHoliday();
+    location.reload();
+  } catch(e) { alert('ลบไม่สำเร็จ: '+e); }
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
