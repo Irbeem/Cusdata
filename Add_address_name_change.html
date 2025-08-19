@@ -413,9 +413,9 @@ function init() {
         const dow = date.getDay();
         const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
       
-        return `<th class="${dayClass[dow]}"
-                    data-day="${d}" style="user-select:none;"
-                    onclick="openHolidayModal(${year},${month},${d})">
+        return `<th class="${dayClass[dow]}">
+                    // data-day="${d}" style="user-select:none;"
+                    // onclick="openHolidayModal(${year},${month},${d})">
                   <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
                   <div style="font-size:1.2em;">${d}</div>
                 </th>`;
@@ -830,6 +830,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
