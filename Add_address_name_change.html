@@ -414,13 +414,23 @@ function init() {
         const dow = date.getDay();
         const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
       
-        return `<th class="${dayClass[dow]}"
-                    data-day="${d}" style="user-select:none;"
-                    onclick="openHolidayModal(${year},${month},${d})">
-                  <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-                  <div style="font-size:1.2em;">${d}</div>
-                </th>`;
+        // return `<th class="${dayClass[dow]}"
+        //             data-day="${d}" style="user-select:none;"
+        //             onclick="openHolidayModal(${year},${month},${d})">
+        //           <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+        //           <div style="font-size:1.2em;">${d}</div>
+        //         </th>`;
+
+        return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}"
+            data-day="${d}" style="user-select:none;"
+            onclick="openHolidayModal(${year},${month},${d})">
+            <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+            <div style="font-size:1.2em;">${d}</div>
+            ${isHoliday ? `<div style="font-size:.6em;color:#c41411;">${holidayName}</div>` : ""}
+          </th>`;
       });
+
+    
     // const daysHeader = Array.from({ length: days }, (_, i) => {
     //   const d = i + 1;
     //   const date = new Date(year, month - 1, d);
@@ -858,6 +868,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
