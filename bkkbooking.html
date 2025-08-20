@@ -10,8 +10,9 @@
     input, select { width: 100%; padding: 8px; margin-top: 4px; }
     button { margin-top: 12px; padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
     button:hover { background: #45a049; }
-    select[multiple], select, input[type="text"], input[type="number"] {font-size: 20px; height: 44px; }
-    
+    select, input[type="text"], input[type="number"] {font-size: 20px; height: 44px; }
+      /* เพิ่มตรงนี้เพื่อ scroll ช้า */
+    select[multiple] {height: 200px; overflow-y: auto; scroll-behavior: smooth; }
   </style>
 </head>
 <body>
