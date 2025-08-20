@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>CS Calendar</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
     .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
@@ -147,6 +148,10 @@
   ">
   🔄 To CBI calendar
   </a>
+
+  <button onclick="downloadFullCalendarImage()" style="padding:10px 16px; margin-bottom: 10px; background:#4caf50; color:white; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">
+    📸 Save Full Image
+  </button>
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
@@ -880,12 +885,47 @@ function deleteHoliday() {
 
   form.submit();
 }
+
+function downloadFullCalendarImage() {
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.background = '#fff';
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+
+  // clone calendar table + summary
+  const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
+  const summary = document.getElementById('summaryBox')?.cloneNode(true);
+  if (summary) summary.style.marginTop = '20px';
+
+  container.appendChild(calendar);
+  if (summary) container.appendChild(summary);
+
+  document.body.appendChild(container);
+
+  // ✅ ทำให้แน่ใจว่าทุก row/col/scroll แสดงเต็ม
+  calendar.style.maxHeight = 'unset';
+  calendar.style.overflow = 'visible';
+
+  html2canvas(container, {
+    scrollY: -window.scrollY,
+    windowWidth: document.body.scrollWidth
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    document.body.removeChild(container); // ลบ container ชั่วคราว
+  });
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
