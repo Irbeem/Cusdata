@@ -822,7 +822,8 @@ function saveHoliday() {
 
   // ✅ ปิด popup ทันที (กันความรู้สึก "ไม่ปิด")
   closeHoliday();
-
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
   // รอ onload แล้วค่อยรีโหลด
   iframe.onload = () => {
     iframe.onload = null;
@@ -866,7 +867,8 @@ function deleteHoliday() {
 
   // ✅ ปิด popup ทันที
   closeHoliday();
-
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
   iframe.onload = () => {
     iframe.onload = null;
     location.reload();
@@ -886,4 +888,5 @@ init();
   </script>
 </body>
 </html>
+
 
