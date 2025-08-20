@@ -15,13 +15,13 @@
     }
     /* header วันที่เป็นวันหยุดพิเศษ */
     thead th.holiday {
-      background: #ffecb3 !important;  /* เหลืองอ่อน */
+      background: #ffd9d9 !important;  /* เหลืองอ่อน */
       color: #333;
     }
     
     /* ไฮไลท์ทั้งคอลัมน์วันหยุดใน tbody */
     #calendar-table td.holiday-col {
-      background: #fff7d6 !important;
+      background: #ffd9d9 !important;
     }
     
     table { border-collapse: collapse; width: max-content; }
@@ -42,10 +42,10 @@
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
     .Standby { background: #009688; color: white; }
-    .Training { background: #2a36b1; color: white; }
+    .Training { background: #cddc39; color: black; }
     .Inspection { background: #00bcd4; color: white; }
     .TrainingSafety { background: #259b24; color: white; }
-    .Telephone { background: #2a36b1; color: white; }
+    .Telephone { background: #ab47bc; color: white; }
     .Meeting { background: #212121; color: white; }
     .Sales { background: #78909c; color: white; }
     .Holiday { background: #c41411; color: white; }
@@ -110,10 +110,11 @@
     .btn-save { background:#4CAF50; color:#fff; }
     .btn-del  { background:#f44336; color:#fff; }
     .btn-cancel{ background:#bbb; }
+    .highlight-row { background-color: rgba(255, 215, 0, 0.4);}
     
     /* (ออปชัน) ไฮไลท์หัวตาราง/ทั้งคอลัมน์เมื่อเป็นวันพิเศษ */
-    .special-holiday,td.special-holiday {background: #ffe6e6 !important;}
-    thead th.holiday { background:#ffecb3 !important; color:#333; }
+    .special-holiday,td.special-holiday {background: #fcb8d2 !important;}
+    thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
     
   </style>
@@ -170,7 +171,7 @@
     <input type="hidden" name="jobowner">
     <input type="hidden" name="charge">
     <input type="hidden" name="action">
-   
+    <input type="hidden" name="holidayDetail">
   </form>
 
   <div class="overlay" id="overlay"></div>
@@ -324,58 +325,56 @@ function attachHandlersToCells() {
 function init() {
   const now = new Date();
 
-  // ✅ ดึงค่าจาก localStorage ถ้ามี
   const savedMonth = parseInt(localStorage.getItem('savedMonth'));
   const savedYear = parseInt(localStorage.getItem('savedYear'));
 
-  // ✅ fallback ถ้าไม่มี หรือเป็น NaN
   const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
   const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
 
-  // สร้าง dropdown เดือน
   for (let i = 1; i <= 12; i++) {
     const opt = new Option(i, i);
     if (i === defaultMonth) opt.selected = true;
     monthSel.add(opt);
   }
 
-  // สร้าง dropdown ปี
   for (let y = 2025; y <= now.getFullYear() + 1; y++) {
     const opt = new Option(y, y);
     if (y === defaultYear) opt.selected = true;
     yearSel.add(opt);
   }
 
-      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
 
-      Promise.all([
-        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
-        //fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())   // ✅ เพิ่ม
-      ])
-      .then(([namesTxt, dataTxt]) => {
-        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
-        //names = namesJson.table.rows.map(r => r.c[0]?.v).filter(Boolean);
-        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary"); 
-        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
-        const cols = dataJson.table.cols.map(c => c.label);
-        allData = dataJson.table.rows.map(r => {
-          const o = {};
-          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
-          return o;
-        });
-        // const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
-        // specialHolidays = holidayJson.table.rows.map(r => {
-        //   return {
-        //     year:   r.c[0]?.v || '',    // เว้นว่าง = ทุกปี
-        //     month:  r.c[1]?.v,
-        //     date:   r.c[2]?.v,
-        //     detail: r.c[3]?.v || ''
-        //   };
-        // }).filter(h => h.month && h.date);
-        renderTable();
-      });
-    }
+  Promise.all([
+    fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text()) // ✅ เพิ่มเข้าไป
+  ])
+  .then(([namesTxt, dataTxt, holidayTxt]) => {
+    const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+    names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary");
+
+    const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+    const cols = dataJson.table.cols.map(c => c.label);
+    allData = dataJson.table.rows.map(r => {
+      const o = {};
+      r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+      return o;
+    });
+
+    const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+    specialHolidays = holidayJson.table.rows.map(r => {
+      return {
+        year:   r.c[0]?.v || '',
+        month:  r.c[1]?.v,
+        date:   r.c[2]?.v,
+        detail: r.c[3]?.v || ''
+      };
+    }).filter(h => h.month && h.date);
+
+    renderTable();
+  });
+}
 
   function renderTable() {
     const year = +yearSel.value;
@@ -410,13 +409,27 @@ function init() {
     // 🗓️ หัวตารางวันที่
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
     const daysHeader = Array.from({ length: days }, (_, i) => {
-      const date = new Date(year, month - 1, i + 1);
-      const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-      return `<th class="${dayClass[date.getDay()]}">
-                <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-                <div style="font-size: 1.2em;">${i + 1}</div>
-              </th>`;
-    });
+        const d = i + 1;
+        const date = new Date(year, month - 1, d);
+        const dow = date.getDay();
+        const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+      
+        return `<th class="${dayClass[dow]}"
+                    data-day="${d}" style="user-select:none;"
+                    onclick="openHolidayModal(${year},${month},${d})">
+                  <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+                  <div style="font-size:1.2em;">${d}</div>
+                </th>`;
+      });
+    // const daysHeader = Array.from({ length: days }, (_, i) => {
+    //   const d = i + 1;
+    //   const date = new Date(year, month - 1, d);
+    //   const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
+    //   return `<th class="${dayClass[date.getDay()]} onclick="openHolidayModal(${year},${month},${d})">
+    //             <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
+    //             <div style="font-size: 1.2em;">${i + 1}</div>
+    //           </th>`;
+    // });
     thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
   
     // 📆 สร้างแต่ละแถวของชื่อ
@@ -427,6 +440,15 @@ function init() {
         //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
         row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
       }
+
+      // for (let d = 1; d <= days; d++) {
+      //   let cellClass = "";
+      //   if (specials.some(h => h.date == d)) cellClass += " special-holiday";
+      //   // ✅ เพิ่ม default ช่องเปล่า
+      //   const cellContent = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+      //   row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cellContent}</td>`);
+      // }
+      
       return `<tr>${row.join('')}</tr>`;
     }).join('');
   
@@ -446,8 +468,24 @@ function init() {
     // 🧠 เคลียร์ localStorage ที่ใช้จำเดือน/ปี
     localStorage.removeItem('savedMonth');
     localStorage.removeItem('savedYear');
+
+    specialHolidays.forEach(h => {
+    if (h.month === month && (!h.year || +h.year === year)) {
+      const idx = h.date;
+      // ✅ ไฮไลท์หัวตาราง
+      const th = thead.querySelector(`th[data-day="${idx}"]`);
+      if (th) th.classList.add("holiday", "special-holiday");
+  
+      // ✅ ไฮไลท์ทั้งคอลัมน์
+      tbody.querySelectorAll(`td[data-day="${idx}"]`).forEach(td => {
+        td.classList.add("holiday-col", "special-holiday");
+        });
+      }
+    });
+    
     highlightWeekendColumns();
   }
+
 
     function openPopup(td) {
       activeCell = td;
@@ -536,6 +574,24 @@ function init() {
     }
 
   // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
+// document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+//   const td = e.target.closest('td');
+//   if (!td) return;
+
+//   // ถ้าเป็นคอลัมน์แรก (ชื่อคน)
+//   if (td.cellIndex === 0) {
+//     const name = td.textContent.trim();
+
+//     // ลบไฮไลต์ทั้งหมดก่อน
+//     document.querySelectorAll('#calendar-table tbody td.selected-row')
+//       .forEach(cell => cell.classList.remove('selected-row'));
+
+//     // ใส่ไฮไลต์ทุก cell ที่มี data-name ตรงกับชื่อ
+//     document.querySelectorAll(`#calendar-table tbody td[data-name="${name}"]`)
+//       .forEach(cell => cell.classList.add('selected-row'));
+//   }
+// });
+    
   document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
     const td = e.target.closest('td');
     if (!td) return;
@@ -709,7 +765,7 @@ function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
   overlay.classList.remove('active');
 }
-    
+
 /* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
 function saveHoliday() {
   const year   = (document.getElementById('holYear').value || '').trim(); // ว่างได้ = ทุกปี
@@ -802,6 +858,35 @@ init();
   </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
