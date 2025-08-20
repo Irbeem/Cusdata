@@ -408,11 +408,27 @@ function init() {
   
     // 🗓️ หัวตารางวันที่
     const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+    // const daysHeader = Array.from({ length: days }, (_, i) => {
+    //     const d = i + 1;
+    //     const date = new Date(year, month - 1, d);
+    //     const dow = date.getDay();
+    //     const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+
     const daysHeader = Array.from({ length: days }, (_, i) => {
-        const d = i + 1;
-        const date = new Date(year, month - 1, d);
-        const dow = date.getDay();
-        const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+      const d = i + 1;
+      const date = new Date(year, month - 1, d);
+      const dow = date.getDay();
+      const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+    
+      // หาวันหยุดพิเศษ (ถ้ามี)
+      const holiday = specialHolidays.find(h =>
+        h.date == d &&
+        h.month == month &&
+        (!h.year || +h.year === year)
+      );
+    
+      const isHoliday = !!holiday;
+      const holidayName = holiday?.detail || "";
       
         // return `<th class="${dayClass[dow]}"
         //             data-day="${d}" style="user-select:none;"
@@ -868,6 +884,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
