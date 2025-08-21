@@ -117,6 +117,40 @@
     .special-holiday,td.special-holiday {background: #fcb8d2 !important;}
     thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
+
+    /* ⚠️ กลับตารางชั่วคราว */
+    .rtl-hack {
+      direction: rtl;
+    }
+    
+    .rtl-hack table {
+      direction: ltr;
+    }
+    
+    .rtl-hack thead tr,
+    .rtl-hack tbody tr {
+      display: flex;
+    }
+    
+    .rtl-hack thead th,
+    .rtl-hack tbody td {
+      flex: 0 0 auto;
+      width: 120px;
+      min-width: 120px;
+      max-width: 120px;
+      overflow: hidden;
+    }
+    
+    /* ✅ ให้ cell แรก (ชื่อ) อยู่ด้านซ้าย */
+    .rtl-hack th:first-child,
+    .rtl-hack td:first-child {
+      position: sticky;
+      left: 0;
+      background: #f1f1f1;
+      font-weight: bold;
+      z-index: 2;
+    }
+
     
   </style>
 </head>
@@ -155,7 +189,7 @@
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <div class="calendar-wrapper">
+  <div class="calendar-wrapper rtl-hack">
     <table id="calendar-table">
       <thead></thead>
       <tbody></tbody>
@@ -1031,6 +1065,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
