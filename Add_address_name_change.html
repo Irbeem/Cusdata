@@ -997,13 +997,13 @@ function downloadFullCalendarImage() {
   const cells = Array.from(tr.children);
   if (cells.length > 1 && cells[0].tagName === "TH") {
     // แก้ไขหัวตาราง: ดึง cell ชื่อ (Name) ไปไว้ซ้าย
-    const lastCell = cells[cells.length - 1];
-    const dayCells = cells.slice(0, cells.length - 1);
+    const lastCell = cells[cells.length];
+    const dayCells = cells.slice(0, cells.length);
     tr.innerHTML = `<th>${lastCell.innerHTML}</th>` + dayCells.map(td => `<th>${td.innerHTML}</th>`).join('');
   } else if (cells.length > 1 && cells[0].tagName === "TD") {
     // แก้ไขแถวชื่อ: เช่น <td>Name</td> + วันที่ 1-31
-    const lastCell = cells[cells.length - 1];
-    const dayCells = cells.slice(0, cells.length - 1);
+    const lastCell = cells[cells.length];
+    const dayCells = cells.slice(0, cells.length);
     tr.innerHTML = `<td>${lastCell.innerHTML}</td>` + dayCells.map(td => `<td>${td.innerHTML}</td>`).join('');
   }
 });
@@ -1031,6 +1031,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
