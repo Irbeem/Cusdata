@@ -118,40 +118,6 @@
     thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
 
-    /* ⚠️ กลับตารางชั่วคราว */
-    .rtl-hack {
-      direction: rtl;
-    }
-    
-    .rtl-hack table {
-      direction: ltr;
-    }
-    
-    .rtl-hack thead tr,
-    .rtl-hack tbody tr {
-      display: flex;
-    }
-    
-    .rtl-hack thead th,
-    .rtl-hack tbody td {
-      flex: 0 0 auto;
-      width: 120px;
-      min-width: 120px;
-      max-width: 120px;
-      overflow: hidden;
-    }
-    
-    /* ✅ ให้ cell แรก (ชื่อ) อยู่ด้านซ้าย */
-    .rtl-hack th:first-child,
-    .rtl-hack td:first-child {
-      position: sticky;
-      left: 0;
-      background: #f1f1f1;
-      font-weight: bold;
-      z-index: 2;
-    }
-
-    
   </style>
 </head>
 <body>
@@ -189,7 +155,7 @@
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <div class="calendar-wrapper rtl-hack">
+  <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
       <tbody></tbody>
@@ -938,118 +904,13 @@ function deleteHoliday() {
   form.submit();
 }
 
-// function downloadFullCalendarImage() {
-//   const container = document.createElement('div');
-//   container.style.padding = '20px';
-//   container.style.background = '#fff';
-//   container.style.position = 'absolute';
-//   container.style.left = '-9999px';
-//   container.style.top = '0';
-
-//   // clone calendar table + summary
-//   const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
-//   const summary = document.getElementById('summaryBox')?.cloneNode(true);
-//   if (summary) summary.style.marginTop = '20px';
-
-//   container.appendChild(calendar);
-//   if (summary) container.appendChild(summary);
-
-//   document.body.appendChild(container);
-
-//   // ✅ ทำให้แน่ใจว่าทุก row/col/scroll แสดงเต็ม
-//   calendar.style.maxHeight = 'unset';
-//   calendar.style.overflow = 'visible';
-
-//   html2canvas(container, {
-//     scrollY: -window.scrollY,
-//     windowWidth: document.body.scrollWidth
-//   }).then(canvas => {
-//     const link = document.createElement('a');
-//     link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
-//     link.href = canvas.toDataURL('image/png');
-//     link.click();
-//     document.body.removeChild(container); // ลบ container ชั่วคราว
-//   });
-// }
-// function downloadFullCalendarImage() {
-//   const container = document.createElement('div');
-//   container.style.padding = '20px';
-//   container.style.background = '#fff';
-//   container.style.position = 'absolute';
-//   container.style.left = '-9999px';
-//   container.style.top = '0';
-
-//   // clone calendar table
-//   const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
-
-//   // ❗️ลบ class ที่อาจสลับชื่อ-วัน
-//   calendar.classList.remove('reverse', 'rtl', 'direction-reverse');
-
-//   // ใส่ calendar ลง container
-//   container.appendChild(calendar);
-
-//   document.body.appendChild(container);
-
-//   // ✅ ทำให้แน่ใจว่าแสดงครบ
-//   calendar.style.maxHeight = 'unset';
-//   calendar.style.overflow = 'visible';
-
-//   html2canvas(container, {
-//     scrollY: -window.scrollY,
-//     windowWidth: document.body.scrollWidth
-//   }).then(canvas => {
-//     const link = document.createElement('a');
-//     link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
-//     link.href = canvas.toDataURL('image/png');
-//     link.click();
-//     document.body.removeChild(container);
-//   });
-// }    
-
-function downloadFullCalendarImage() {
-  const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.background = '#fff';
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-
-  const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
-  calendar.classList.remove('reverse', 'rtl', 'direction-reverse');
-
-  🔁 สลับชื่อไปซ้ายมือ
-  calendar.querySelectorAll('tr').forEach(tr => {
-    const cells = Array.from(tr.children);
-    if (cells.length > 1 && cells[0].tagName === "TH") {
-      tr.innerHTML = `<th>${cells.pop().innerHTML}</th>` + cells.map(td => `<th>${td.innerHTML}</th>`).join('');
-    } else if (cells.length > 1 && cells[0].tagName === "TD") {
-      tr.innerHTML = `<td>${cells.pop().innerHTML}</td>` + cells.map(td => `<td>${td.innerHTML}</td>`).join('');
-    }
-  });
-
-  container.appendChild(calendar);
-  document.body.appendChild(container);
-
-  calendar.style.maxHeight = 'unset';
-  calendar.style.overflow = 'visible';
-
-  html2canvas(container, {
-    scrollY: -window.scrollY,
-    windowWidth: document.body.scrollWidth
-  }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    document.body.removeChild(container);
-  });
-}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
