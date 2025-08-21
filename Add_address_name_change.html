@@ -6,7 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
-    .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
+   
+    .calendar-wrapper { overflow-x: auto; max-width: 100%;  scroll-behavior: smooth;}
     /* ไฮไลท์ทั้งคอลัมน์ของวันเสาร์/อาทิตย์ใน tbody */
     #calendar-table td.weekend {
       background: #fff1f1 !important;   /* อาทิตย์ออกชมพูอ่อน */
@@ -118,6 +119,47 @@
     thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
 
+    /* ✅ กลับตารางชั่วคราว */
+    .rtl-hack {
+      direction: rtl;
+    }
+    
+    .rtl-hack table {
+      direction: ltr;
+    }
+    
+    .rtl-hack thead tr,
+    .rtl-hack tbody tr {
+      display: flex;
+    }
+    
+    .rtl-hack thead th,
+    .rtl-hack tbody td {
+      flex: 0 0 auto;
+      width: 120px;
+      min-width: 120px;
+      max-width: 120px;
+      overflow: hidden;
+      text-align: left;
+      vertical-align: top;
+      padding: 6px;
+      border: 1px solid #ccc;
+      background: white;
+    }
+    
+    /* ✅ ช่องแรก (ชื่อ) sticky ซ้าย */
+    .rtl-hack th:first-child,
+    .rtl-hack td:first-child {
+      position: sticky;
+      left: 0;
+      background: #f1f1f1;
+      font-weight: bold;
+      z-index: 2;
+      min-width: 160px;
+      max-width: 160px;
+      font-size: clamp(20px, 2vw, 36px);
+    }
+    
   </style>
 </head>
 <body>
@@ -155,11 +197,11 @@
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <div class="calendar-wrapper">
-    <table id="calendar-table">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
+  <div class="calendar-wrapper rtl-hack">
+  <table id="calendar-table">
+    <thead></thead>
+    <tbody></tbody>
+  </table>
   </div>
 
   <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
@@ -904,12 +946,61 @@ function deleteHoliday() {
   form.submit();
 }
 
+
+  function downloadFullCalendarImage() {
+  const calendarWrapper = document.querySelector('.calendar-wrapper');
+  if (!calendarWrapper) return;
+
+  const cloneWrapper = calendarWrapper.cloneNode(true);
+
+  // ปรับ clone ให้วางชั่วคราวเพื่อให้ html2canvas แสดงครบ
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.background = '#fff';
+  container.style.padding = '24px';
+  container.style.direction = 'ltr'; // สำคัญมาก เพื่อให้ภาพตรง
+
+  // ✅ reset scroll เพื่อไม่ให้ canvas เพี้ยน
+  cloneWrapper.scrollTop = 0;
+  cloneWrapper.scrollLeft = 0;
+
+  // ✅ ลบ summary ถ้ามี (ไม่ต้อง export)
+  const summary = cloneWrapper.querySelector('#summaryBox');
+  if (summary) summary.remove();
+
+  // ✅ ลบ scroll bar
+  cloneWrapper.style.overflow = 'visible';
+  cloneWrapper.style.maxHeight = 'unset';
+  cloneWrapper.style.maxWidth = 'unset';
+
+  container.appendChild(cloneWrapper);
+  document.body.appendChild(container);
+
+  html2canvas(container, {
+    backgroundColor: '#ffffff',
+    scale: 2,
+    scrollY: -window.scrollY,
+    windowWidth: document.body.scrollWidth
+  }).then(canvas => {
+    const link = document.createElement('a');
+    const month = document.getElementById('month')?.value || 'M';
+    const year = document.getElementById('year')?.value || 'Y';
+    link.download = `calendar-${year}-${month}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+
+    document.body.removeChild(container);
+  });
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
