@@ -146,6 +146,9 @@
   ">
   🔄 To CBI calendar
   </a>
+  <button onclick="downloadFullCalendarImage()" style="padding:10px 16px; margin-bottom: 10px; background:#4caf50; color:white; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">
+    📸 Save Full Image
+  </button>    
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
@@ -881,12 +884,52 @@ function deleteHoliday() {
 
   form.submit();
 }
+
+function downloadFullCalendarImage() {
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.background = '#fff';
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+
+  const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
+  calendar.classList.remove('reverse', 'rtl', 'direction-reverse');
+
+  // 🔁 สลับชื่อไปซ้ายมือ
+  calendar.querySelectorAll('tr').forEach(tr => {
+    const cells = Array.from(tr.children);
+    if (cells.length > 1 && cells[0].tagName === "TH") {
+      tr.innerHTML = `<th>${cells.pop().innerHTML}</th>` + cells.map(td => `<th>${td.innerHTML}</th>`).join('');
+    } else if (cells.length > 1 && cells[0].tagName === "TD") {
+      tr.innerHTML = `<td>${cells.pop().innerHTML}</td>` + cells.map(td => `<td>${td.innerHTML}</td>`).join('');
+    }
+  });
+
+  container.appendChild(calendar);
+  document.body.appendChild(container);
+
+  calendar.style.maxHeight = 'unset';
+  calendar.style.overflow = 'visible';
+
+  html2canvas(container, {
+    scrollY: -window.scrollY,
+    windowWidth: document.body.scrollWidth
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    document.body.removeChild(container);
+  });
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
