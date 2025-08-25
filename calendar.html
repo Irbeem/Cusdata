@@ -969,9 +969,7 @@ function exportMonthToCSV() {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const timestamp = `${hh}-${mm}`;
-  
-  link.setAttribute("download", `calendar-${year}-${month}-${date}-${timestamp}.csv`);
-  
+  link.setAttribute("download", `calendar-${year}-${month}-${date}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -982,6 +980,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
