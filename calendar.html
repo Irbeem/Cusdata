@@ -928,6 +928,7 @@ function downloadFullCalendarImage() {
 function exportMonthToCSV() {
   const year = +yearSel.value;
   const month = +monthSel.value;
+  const date = +dateSel.value;
   const filtered = allData.filter(row =>
     +row.year === year && +row.month === month
   );
@@ -969,7 +970,9 @@ function exportMonthToCSV() {
   const hh = String(now.getHours()).padStart(2, '0');
   const mm = String(now.getMinutes()).padStart(2, '0');
   const timestamp = `${hh}-${mm}`;
-  link.setAttribute("download", `calendar-${year}-${month}-${date}.csv`);
+
+  link.setAttribute("download", `calendar-${year}-${month}-${date}-${timestamp}.csv`);
+  
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -980,6 +983,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
