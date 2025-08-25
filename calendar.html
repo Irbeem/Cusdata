@@ -148,6 +148,7 @@
   ">
   🔄 To CBI calendar
   </a>
+  <button onclick="exportMonthToCSV()">📤 Export CSV</button>
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
@@ -923,12 +924,55 @@ function downloadFullCalendarImage() {
     document.body.removeChild(container);
   });
 }
+
+function exportMonthToCSV() {
+  const year = +yearSel.value;
+  const month = +monthSel.value;
+  const filtered = allData.filter(row =>
+    +row.year === year && +row.month === month
+  );
+
+  if (filtered.length === 0) {
+    alert("ไม่มีข้อมูลในเดือนนี้");
+    return;
+  }
+
+  // กำหนดหัวคอลัมน์
+  const headers = ["Year", "Month", "Date", "Name", "Type", "Time", "Detail", "Customer", "Place", "JobOwner", "Charge"];
+  
+  // แปลงข้อมูลเป็น CSV string
+  const rows = [headers.join(",")];
+  filtered.forEach(row => {
+    const csvRow = [
+      row.year, row.month, row.date, row.name, row.type, row.time,
+      `"${row.datail?.replace(/"/g, '""') || ''}"`,  // Escape " ใน detail
+      `"${row.customer?.replace(/"/g, '""') || ''}"`,
+      `"${row.place?.replace(/"/g, '""') || ''}"`,
+      `"${row.jobowner?.replace(/"/g, '""') || ''}"`,
+      row.charge
+    ];
+    rows.push(csvRow.join(","));
+  });
+
+  const csvContent = rows.join("\n");
+
+  // ดาวน์โหลดไฟล์
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `calendar-${year}-${month}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
 
