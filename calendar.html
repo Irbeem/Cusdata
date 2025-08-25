@@ -970,7 +970,7 @@ function exportMonthToCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `calendar-${year}-${month}-download-${tday}.csv`);
+  link.setAttribute("download", `calendar-${year}-${month}-save-${tday}-${timestamp}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -981,23 +981,4 @@ init();
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
