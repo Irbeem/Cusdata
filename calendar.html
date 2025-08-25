@@ -954,7 +954,11 @@ function exportMonthToCSV() {
     rows.push(csvRow.join(","));
   });
 
-  const csvContent = rows.join("\n");
+  //const csvContent = rows.join("\n");
+  const BOM = "\uFEFF"; // 👈 ตัว BOM
+  const csvContent = BOM + rows.join("\n"); // เพิ่ม BOM ด้านหน้า
+
+  //const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
   // ดาวน์โหลดไฟล์
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -972,6 +976,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
