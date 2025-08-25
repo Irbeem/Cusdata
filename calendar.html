@@ -961,11 +961,16 @@ function exportMonthToCSV() {
   //const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
 
   // ดาวน์โหลดไฟล์
+  const now = new Date();
+  const tday = now.getDate();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const timestamp = `${hh}-${mm}`;
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
-  link.setAttribute("download", `calendar-${year}-${month}.csv`);
+  link.setAttribute("download", `calendar-${year}-${month}-download-${tday}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -976,6 +981,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
