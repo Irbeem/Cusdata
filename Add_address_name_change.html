@@ -5,6 +5,8 @@
   <title>CS Calendar</title>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
+    #loginForm { margin: 2rem; }
+    #calendarContainer { display: none; } /* ซ่อนไว้ก่อน login */
     body { font-family: sans-serif; padding: 1rem; }
     .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
     /* ไฮไลท์ทั้งคอลัมน์ของวันเสาร์/อาทิตย์ใน tbody */
@@ -121,6 +123,14 @@
   </style>
 </head>
 <body>
+  <div id="loginForm">
+  <h3>🔐 กรุณาเข้าสู่ระบบ</h3>
+  <input type="email" id="email" placeholder="email">
+  <input type="password" id="password" placeholder="password">
+  <button onclick="login()">เข้าสู่ระบบ</button>
+  <p id="error" style="color:red;"></p>
+  </div>
+  
   <h2>CS BKK Calendar
   <!-- 🔗 ปุ่มลิงก์ไปยังเว็บไซต์อื่น -->
   <a href="https://irbeem.github.io/Cusdata/bkkbooking.html" style="
@@ -152,13 +162,14 @@
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+  <div id="calendarContainer">
   <div class="calendar-wrapper">
     <table id="calendar-table">
       <thead></thead>
       <tbody></tbody>
     </table>
   </div>
-
+  </div>
   <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
   <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
     <input type="hidden" name="year">
@@ -975,11 +986,29 @@ function exportMonthToCSV() {
   link.click();
   document.body.removeChild(link);
 }
+
+  async function login() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const res = await fetch("https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec", {
+      method: "POST",
+      body: JSON.stringify({ email, password })
+    });
+    const result = await res.json();
+
+    if (result.success) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('calendarContainer').style.display = 'block';
+    } else {
+      document.getElementById('error').textContent = "❌ Email หรือ Password ไม่ถูกต้อง";
+    }
+  }
     
 init();
 
   </script>
 </body>
 </html>
+
 
 
