@@ -990,7 +990,7 @@ function exportMonthToCSV() {
   async function login() {
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value.trim();
-    const res = await fetch("https://script.google.com/macros/s/YOUR_DEPLOYED_SCRIPT_ID/exec", {
+    const res = await fetch("https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec", {
       method: "POST",
       body: JSON.stringify({ email, password })
     });
@@ -1009,6 +1009,7 @@ init();
   </script>
 </body>
 </html>
+
 
 
 
