@@ -6,8 +6,7 @@
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
-   
-    .calendar-wrapper { overflow-x: auto; max-width: 100%;  scroll-behavior: smooth;}
+    .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
     /* ไฮไลท์ทั้งคอลัมน์ของวันเสาร์/อาทิตย์ใน tbody */
     #calendar-table td.weekend {
       background: #fff1f1 !important;   /* อาทิตย์ออกชมพูอ่อน */
@@ -44,6 +43,7 @@
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
     .Standby { background: #009688; color: white; }
+    .LTC { background: #795548; color: white; }
     .Training { background: #cddc39; color: black; }
     .Inspection { background: #00bcd4; color: white; }
     .TrainingSafety { background: #259b24; color: white; }
@@ -118,48 +118,6 @@
     .special-holiday,td.special-holiday {background: #fcb8d2 !important;}
     thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
-
-    /* ✅ กลับตารางชั่วคราว */
-    .rtl-hack {
-      direction: rtl;
-    }
-    
-    .rtl-hack table {
-      direction: ltr;
-    }
-    
-    .rtl-hack thead tr,
-    .rtl-hack tbody tr {
-      display: flex;
-    }
-    
-    .rtl-hack thead th,
-    .rtl-hack tbody td {
-      flex: 0 0 auto;
-      width: 120px;
-      min-width: 120px;
-      max-width: 120px;
-      overflow: hidden;
-      text-align: left;
-      vertical-align: top;
-      padding: 6px;
-      border: 1px solid #ccc;
-      background: white;
-    }
-    
-    /* ✅ ช่องแรก (ชื่อ) sticky ซ้าย */
-    .rtl-hack th:first-child,
-    .rtl-hack td:first-child {
-      position: sticky;
-      left: 0;
-      background: #f1f1f1;
-      font-weight: bold;
-      z-index: 2;
-      min-width: 160px;
-      max-width: 160px;
-      font-size: clamp(20px, 2vw, 36px);
-    }
-    
   </style>
 </head>
 <body>
@@ -190,18 +148,15 @@
   ">
   🔄 To CBI calendar
   </a>
-
-  <button onclick="downloadFullCalendarImage()" style="padding:10px 16px; margin-bottom: 10px; background:#4caf50; color:white; font-weight:bold; border:none; border-radius:6px; cursor:pointer;">
-    📸 Save Full Image
-  </button>
+  <button onclick="exportMonthToCSV()">📤 Export CSV</button>
   </h2>
   <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
   <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <div class="calendar-wrapper rtl-hack">
-  <table id="calendar-table">
-    <thead></thead>
-    <tbody></tbody>
-  </table>
+  <div class="calendar-wrapper">
+    <table id="calendar-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
   </div>
 
   <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
@@ -235,6 +190,7 @@
         <option value="Telephone">Telephone</option>
         <option value="Training">Training</option>
         <option value="TrainingSafety">TrainingSafety</option>
+        <option value="LTC">LTC</option>
         <option value="Warranty">Warranty</option>
         <option value="Sales">Sales</option>
         <option value="Holiday">Holiday</option>
@@ -442,7 +398,7 @@ function init() {
     
     // 🔄 เตรียมข้อมูลตาราง
     const dataMap = {};
-    const summary = { Service: 0, Standby: 0, Meeting: 0,Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0,Warranty: 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
+    const summary = { Service: 0, Standby: 0, Meeting: 0,Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0,LTC : 0,Warranty: 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
     allNames.forEach(name => dataMap[name] = {});
     allData.forEach(d => {
       if (+d.year === year && +d.month === month) {
@@ -486,33 +442,15 @@ function init() {
         //           <div style="font-size:1.2em;">${d}</div>
         //         </th>`;
 
-      //   return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}"
-      //       data-day="${d}" style="user-select:none;"
-      //       onclick="openHolidayModal(${year},${month},${d})">
-      //       <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-      //       <div style="font-size:1.2em;">${d}</div>
-      //       ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
-      //     </th>`;
-      // });
-        const bgColorMap = {
-          0: '#c41411', // Sun
-          1: '#fffacc', // Mon
-          2: '#ffd1e3', // Tue
-          3: '#d0f0c0', // Wed
-          4: '#ffe0b3', // Thu
-          5: '#d0e6ff', // Fri
-          6: '#e0ccff'  // Sat
-        };
-        const bg = bgColorMap[dow]; // <-- หาค่าสีพื้นหลัง
-  
         return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}"
-          data-day="${d}" style="background:${bg}; user-select:none;"
-          onclick="openHolidayModal(${year},${month},${d})">
-          <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-          <div style="font-size:1.2em;">${d}</div>
-          ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
-        </th>`;
-       });
+            data-day="${d}" style="user-select:none;"
+            onclick="openHolidayModal(${year},${month},${d})">
+            <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+            <div style="font-size:1.2em;">${d}</div>
+            ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
+          </th>`;
+      });
+
     
     // const daysHeader = Array.from({ length: days }, (_, i) => {
     //   const d = i + 1;
@@ -887,7 +825,8 @@ function saveHoliday() {
 
   // ✅ ปิด popup ทันที (กันความรู้สึก "ไม่ปิด")
   closeHoliday();
-
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
   // รอ onload แล้วค่อยรีโหลด
   iframe.onload = () => {
     iframe.onload = null;
@@ -931,7 +870,8 @@ function deleteHoliday() {
 
   // ✅ ปิด popup ทันที
   closeHoliday();
-
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
   iframe.onload = () => {
     iframe.onload = null;
     location.reload();
@@ -946,53 +886,94 @@ function deleteHoliday() {
   form.submit();
 }
 
-
-  function downloadFullCalendarImage() {
-  const calendarWrapper = document.querySelector('.calendar-wrapper');
-  if (!calendarWrapper) return;
-
-  const cloneWrapper = calendarWrapper.cloneNode(true);
-
-  // ปรับ clone ให้วางชั่วคราวเพื่อให้ html2canvas แสดงครบ
+function downloadFullCalendarImage() {
   const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.background = '#fff';
   container.style.position = 'absolute';
   container.style.left = '-9999px';
   container.style.top = '0';
-  container.style.background = '#fff';
-  container.style.padding = '24px';
-  container.style.direction = 'ltr'; // สำคัญมาก เพื่อให้ภาพตรง
 
-  // ✅ reset scroll เพื่อไม่ให้ canvas เพี้ยน
-  cloneWrapper.scrollTop = 0;
-  cloneWrapper.scrollLeft = 0;
+  const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
+  calendar.classList.remove('reverse', 'rtl', 'direction-reverse');
 
-  // ✅ ลบ summary ถ้ามี (ไม่ต้อง export)
-  const summary = cloneWrapper.querySelector('#summaryBox');
-  if (summary) summary.remove();
+  // 🔁 สลับชื่อไปซ้ายมือ
+  calendar.querySelectorAll('tr').forEach(tr => {
+    const cells = Array.from(tr.children);
+    if (cells.length > 1 && cells[0].tagName === "TH") {
+      tr.innerHTML = `<th>${cells.pop().innerHTML}</th>` + cells.map(td => `<th>${td.innerHTML}</th>`).join('');
+    } else if (cells.length > 1 && cells[0].tagName === "TD") {
+      tr.innerHTML = `<td>${cells.pop().innerHTML}</td>` + cells.map(td => `<td>${td.innerHTML}</td>`).join('');
+    }
+  });
 
-  // ✅ ลบ scroll bar
-  cloneWrapper.style.overflow = 'visible';
-  cloneWrapper.style.maxHeight = 'unset';
-  cloneWrapper.style.maxWidth = 'unset';
-
-  container.appendChild(cloneWrapper);
+  container.appendChild(calendar);
   document.body.appendChild(container);
 
+  calendar.style.maxHeight = 'unset';
+  calendar.style.overflow = 'visible';
+
   html2canvas(container, {
-    backgroundColor: '#ffffff',
-    scale: 2,
     scrollY: -window.scrollY,
     windowWidth: document.body.scrollWidth
   }).then(canvas => {
     const link = document.createElement('a');
-    const month = document.getElementById('month')?.value || 'M';
-    const year = document.getElementById('year')?.value || 'Y';
-    link.download = `calendar-${year}-${month}.png`;
+    link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
-
     document.body.removeChild(container);
   });
+}
+
+function exportMonthToCSV() {
+  const year = +yearSel.value;
+  const month = +monthSel.value;
+  const filtered = allData.filter(row =>
+    +row.year === year && +row.month === month
+  );
+
+  if (filtered.length === 0) {
+    alert("ไม่มีข้อมูลในเดือนนี้");
+    return;
+  }
+
+  // กำหนดหัวคอลัมน์
+  const headers = ["Year", "Month", "Date", "Name", "Type", "Time", "Detail", "Customer", "Place", "JobOwner", "Charge"];
+  
+  // แปลงข้อมูลเป็น CSV string
+  const rows = [headers.join(",")];
+  filtered.forEach(row => {
+    const csvRow = [
+      row.year, row.month, row.date, row.name, row.type, row.time,
+      `"${row.datail?.replace(/"/g, '""') || ''}"`,  // Escape " ใน detail
+      `"${row.customer?.replace(/"/g, '""') || ''}"`,
+      `"${row.place?.replace(/"/g, '""') || ''}"`,
+      `"${row.jobowner?.replace(/"/g, '""') || ''}"`,
+      row.charge
+    ];
+    rows.push(csvRow.join(","));
+  });
+
+  //const csvContent = rows.join("\n");
+  const BOM = "\uFEFF"; // 👈 ตัว BOM
+  const csvContent = BOM + rows.join("\n"); // เพิ่ม BOM ด้านหน้า
+
+  //const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  // ดาวน์โหลดไฟล์
+  const now = new Date();
+  const tday = now.getDate();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const timestamp = `${hh}-${mm}`;
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `calendar-${year}-${month}-save-${tday}-${timestamp}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
     
 init();
@@ -1000,11 +981,5 @@ init();
   </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
