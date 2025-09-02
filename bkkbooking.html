@@ -64,6 +64,9 @@
       </select>
     </label>
     <input type="hidden" name="action" value="save">
+    <label>
+      <input type="checkbox" id="popupSendEmail"> Send e-mail
+    </label><br>
     <button type="submit">Save</button>
   </form>
 
@@ -100,7 +103,7 @@
       const form = new FormData(this);
       const names = Array.from(document.getElementById("nameDropdown").selectedOptions).map(opt => opt.value);
       const dates = Array.from(document.getElementById("dateSelect").selectedOptions).map(opt => opt.value);
-
+      const sendEmailChecked = document.getElementById("popupSendEmail").checked;
       let count = 0;
       for (const name of names) {
         for (const date of dates) {
@@ -110,6 +113,7 @@
           }
           copy.set("name", name);
           copy.set("date", date);
+          copy.set("sendEmail", sendEmailChecked ? "true" : "false"); // ✅ เพิ่มตรงนี้
 
           await fetch(SUBMIT_URL, {
             method: 'POST',
