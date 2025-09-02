@@ -14,8 +14,9 @@
       /* เพิ่มตรงนี้เพื่อ scroll ช้า */
     select[multiple] {height: 300px; overflow-y: auto; scroll-behavior: smooth; }
     .checkbox-label {
-    display: flex;
-    justify-content: flex-start; /* ชิดซ้าย */
+    display: grid;
+    grid-auto-flow: column;  /* เรียงในแนวนอน */
+    justify-items: start;    /* ชิดซ้าย */
     gap: 2px; /* ระยะห่างระหว่างกล่องกับข้อความ */
     cursor: pointer; /* ทำให้เมาส์เป็นรูปมือ */
       }
