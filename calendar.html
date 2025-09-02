@@ -175,6 +175,7 @@
     <input type="hidden" name="charge">
     <input type="hidden" name="action">
     <input type="hidden" name="holidayDetail">
+    <input type="hidden" name="sendEmail">
   </form>
 
   <div class="overlay" id="overlay"></div>
@@ -214,6 +215,9 @@
         <option value="Sales">Sales</option>
         <option value="Other">Other</option>
       </select>
+    </label><br>
+    <label>
+      <input type="checkbox" id="popupSendEmail"> Send e-mail
     </label><br>
     <button type="button" onclick="saveData()">Save</button>
     <button type="button" onclick="deleteData()">Delete</button>
@@ -553,6 +557,7 @@ function init() {
       form.place.value= popupPlace.value;
       form.jobowner.value= popupJobowner.value;
       form.charge.value= popupCharge.value;
+      form.sendEmail.value = document.getElementById("popupSendEmail").checked ? "true" : "false";
       form.action.value = "save";
 
       const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
@@ -983,5 +988,6 @@ init();
   </script>
 </body>
 </html>
+
 
 
