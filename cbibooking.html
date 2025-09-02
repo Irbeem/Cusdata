@@ -13,6 +13,19 @@
     select, input[type="text"], input[type="number"] {font-size: 20px; height: 44px; }
       /* เพิ่มตรงนี้เพื่อ scroll ช้า */
     select[multiple] {height: 200px; overflow-y: auto; scroll-behavior: smooth; }
+    .checkbox-wrapper {
+      display: flex;
+      justify-content: flex-start; /* จัดชิดซ้าย */
+      margin-top: 10px; /* เว้นระยะด้านบนหน่อย */
+    }
+  
+    .checkbox-wrapper label {
+      display: flex;
+      align-items: center; /* จัดให้อยู่กึ่งกลางแนวตั้ง */
+      gap: 6px; /* ระยะห่างระหว่างช่องกับข้อความ */
+      white-space: nowrap;      /* กันไม่ให้ตัดบรรทัด */
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -63,9 +76,12 @@
         <option value="Other">Other</option>
       </select>
     </label>
-    <label>
-      <input type="checkbox" id="popupSendEmail"> Send e-mail
-    </label><br>
+    <div class="checkbox-wrapper">
+      <label for="popupSendEmail">
+        <input type="checkbox" id="popupSendEmail">
+        Send e-mail
+      </label>
+    </div>
     <input type="hidden" name="action" value="save">
     <button type="submit">Save</button>
   </form>
