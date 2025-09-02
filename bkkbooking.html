@@ -23,6 +23,7 @@
     display: flex;
     align-items: center; /* จัดให้อยู่กึ่งกลางแนวตั้ง */
     gap: 6px; /* ระยะห่างระหว่างช่องกับข้อความ */
+    white-space: nowrap;      /* กันไม่ให้ตัดบรรทัด */
     cursor: pointer;
   }
   </style>
@@ -77,7 +78,7 @@
     </label>
     <input type="hidden" name="action" value="save">
     <div class="checkbox-wrapper">
-      <label>
+      <label for="popupSendEmail">
         <input type="checkbox" id="popupSendEmail">
         Send e-mail
       </label>
