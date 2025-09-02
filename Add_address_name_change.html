@@ -84,6 +84,10 @@
           <input type="checkbox" id="includeHoliday">
           รวม Holiday ในสรุป
         </label>
+        <label style="display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="sortByTotals" checked>
+          เรียงคอลัมน์ตามยอดรวมมาก→น้อย
+        </label>
       </div>
       <div class="hint">ถ้ายังไม่เลือก From/To ระบบจะสรุปเดือนปัจจุบันให้โดยอัตโนมัติ</div>
       <div id="status" class="loading">กำลังโหลดข้อมูล…</div>
@@ -165,165 +169,188 @@
     }
 
     /********** 🧮 สร้างสรุปตามช่วงวัน **********/
-    function renderRangeSummary() {
-      const box = document.getElementById('summary-range');
-      const status = document.getElementById('status');
-      const startInput = document.getElementById('rangeStart');
-      const endInput   = document.getElementById('rangeEnd');
-      const includeHoliday = document.getElementById('includeHoliday').checked;
+   function renderRangeSummary() {
+  const box = document.getElementById('summary-range');
+  const status = document.getElementById('status');
+  const startInput = document.getElementById('rangeStart');
+  const endInput   = document.getElementById('rangeEnd');
+  const includeHoliday = document.getElementById('includeHoliday').checked;
+  const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
 
-      // job types ที่จะใช้ (รวม Holiday หรือไม่)
-      const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+  // job types ที่จะใช้ (รวม Holiday หรือไม่)
+  const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
 
-      // default ช่วง = เดือนปัจจุบัน ถ้ายังไม่เลือก
-      let startDate = startInput.value ? new Date(startInput.value) : null;
-      let endDate   = endInput.value   ? new Date(endInput.value)   : null;
+  // default ช่วง = เดือนปัจจุบัน ถ้ายังไม่เลือก
+  let startDate = startInput.value ? new Date(startInput.value) : null;
+  let endDate   = endInput.value   ? new Date(endInput.value)   : null;
 
-      const now = new Date();
-      if (!startDate || !endDate) {
-        const y = now.getFullYear();
-        const m = now.getMonth(); // 0-based
-        startDate = new Date(y, m, 1);
-        endDate   = new Date(y, m + 1, 0);
-        startInput.value = startDate.toISOString().slice(0,10);
-        endInput.value   = endDate.toISOString().slice(0,10);
+  const now = new Date();
+  if (!startDate || !endDate) {
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    startDate = new Date(y, m, 1);
+    endDate   = new Date(y, m + 1, 0);
+    startInput.value = startDate.toISOString().slice(0,10);
+    endInput.value   = endDate.toISOString().slice(0,10);
+  }
+  // รวมทั้งวัน
+  endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+
+  // เตรียมโครงนับ
+  const nameList = getAllDistinctNames();
+  const tableMap = {};
+  nameList.forEach(n => {
+    tableMap[n] = {};
+    JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+  });
+
+  // กรองแล้วนับ
+  allData.forEach(d => {
+    const dt = rowToDate(d);
+    if (!dt) return;
+    if (dt >= startDate && dt <= endDate) {
+      const nm = d.name || '';
+      const tp = d.type || '';
+      if (nm && JOB_TYPES.includes(tp)) {
+        tableMap[nm][tp] += 1;
       }
-      // รวมทั้งวัน
-      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
-
-      // เตรียมโครงนับ
-      const nameList = getAllDistinctNames();
-      const tableMap = {};
-      nameList.forEach(n => {
-        tableMap[n] = {};
-        JOB_TYPES.forEach(t => tableMap[n][t] = 0);
-      });
-
-      // กรองแล้วนับ
-      allData.forEach(d => {
-        const dt = rowToDate(d);
-        if (!dt) return;
-        if (dt >= startDate && dt <= endDate) {
-          const nm = d.name || '';
-          const tp = d.type || '';
-          if (nm && JOB_TYPES.includes(tp)) {
-            tableMap[nm][tp] += 1;
-          }
-        }
-      });
-
-      // รวมยอดคอลัมน์
-      const colTotals = {}; JOB_TYPES.forEach(t => colTotals[t] = 0);
-
-      const rowsHtml = nameList.map(nm => {
-        const tds = JOB_TYPES.map(tp => {
-          const v = tableMap[nm][tp] || 0;
-          colTotals[tp] += v;
-          return `<td>${v}</td>`;
-        });
-        const rowSum = JOB_TYPES.reduce((s,tp)=> s + (tableMap[nm][tp]||0), 0);
-        return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
-      }).join('');
-
-      const grandTotal = JOB_TYPES.reduce((s,tp)=> s + colTotals[tp], 0);
-      const footerHtml = `
-        <tr>
-          <td>รวมต่อชนิดงาน</td>
-          ${JOB_TYPES.map(tp => `<td>${colTotals[tp]}</td>`).join('')}
-          <td>${grandTotal}</td>
-        </tr>
-      `;
-
-      const html = `
-        <div style="font-weight:700; margin:8px 0;">
-          ช่วง ${startInput.value} ถึง ${endInput.value}
-          ${includeHoliday ? '<span class="badge">รวม Holiday</span>' : ''}
-        </div>
-        <div style="overflow:auto;">
-          <table id="summary-range-table">
-            <thead>
-              <tr>
-                <th>ชื่อ</th>
-                ${JOB_TYPES.map(t => `<th>${t}</th>`).join('')}
-                <th>รวม/คน</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-            <tfoot>
-              ${footerHtml}
-            </tfoot>
-          </table>
-        </div>
-      `;
-      box.innerHTML = html;
-      status.textContent = '';
     }
+  });
 
-    /********** 💾 Export CSV **********/
-    function exportRangeSummaryCSV() {
-      const includeHoliday = document.getElementById('includeHoliday').checked;
-      const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+  // รวมยอดคอลัมน์ก่อน เพื่อใช้เรียง
+  const colTotalsRaw = {};
+  JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
+  nameList.forEach(nm => {
+    JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+  });
 
-      const start = document.getElementById('rangeStart').value;
-      const end   = document.getElementById('rangeEnd').value;
+  // ลำดับคอลัมน์: เรียงตามยอดรวมมาก→น้อย (หรือคงลำดับเดิม)
+  const TYPES_ORDER = sortByTotals
+    ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
+    : [...JOB_TYPES];
 
-      let startDate = start ? new Date(start) : null;
-      let endDate   = end   ? new Date(end)   : null;
-      const now = new Date();
-      if (!startDate || !endDate) {
-        const y = now.getFullYear(), m = now.getMonth();
-        startDate = new Date(y, m, 1);
-        endDate   = new Date(y, m + 1, 0);
+  // คำนวณ colTotals ตามลำดับที่แสดงจริง
+  const colTotals = {};
+  TYPES_ORDER.forEach(t => colTotals[t] = colTotalsRaw[t]);
+
+  // สร้างแถว
+  const rowsHtml = nameList.map(nm => {
+    const tds = TYPES_ORDER.map(tp => `<td>${tableMap[nm][tp] || 0}</td>`);
+    const rowSum = TYPES_ORDER.reduce((s,tp)=> s + (tableMap[nm][tp]||0), 0);
+    return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
+  }).join('');
+
+  const grandTotal = TYPES_ORDER.reduce((s,tp)=> s + colTotals[tp], 0);
+  const footerHtml = `
+    <tr>
+      <td>รวมต่อชนิดงาน</td>
+      ${TYPES_ORDER.map(tp => `<td>${colTotals[tp]}</td>`).join('')}
+      <td>${grandTotal}</td>
+    </tr>
+  `;
+
+  const html = `
+    <div style="font-weight:700; margin:8px 0;">
+      ช่วง ${startInput.value} ถึง ${endInput.value}
+      ${includeHoliday ? '<span class="badge">รวม Holiday</span>' : ''}
+      ${sortByTotals ? '<span class="badge">จัดเรียงตามยอดรวม</span>' : ''}
+    </div>
+    <div style="overflow:auto;">
+      <table id="summary-range-table">
+        <thead>
+          <tr>
+            <th>ชื่อ</th>
+            ${TYPES_ORDER.map(t => `<th>${t}</th>`).join('')}
+            <th>รวม/คน</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+        <tfoot>
+          ${footerHtml}
+        </tfoot>
+      </table>
+    </div>
+  `;
+  box.innerHTML = html;
+  status.textContent = '';
+}
+
+function exportRangeSummaryCSV() {
+  const includeHoliday = document.getElementById('includeHoliday').checked;
+  const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
+  const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+
+  const start = document.getElementById('rangeStart').value;
+  const end   = document.getElementById('rangeEnd').value;
+
+  let startDate = start ? new Date(start) : null;
+  let endDate   = end   ? new Date(end)   : null;
+  const now = new Date();
+  if (!startDate || !endDate) {
+    const y = now.getFullYear(), m = now.getMonth();
+    startDate = new Date(y, m, 1);
+    endDate   = new Date(y, m + 1, 0);
+  }
+  endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+
+  const nameList = getAllDistinctNames();
+  const tableMap = {};
+  nameList.forEach(n => {
+    tableMap[n] = {};
+    JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+  });
+
+  allData.forEach(d => {
+    const dt = rowToDate(d);
+    if (!dt) return;
+    if (dt >= startDate && dt <= endDate) {
+      const nm = d.name || '';
+      const tp = d.type || '';
+      if (nm && JOB_TYPES.includes(tp)) {
+        tableMap[nm][tp] += 1;
       }
-      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
-
-      const nameList = getAllDistinctNames();
-      const tableMap = {};
-      nameList.forEach(n => {
-        tableMap[n] = {};
-        JOB_TYPES.forEach(t => tableMap[n][t] = 0);
-      });
-
-      allData.forEach(d => {
-        const dt = rowToDate(d);
-        if (!dt) return;
-        if (dt >= startDate && dt <= endDate) {
-          const nm = d.name || '';
-          const tp = d.type || '';
-          if (nm && JOB_TYPES.includes(tp)) {
-            tableMap[nm][tp] += 1;
-          }
-        }
-      });
-
-      const headers = ["Name", ...JOB_TYPES, "TotalPerPerson"];
-      const rows = [headers.join(",")];
-
-      nameList.forEach(nm => {
-        const counts = JOB_TYPES.map(tp => tableMap[nm][tp] || 0);
-        const sum = counts.reduce((s,v)=>s+v,0);
-        rows.push([nm, ...counts, sum].join(","));
-      });
-
-      const colTotals = JOB_TYPES.map(tp =>
-        nameList.reduce((s,nm)=> s + (tableMap[nm][tp]||0), 0)
-      );
-      const grand = colTotals.reduce((s,v)=>s+v,0);
-      rows.push(["TOTAL_BY_TYPE", ...colTotals, grand].join(","));
-
-      const BOM = "\uFEFF";
-      const csvContent = BOM + rows.join("\n");
-      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `summary_${(start||'auto')}_${(end||'auto')}${includeHoliday ? '_withHoliday':''}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
     }
+  });
+
+  // รวมเพื่อเรียงคอลัมน์
+  const colTotalsRaw = {};
+  JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
+  nameList.forEach(nm => {
+    JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+  });
+
+  const TYPES_ORDER = sortByTotals
+    ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
+    : [...JOB_TYPES];
+
+  const headers = ["Name", ...TYPES_ORDER, "TotalPerPerson"];
+  const rows = [headers.join(",")];
+
+  nameList.forEach(nm => {
+    const counts = TYPES_ORDER.map(tp => tableMap[nm][tp] || 0);
+    const sum = counts.reduce((s,v)=>s+v,0);
+    rows.push([nm, ...counts, sum].join(","));
+  });
+
+  const colTotals = TYPES_ORDER.map(tp =>
+    nameList.reduce((s,nm)=> s + (tableMap[nm][tp]||0), 0)
+  );
+  const grand = colTotals.reduce((s,v)=>s+v,0);
+  rows.push(["TOTAL_BY_TYPE", ...colTotals, grand].join(","));
+
+  const BOM = "\uFEFF";
+  const csvContent = BOM + rows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `summary_${(start||'auto')}_${(end||'auto')}${includeHoliday ? '_withHoliday':''}${sortByTotals ? '_sorted':''}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
     /********** 🔗 Bind Events & Init **********/
     function bindEvents() {
@@ -350,3 +377,4 @@
   </script>
 </body>
 </html>
+
