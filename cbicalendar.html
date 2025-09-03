@@ -1,49 +1,39 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>CS CBI Calendar</title>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
+    /* ===== Login Gate ===== */
+    .login-overlay { display: none; position: fixed; inset: 0; background: #f7f7f7; z-index: 2000; }
+    .login-box { width: 360px; max-width: 92vw; background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .login-box h2 { margin: 0 0 10px; text-align: center; }
+    .login-box label { display: block; margin-top: 10px; font-weight: 600; }
+    .login-box input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 6px; }
+    .login-actions { margin-top: 14px; display: flex; gap: 8px; }
+    .login-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-primary { background: #1976d2; color: #fff; }
+    .btn-secondary { background: #bbb; color: #000; }
+    .login-note { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
+
+    /* ===== Existing styles (unchanged) ===== */
     .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
-    /* ไฮไลท์ทั้งคอลัมน์ของวันเสาร์/อาทิตย์ใน tbody */
-    #calendar-table td.weekend {
-      background: #fff1f1 !important;   /* อาทิตย์ออกชมพูอ่อน */
-    }
-    #calendar-table td.weekend.sat {
-      background: #f3ecff !important;   /* เสาร์ออกม่วงอ่อน */
-    }
-    /* header วันที่เป็นวันหยุดพิเศษ */
-    thead th.holiday {
-      background: #ffd9d9 !important;  /* เหลืองอ่อน */
-      color: #333;
-    }
-    
-    /* ไฮไลท์ทั้งคอลัมน์วันหยุดใน tbody */
-    #calendar-table td.holiday-col {
-      background: #ffd9d9 !important;
-    }
-    
+    #calendar-table td.weekend { background: #fff1f1 !important; }
+    #calendar-table td.weekend.sat { background: #f3ecff !important; }
+    thead th.holiday { background: #ffd9d9 !important; color: #333; }
+    #calendar-table td.holiday-col { background: #ffd9d9 !important; }
     table { border-collapse: collapse; width: max-content; }
-    th, td {
-      border: 1px solid #ccc; padding: 6px; width: 120px; height: 80px;
-      text-align: left; vertical-align: top; background: white; cursor: pointer;
-    }
-    thead th {
-      position: sticky; top: 0;
-      font-size: 2.1em;
-      text-align: center;
-      vertical-align: middle;
-    }
+    th, td { border: 1px solid #ccc; padding: 6px; width: 120px; height: 80px; text-align: left; vertical-align: top; background: white; cursor: pointer; }
+    thead th { position: sticky; top: 0; font-size: 2.1em; text-align: center; vertical-align: middle; }
     td:first-child, th:first-child { position: sticky; left: 0; background: #f1f1f1; font-weight: bold;}
-    /*<!#calendar-table td:first-child { font-size: 20px; font-weight: bold; width: 180px;}>*/
-    #calendar-table td:first-child { font-size: clamp(20px, 2vw, 40px);}
+    #calendar-table td:first-child { font-size: clamp(20px, 2vw, 40px);}    
     .event { font-size: 0.85rem; padding: 2px; display: block; }
     .Warranty { background: #72d572; }
     .Service { background: #2a36b1; color: white; }
-    .LTC { background: #795548; color: white; }
     .Standby { background: #009688; color: white; }
+    .LTC { background: #795548; color: white; }
     .Training { background: #cddc39; color: black; }
     .Inspection { background: #00bcd4; color: white; }
     .TrainingSafety { background: #259b24; color: white; }
@@ -51,9 +41,7 @@
     .Meeting { background: #212121; color: white; }
     .RepairWelder { background: #0277bd; color: white; }
     .Sales { background: #78909c; color: white; }
-    .Holiday { background: #c41411; color: white; }
-    .Leave { background: #c41411; color: white; }
-    .SafetyHealth { background: #c41411; color: white; }
+    .Holiday, .Leave, .SafetyHealth { background: #c41411; color: white; }
     .Other { background: #fff176; }
     .sun { background: #c41411 !important; }
     .mon { background: #fffacc !important; }
@@ -64,44 +52,18 @@
     .sat { background: #e0ccff !important; }
     .overlay, .modal { display: none; }
     .overlay.active, .modal.active { display: block; }
-    .overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.4); z-index: 998;
-    }
-    .modal {
-      position: fixed;
-      top: 10%; 
-      left: 50%;
-      transform: translateX(-50%);
-      background: white;
-      border: 1px solid #ccc;
-      padding: 20px;
-      z-index: 999;
-      width: 300px;
-      border-radius: 8px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 998; }
+    .modal { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; z-index: 999; width: 300px; border-radius: 8px; max-height: 80vh; overflow-y: auto; }
     .modal h3 { margin-top: 0; text-align: center; }
     .modal label { display: block; margin-top: 10px; font-weight: bold; }
-    .modal input[type="text"], .modal select {
-      width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px;
-    }
-    .modal button {
-      margin-top: 12px; padding: 6px 12px; margin-right: 6px;
-      border: none; border-radius: 4px; cursor: pointer;
-    }
+    .modal input[type="text"], .modal select { width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; }
+    .modal button { margin-top: 12px; padding: 6px 12px; margin-right: 6px; border: none; border-radius: 4px; cursor: pointer; }
     .modal button:hover { opacity: 0.9; }
     .modal button:nth-child(1) { background: #4CAF50; color: white; }
     .modal button:nth-child(2) { background: #f44336; color: white; }
     .modal button:nth-child(3) { background: #bbb; }
-    .selected-row td {background: #fff4b3 !important; }   /* เหลืองอ่อน */
-    /* ป๊อปอัปวันหยุดพิเศษ */
-    .modal-sm {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
-      background:#fff; border:1px solid #ccc; padding:16px; z-index:1000;
-      box-shadow:0 5px 15px rgba(0,0,0,.3); width:320px; border-radius:8px; display:none;
-    }
+    .selected-row td {background: #fff4b3 !important; }
+    .modal-sm { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:16px; z-index:1000; box-shadow:0 5px 15px rgba(0,0,0,.3); width:320px; border-radius:8px; display:none; }
     .modal-sm.active { display:block; }
     .modal-sm h3 { margin:0 0 8px; text-align:center; }
     .modal-sm label { display:block; margin-top:8px; }
@@ -113,828 +75,154 @@
     .btn-save { background:#4CAF50; color:#fff; }
     .btn-del  { background:#f44336; color:#fff; }
     .btn-cancel{ background:#bbb; }
-    .highlight-row { background-color: rgba(255, 215, 0, 0.4);}
-    
-    /* (ออปชัน) ไฮไลท์หัวตาราง/ทั้งคอลัมน์เมื่อเป็นวันพิเศษ */
+    .highlight-row { background-color: rgba(255, 215, 0, 0.4);}    
     .special-holiday,td.special-holiday {background: #fcb8d2 !important;}
     thead th.holiday { background:#f70a39 !important; color:#333; }
     #calendar-table td.holiday-col { background:#fff7d6 !important; }
   </style>
 </head>
 <body>
-  <h2>CS CBI Calendar
-  <!-- 🔗 ปุ่มลิงก์ไปยังเว็บไซต์อื่น -->
-  <a href="https://irbeem.github.io/Cusdata/cbibooking.html" style="
-  display: inline-block;
-  margin: 10px 0;
-  padding: 8px 16px;
-  background-color: #1976d2;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
-  ">
-  🗓️ Multiple booking
-  </a>
-  <!-- 🔗 ปุ่มลิงก์ไปยังเว็บไซต์อื่น -->
-  <a href="https://irbeem.github.io/Cusdata/calendar.html" style="
-  display: inline-block;
-  margin: 10px 0;
-  padding: 8px 16px;
-  background-color: #1976d2;
-  color: white;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
-  ">
-  🔄 To BKK calendar
-  </a>
-  </h2>
-  <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-  <div class="calendar-wrapper">
-    <table id="calendar-table">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
+  <!-- ===== Login Overlay ===== -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🔐 เข้าสู่ระบบ</h2>
+      <label>Username
+        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
+      </label>
+      <label>Password
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+      </label>
+      <div class="login-actions">
+        <button class="btn-primary" onclick="doLogin()">Login</button>
+        <button class="btn-secondary" onclick="resetLogin()">Clear</button>
+      </div>
+      <div class="login-note">* </div>
+    </div>
   </div>
 
-  <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
-  <form id="submitForm" action="https://script.google.com/macros/s/AKfycbwytiSLg-Mo3sY8R3S2VaIUe0-G4AbQD0h2YgGo4fNquDWwyV9N3Ma-wQX26Tb9YhPbSQ/exec" method="POST" target="hidden_frame">
-    <input type="hidden" name="year">
-    <input type="hidden" name="month">
-    <input type="hidden" name="date">
-    <input type="hidden" name="name">
-    <input type="hidden" name="type">
-    <input type="hidden" name="time">
-    <input type="hidden" name="datail">
-    <input type="hidden" name="customer">
-    <input type="hidden" name="place">
-    <input type="hidden" name="jobowner">
-    <input type="hidden" name="charge">
-    <input type="hidden" name="action">
-    <input type="hidden" name="holidayDetail">
-    <input type="hidden" name="sendEmail">
-  </form>
+  <!-- ===== App (hidden until authenticated) ===== -->
+  <div id="app" style="display:none">
+    <h2>CS cbi Calendar
+      <a href="https://irbeem.github.io/Cusdata/cbibooking.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗓️ Multiple booking</a>
+      <a href="https://irbeem.github.io/Cusdata/calendar.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🔄 To BKK calendar</a>
+      <button onclick="exportMonthToCSV()">📤 Export CSV</button>
+      <button id="logoutBtn" style="float:right" onclick="logout()">🚪 Logout</button>
+    </h2>
 
-  <div class="overlay" id="overlay"></div>
-  <div class="modal" id="popupForm">
-    <h3>Booking</h3>
-    <div>Name: <span id="popupName"></span></div>
-    <div>Date: <span id="popupDate"></span></div>
-    <label>Job Type:
-      <select id="popupType">
-        <option value="Service">Service</option>
-        <option value="Standby">Standby</option>
-        <option value="Meeting">Meeting</option>
-        <option value="Inspection">Inspection</option>
-        <option value="Telephone">Telephone</option>
-        <option value="Training">Training</option>
-        <option value="TrainingSafety">TrainingSafety</option>
-        <option value="LTC">LTC</option>
-        <option value="Warranty">Warranty</option>
-        <option value="RepairWelder">RepairWelder</option>
-        <option value="Sales">Sales</option>
-        <option value="Holiday">Holiday</option>
-        <option value="Leave">Leave</option>
-        <option value="SafetyHealth">SafetyHealth</option>
-        <option value="Other">Other</option>
-      </select>
-    </label><br>
-    <label>Customer: <input type="text" id="popupCustomer"></label><br>
-    <label>Time: <input type="text" id="popupTime"></label><br>
-    <label>Job detail: <input type="text" id="popupDetail"></label><br>
-    <label>Place: <input type="text" id="popupPlace"></label><br>
-    <label>Job owner: <input type="text" id="popupJobowner"></label><br>
-    <label>Charge:
+    <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+    <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+
+    <div class="calendar-wrapper">
+      <table id="calendar-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
+      <form id="submitForm" action="https://script.google.com/macros/s/AKfycbwytiSLg-Mo3sY8R3S2VaIUe0-G4AbQD0h2YgGo4fNquDWwyV9N3Ma-wQX26Tb9YhPbSQ/exec" method="POST" target="hidden_frame">
+      <input type="hidden" name="year">
+      <input type="hidden" name="month">
+      <input type="hidden" name="date">
+      <input type="hidden" name="name">
+      <input type="hidden" name="type">
+      <input type="hidden" name="time">
+      <input type="hidden" name="datail">
+      <input type="hidden" name="customer">
+      <input type="hidden" name="place">
+      <input type="hidden" name="jobowner">
+      <input type="hidden" name="charge">
+      <input type="hidden" name="action">
+      <input type="hidden" name="holidayDetail">
+      <input type="hidden" name="sendEmail">
+    </form>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="popupForm">
+      <h3>Booking</h3>
+      <div>Name: <span id="popupName"></span></div>
+      <div>Date: <span id="popupDate"></span></div>
+      <label>Job Type:
+        <select id="popupType">
+          <option value="Service">Service</option>
+          <option value="Standby">Standby</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Telephone">Telephone</option>
+          <option value="Training">Training</option>
+          <option value="TrainingSafety">TrainingSafety</option>
+          <option value="LTC">LTC</option>
+          <option value="Warranty">Warranty</option>
+          <option value="Repairwelder">RepairWelder</option>
+          <option value="Sales">Sales</option>
+          <option value="Holiday">Holiday</option>
+          <option value="Leave">Leave</option>
+          <option value="SafetyHealth">SafetyHealth</option>
+          <option value="Other">Other</option>
+        </select>
+      </label><br>
+      <label>Customer: <input type="text" id="popupCustomer"></label><br>
+      <label>Time: <input type="text" id="popupTime"></label><br>
+      <label>Job detail: <input type="text" id="popupDetail"></label><br>
+      <label>Place: <input type="text" id="popupPlace"></label><br>
+      <label>Job owner: <input type="text" id="popupJobowner"></label><br>
+      <label>Charge:
         <select id="popupCharge">
-        <option value="Charge">Charge</option>
-        <option value="Nocharge">Nocharge</option>
-        <option value="Warranty">Warranty</option>
-        <option value="Sales">Sales</option>
-        <option value="Other">Other</option>
-      </select>
-    </label><br>
-    <label>
-      <input type="checkbox" id="popupSendEmail"> Send e-mail
-    </label><br>
-    <button type="button" onclick="saveData()">Save</button>
-    <button type="button" onclick="deleteData()">Delete</button>
-    <button type="button" onclick="closePopup()">Cancel</button>
-  </div>
+          <option value="Charge">Charge</option>
+          <option value="Nocharge">Nocharge</option>
+          <option value="Warranty">Warranty</option>
+          <option value="Sales">Sales</option>
+          <option value="Other">Other</option>
+        </select>
+      </label><br>
+      <label><input type="checkbox" id="popupSendEmail"> Send e-mail</label><br>
+      <button type="button" onclick="saveData()">Save</button>
+      <button type="button" onclick="deleteData()">Delete</button>
+      <button type="button" onclick="closePopup()">Cancel</button>
+    </div>
 
-  <!-- Modal อ่านรายละเอียด (detailModal) -->
-<div class="modal" id="detailModal">
-  <h3>Job Detail</h3>
-  <div id="detailContent"></div>
-  <div style="margin-top:12px;">
-    <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
-    <button type="button" onclick="closeDetails()">Close</button>
-  </div>
-</div>
+    <div class="modal" id="detailModal">
+      <h3>Job Detail</h3>
+      <div id="detailContent"></div>
+      <div style="margin-top:12px;">
+        <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
+        <button type="button" onclick="closeDetails()">Close</button>
+      </div>
+    </div>
 
-  <!-- Special Holiday Modal -->
-<div class="modal-sm" id="holidayModal">
-  <h3>Special Holiday</h3>
-  <div class="row">
-    <div>
-      <label>Year
-        <!-- เว้นว่าง = วันหยุดทุกปี -->
-        <input type="number" id="holYear" placeholder="เว้นว่าง = ทุกปี">
+    <div class="modal-sm" id="holidayModal">
+      <h3>Special Holiday</h3>
+      <div class="row">
+        <div>
+          <label>Year
+            <input type="number" id="holYear" placeholder="เว้นว่าง = ทุกปี">
+          </label>
+        </div>
+        <div>
+          <label>Month
+            <input type="number" id="holMonth" min="1" max="12">
+          </label>
+        </div>
+        <div>
+          <label>Date
+            <input type="number" id="holDate" min="1" max="31">
+          </label>
+        </div>
+      </div>
+      <label>Detail
+        <input type="text" id="holDetail" placeholder="เช่น วันชดเชย, วันหยุดพิเศษ">
       </label>
+      <div class="btns">
+        <button class="btn-save"  onclick="saveHoliday()">Save</button>
+        <button class="btn-del"   onclick="deleteHoliday()">Delete</button>
+        <button class="btn-cancel" onclick="closeHoliday()">Cancel</button>
+      </div>
     </div>
-    <div>
-      <label>Month
-        <input type="number" id="holMonth" min="1" max="12">
-      </label>
-    </div>
-    <div>
-      <label>Date
-        <input type="number" id="holDate" min="1" max="31">
-      </label>
-    </div>
-  </div>
-  <label>Detail
-    <input type="text" id="holDetail" placeholder="เช่น วันชดเชย, วันหยุดพิเศษ">
-  </label>
-  <div class="btns">
-    <button class="btn-save"  onclick="saveHoliday()">Save</button>
-    <button class="btn-del"   onclick="deleteHoliday()">Delete</button>
-    <button class="btn-cancel" onclick="closeHoliday()">Cancel</button>
-  </div>
-</div>
-
-  <script>
-    let names = [], allData = [];
-    let activeCell = null;
-
-    const SHEET_ID = '1Yv7-SwI9Iuv9QcEaqFVCEejEe3_8Ja77NNwrM61x-oA';
-    const CALENDAR_SHEET = 'Carlendar';
-    const NAMES_SHEET = 'Names';
-    const SpecialHolidays_SHEET = 'SpecialHolidays';
-
-    const monthSel = document.getElementById("month");
-    const yearSel = document.getElementById("year");
-    const overlay = document.getElementById("overlay");
-    const popup = document.getElementById("popupForm");
-    const popupName = document.getElementById("popupName");
-    const popupDate = document.getElementById("popupDate");
-    const popupType = document.getElementById("popupType");
-    const popupTime = document.getElementById("popupTime");
-    const popupDetail = document.getElementById("popupDetail");
-    const popupCustomer = document.getElementById("popupCustomer");
-    const popupPlace = document.getElementById("popupPlace");
-    const popupJobowner = document.getElementById("popupJobowner");
-    const popupCharge = document.getElementById("popupCharge");
-
-const LONG_PRESS_MS = 600; // หน่วง 0.6s ถือเป็นแตะค้าง
-let longPressTimer = null;
-let touchMoved = false;
-
-function handleTouchStart(e) {
-  // เป้าหมายคือ <td>
-  const td = e.currentTarget;
-  touchMoved = false;
-  clearTimeout(longPressTimer);
-  longPressTimer = setTimeout(() => {
-    // แตะค้างสำเร็จ => เปิดแก้ไขทันที
-    openPopup(td);
-  }, LONG_PRESS_MS);
-}
-
-function handleTouchMove() {
-  // มีการเลื่อน => ยกเลิก long press
-  touchMoved = true;
-  clearTimeout(longPressTimer);
-}
-
-function handleTouchEnd() {
-  // ปล่อยนิ้ว -> ยกเลิกตัวจับเวลา (แตะปกติยังคงทำงานผ่าน onclick/cellClick เดิม)
-  clearTimeout(longPressTimer);
-}
-
-function handleContextMenu(e) {
-  // คลิกขวาเปิดแก้ไขทันที (เดสก์ท็อป)
-  e.preventDefault();
-  const td = e.currentTarget;
-  openPopup(td);
-}
-
-function attachHandlersToCells() {
-  // ผูก event ให้ทุกเซลล์ (ยกเว้น header)
-  document.querySelectorAll('#calendar-table tbody td').forEach(td => {
-    td.addEventListener('touchstart', handleTouchStart, { passive: true });
-    td.addEventListener('touchmove', handleTouchMove, { passive: true });
-    td.addEventListener('touchend', handleTouchEnd);
-    td.addEventListener('contextmenu', handleContextMenu);
-  });
-}
-    
-function init() {
-  const now = new Date();
-
-  const savedMonth = parseInt(localStorage.getItem('savedMonth'));
-  const savedYear = parseInt(localStorage.getItem('savedYear'));
-
-  const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
-  const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
-
-  for (let i = 1; i <= 12; i++) {
-    const opt = new Option(i, i);
-    if (i === defaultMonth) opt.selected = true;
-    monthSel.add(opt);
-  }
-
-  for (let y = 2025; y <= now.getFullYear() + 1; y++) {
-    const opt = new Option(y, y);
-    if (y === defaultYear) opt.selected = true;
-    yearSel.add(opt);
-  }
-
-  const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-
-  Promise.all([
-    fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-    fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
-    fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text()) // ✅ เพิ่มเข้าไป
-  ])
-  .then(([namesTxt, dataTxt, holidayTxt]) => {
-    const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
-    names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary");
-
-    const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
-    const cols = dataJson.table.cols.map(c => c.label);
-    allData = dataJson.table.rows.map(r => {
-      const o = {};
-      r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
-      return o;
-    });
-
-    const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
-    specialHolidays = holidayJson.table.rows.map(r => {
-      return {
-        year:   r.c[0]?.v || '',
-        month:  r.c[1]?.v,
-        date:   r.c[2]?.v,
-        detail: r.c[3]?.v || ''
-      };
-    }).filter(h => h.month && h.date);
-
-    renderTable();
-  });
-}
-
-  function renderTable() {
-    const year = +yearSel.value;
-    const month = +monthSel.value;
-    const days = new Date(year, month, 0).getDate();
-    const thead = document.querySelector("#calendar-table thead");
-    const tbody = document.querySelector("#calendar-table tbody");
-  
-    // 👇 รวมชื่อจาก Names และจาก Carlendar แบบไม่ซ้ำ โดยเรียง Names ไว้ก่อน
-    const extraNames = new Set();
-    allData.forEach(d => {
-      if (d.name && !names.includes(d.name)) {
-        extraNames.add(d.name);
-      }
-    });
-
-    const allNames = [...names, ...[...extraNames].sort()];
-    
-    // 🔄 เตรียมข้อมูลตาราง
-    const dataMap = {};
-    const summary = { Service: 0, Standby: 0, Meeting: 0,Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0,LTC : 0, Warranty: 0,RepairWelder : 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
-    allNames.forEach(name => dataMap[name] = {});
-    allData.forEach(d => {
-      if (+d.year === year && +d.month === month) {
-        const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
-        const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer}</div>`;
-        (dataMap[d.name][d.date] ||= []).push(html);
-        if (summary[d.type] !== undefined) summary[d.type]++;
-      }
-    });
-  
-    // 🗓️ หัวตารางวันที่
-    const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
-    const daysHeader = Array.from({ length: days }, (_, i) => {
-      const d = i + 1;
-      const date = new Date(year, month - 1, d);
-      const dow = date.getDay();
-      const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
-    
-      // หาวันหยุดพิเศษ (ถ้ามี)
-      const holiday = specialHolidays.find(h =>
-        h.date == d &&
-        h.month == month &&
-        (!h.year || +h.year === year)
-      );
-    
-      const isHoliday = !!holiday;
-      const holidayName = holiday?.detail || "";
-
-      // return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}"
-      //         data-day="${d}" style="user-select:none;"
-      //         onclick="openHolidayModal(${year},${month},${d})"
-      //         title="${isHoliday ? holidayName : ''}">
-      //         <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-      //         <div style="font-size:1.2em;">${d}</div>
-      //       </th>`;
-      
-        // return `<th class="${dayClass[dow]}"
-        //             data-day="${d}" style="user-select:none;"
-        //             onclick="openHolidayModal(${year},${month},${d})">
-        //           <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-        //           <div style="font-size:1.2em;">${d}</div>
-        //         </th>`;
-
-        return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}"
-            data-day="${d}" style="user-select:none;"
-            onclick="openHolidayModal(${year},${month},${d})">
-            <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
-            <div style="font-size:1.2em;">${d}</div>
-            ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
-          </th>`;
-      });
-
-    
-    // const daysHeader = Array.from({ length: days }, (_, i) => {
-    //   const d = i + 1;
-    //   const date = new Date(year, month - 1, d);
-    //   const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][date.getDay()];
-    //   return `<th class="${dayClass[date.getDay()]} onclick="openHolidayModal(${year},${month},${d})">
-    //             <div style="font-size: 0.7em; font-weight: normal;">${dayName}</div>
-    //             <div style="font-size: 1.2em;">${i + 1}</div>
-    //           </th>`;
-    // });
-    thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
-  
-    // 📆 สร้างแต่ละแถวของชื่อ
-    tbody.innerHTML = allNames.map(name => {
-      const row = [`<td>${name}</td>`];
-      for (let d = 1; d <= days; d++) {
-        const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-        //row.push(`<td data-name="${name}" data-day="${d}" onclick="openPopup(this)">${cell}</td>`);
-        row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
-      }
-
-      // for (let d = 1; d <= days; d++) {
-      //   let cellClass = "";
-      //   if (specials.some(h => h.date == d)) cellClass += " special-holiday";
-      //   // ✅ เพิ่ม default ช่องเปล่า
-      //   const cellContent = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
-      //   row.push(`<td class="${cellClass}" data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cellContent}</td>`);
-      // }
-      
-      return `<tr>${row.join('')}</tr>`;
-    }).join('');
-  
-    // 📊 Summary
-    const oldSummary = document.getElementById("summaryBox");
-    if (oldSummary) oldSummary.remove();
-    const totalDiv = document.createElement("div");
-    totalDiv.id = "summaryBox";
-    totalDiv.innerHTML = `
-      <h4>📊 Summary job ${month}/${year}</h4>
-      <ul>
-        ${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}
-      </ul>
-    `;
-    document.querySelector(".calendar-wrapper").appendChild(totalDiv);
-  
-    // 🧠 เคลียร์ localStorage ที่ใช้จำเดือน/ปี
-    localStorage.removeItem('savedMonth');
-    localStorage.removeItem('savedYear');
-
-    specialHolidays.forEach(h => {
-    if (h.month === month && (!h.year || +h.year === year)) {
-      const idx = h.date;
-      // ✅ ไฮไลท์หัวตาราง
-      const th = thead.querySelector(`th[data-day="${idx}"]`);
-      if (th) th.classList.add("holiday", "special-holiday");
-  
-      // ✅ ไฮไลท์ทั้งคอลัมน์
-      tbody.querySelectorAll(`td[data-day="${idx}"]`).forEach(td => {
-        td.classList.add("holiday-col", "special-holiday");
-        });
-      }
-    });
-    
-    highlightWeekendColumns();
-  }
-
-
-    function openPopup(td) {
-      activeCell = td;
-      popupName.textContent = td.dataset.name;
-      popupDate.textContent = td.dataset.day;
-      popupType.value = "Service";
-      popupTime.value = "";
-      popupDetail.value = "";
-      popupCustomer.value = "";
-      popupPlace.value = "";
-      popupJobowner.value = "";
-      popupCharge.value = "Nocharge";
-      overlay.classList.add("active");
-      popup.classList.add("active");
-    }
-
-    function closePopup() {
-      overlay.classList.remove("active");
-      popup.classList.remove("active");
-    }
-
-    function saveData() {
-      const form = document.getElementById("submitForm");
-      form.year.value = yearSel.value;
-      form.month.value = monthSel.value;
-      form.date.value = activeCell.dataset.day;
-      form.name.value = activeCell.dataset.name;
-      form.type.value = popupType.value;
-      form.time.value = popupTime.value;
-      form.datail.value = popupDetail.value;
-      form.customer.value= popupCustomer.value;
-      form.place.value= popupPlace.value;
-      form.jobowner.value= popupJobowner.value;
-      form.charge.value= popupCharge.value;
-      form.sendEmail.value = document.getElementById("popupSendEmail").checked ? "true" : "false";
-      form.action.value = "save";
-
-      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
-      activeCell.innerHTML = html;
-      console.log("Saving:", {
-        year: form.year.value,
-        month: form.month.value,
-        date: form.date.value,
-        name: form.name.value,
-        action: form.action.value
-      });
-      //form.submit();
-      closePopup();
-      localStorage.setItem('savedMonth', monthSel.value);
-      localStorage.setItem('savedYear', yearSel.value);
-      submitAndWait();   // <<<
-      //setTimeout(() => location.reload(), 3500);
-      //location.reload();
-    }
-
-   
-    function deleteData() {
-      if (!confirm("Delete?")) return;
-      
-      const form = document.getElementById("submitForm");
-      form.year.value = yearSel.value;
-      form.month.value = monthSel.value;
-      form.date.value = activeCell.dataset.day;
-      form.name.value = activeCell.dataset.name;
-      form.type.value = popupType.value;
-      form.time.value = popupTime.value;
-      form.datail.value = "";
-      form.action.value = "delete";
-
-      activeCell.innerHTML = "";
-      console.log("Deleting:", {
-        year: form.year.value,
-        month: form.month.value,
-        date: form.date.value,
-        name: form.name.value,
-        action: form.action.value
-      });
-      //form.submit();
-      closePopup();
-
-       // ✅ เก็บเดือนปีไว้ก่อน reload
-      localStorage.setItem('savedMonth', monthSel.value);
-      localStorage.setItem('savedYear', yearSel.value);
-      submitAndWait();   // <<<
-      //setTimeout(() => location.reload(), 3500);
-      //location.reload();
-    }
-
-  // ✅ ไฮไลท์ทั้งแถวเมื่อคลิก "ช่องชื่อ" (คอลัมน์แรก)
-// document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-//   const td = e.target.closest('td');
-//   if (!td) return;
-
-//   // ถ้าเป็นคอลัมน์แรก (ชื่อคน)
-//   if (td.cellIndex === 0) {
-//     const name = td.textContent.trim();
-
-//     // ลบไฮไลต์ทั้งหมดก่อน
-//     document.querySelectorAll('#calendar-table tbody td.selected-row')
-//       .forEach(cell => cell.classList.remove('selected-row'));
-
-//     // ใส่ไฮไลต์ทุก cell ที่มี data-name ตรงกับชื่อ
-//     document.querySelectorAll(`#calendar-table tbody td[data-name="${name}"]`)
-//       .forEach(cell => cell.classList.add('selected-row'));
-//   }
-// });
-    
-  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-    const td = e.target.closest('td');
-    if (!td) return;
-    // เฉพาะคอลัมน์แรก (ช่องชื่อ)
-    if (td.cellIndex === 0) {
-      const tr = td.parentElement;
-      // ลบไฮไลท์เดิม
-      document
-        .querySelectorAll('#calendar-table tbody tr.selected-row')
-        .forEach(r => r.classList.remove('selected-row'));
-      // ใส่ไฮไลท์ใหม่
-      tr.classList.add('selected-row');
-    }
-  });
-
- function submitAndWait() {
-  const form   = document.getElementById('submitForm');
-  const iframe = document.getElementById('hidden_frame');
-
-  if (!iframe) {
-    // กันพลาด: ถ้าไม่พบ iframe ก็ส่งฟอร์มและรีโหลดแบบหน่วง
-    form.submit();
-    setTimeout(() => location.reload(), 2000);
-    return;
-  }
-
-  // ปิด popup/overlay อีกชั้นเพื่อความชัวร์
-  closePopup();
-
-  // เฝ้า onload ของ iframe แล้วค่อยรีโหลด
-  iframe.onload = () => {
-    iframe.onload = null; // กันยิงซ้ำ
-    closePopup();         // เผื่อ overlay ค้าง
-    location.reload();
-  };
-
-  // fallback ถ้า onload ไม่มาใน 6 วินาที
-  setTimeout(() => {
-    if (iframe.onload) {
-      iframe.onload = null;
-      closePopup();
-      location.reload();
-    }
-  }, 6000);
-
-  form.submit();
-}
-    
-  function cellClick(td) {
-  activeCell = td;
-  // ตรวจสอบว่ามีงานในช่องนี้ไหม (ค้นจาก allData)
-  const year = +yearSel.value;
-  const month = +monthSel.value;
-  const day = +td.dataset.day;
-  const name = td.dataset.name;
-
-  const items = allData.filter(d =>
-    +d.year === year && +d.month === month && +d.date === day && String(d.name) === String(name)
-  );
-
-  if (items.length > 0) {
-    // ถ้ามีงาน -> แสดงรายละเอียด
-    showDetails(items, { name, day, month, year });
-  } else {
-    // ไม่มีงาน -> เปิด popup ใส่ข้อมูลใหม่เลย
-    openPopup(td);
-  }
-}
-
-function showDetails(items, meta) {
-  const box = document.getElementById('detailContent');
-  // สร้าง HTML รายการงานทั้งหมดในวันนั้นของคนนั้น
-  const html = items.map((d, i) => {
-    const lines = [
-      `<b>${i+1}. ${d.type || '-'}</b>`,
-      d.customer ? `Customer: ${d.customer}` : '',
-      d.time ? `Time: ${d.time}` : '',
-      d.datail ? `Detail: ${d.datail}` : '',
-      d.place ? `Place: ${d.place}` : '',
-      d.jobowner ? `Job Owner: ${d.jobowner}` : '',
-      d.charge ? `Charge: ${d.charge}` : ''
-    ].filter(Boolean);
-    return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
-  }).join('') || '<i>No detail</i>';
-
-  box.innerHTML = `
-    <div style="margin-bottom:6px;color:#555">
-      👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}
-    </div>
-    ${html}
-  `;
-
-  // เปิด modal รายละเอียด
-  overlay.classList.add("active");
-  document.getElementById('detailModal').classList.add('active');
-}
-
-function closeDetails() {
-  document.getElementById('detailModal').classList.remove('active');
-  overlay.classList.remove("active");
-}
-
-// จากหน้ารายละเอียด กด "เพิ่ม/แก้ไข" เพื่อไปหน้า popup เดิม
-function openEditFromDetail() {
-  // ปิด modal รายละเอียดก่อน
-  document.getElementById('detailModal').classList.remove('active');
-
-  // เปิด popup เดิม โดยใช้ activeCell ที่เลือกไว้ล่าสุด
-  if (activeCell) {
-    openPopup(activeCell);
-  } else {
-    // เผื่อกรณีพิเศษ
-    overlay.classList.remove("active");
-  }
-}
-
-  document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e) {
-  e.preventDefault(); // ปิด scroll ปกติ
-  const rowHeight = 80; // ความสูงของ td 1 แถว
-  const step = rowHeight * 2; // เลื่อนทีละ 2 แถว
-  this.scrollTop += (e.deltaY > 0 ? step : -step);
-});
-
-  function highlightWeekendColumns() {
-  const table = document.getElementById('calendar-table');
-  const headCells = table.querySelectorAll('thead th');
-  const weekendIdx = [];
-
-  // หา index ของคอลัมน์ที่เป็นอาทิตย์(sun) หรือเสาร์(sat)
-  headCells.forEach((th, idx) => {
-    if (th.classList.contains('sun') || th.classList.contains('sat')) {
-      weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
-    }
-  });
-
-  // เอาไฮไลท์เดิมออกก่อน (ถ้ามี)
-  table.querySelectorAll('tbody td.weekend').forEach(td => {
-    td.classList.remove('weekend', 'sat');
-  });
-
-  // ใส่ไฮไลท์ให้ทุกแถวในคอลัมน์ที่ใช่
-  const rows = table.querySelectorAll('tbody tr');
-  rows.forEach(tr => {
-    weekendIdx.forEach(({ index, cls }) => {
-      const td = tr.querySelector(`td:nth-child(${index})`);
-      if (td) {
-        td.classList.add('weekend');
-        if (cls === 'sat') td.classList.add('sat'); // แยกสีเสาร์/อาทิตย์
-      }
-    });
-  });
-}
-
-function openHolidayModal(y, m, d) {
-  const yy = (y != null ? y : +document.getElementById('year').value);
-  const mm = (m != null ? m : +document.getElementById('month').value);
-  const dd = (d != null ? d : 1);
-
-  document.getElementById('holYear').value   = yy;
-  document.getElementById('holMonth').value  = mm;
-  document.getElementById('holDate').value   = dd;
-  document.getElementById('holDetail').value = '';
-
-  // ✅ แสดง overlay ด้วย
-  overlay.classList.add('active');
-  document.getElementById('holidayModal').classList.add('active');
-}
-
-function closeHoliday() {
-  // ✅ ปิด overlay ด้วย
-  document.getElementById('holidayModal').classList.remove('active');
-  overlay.classList.remove('active');
-}
-
-/* ใช้ฟอร์มเดิม + iframe เหมือน save/delete งาน */
-function saveHoliday() {
-  const year   = (document.getElementById('holYear').value || '').trim(); // ว่างได้ = ทุกปี
-  const month  = +document.getElementById('holMonth').value;
-  const date   = +document.getElementById('holDate').value;
-  const detail = document.getElementById('holDetail').value || '';
-
-  if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
-
-  const form = document.getElementById('submitForm');
-  form.year.value          = year;
-  form.month.value         = month;
-  form.date.value          = date;
-  form.name.value          = '';
-  form.type.value          = '';
-  form.time.value          = '';
-  form.datail.value        = '';
-  form.customer.value      = '';
-  form.place.value         = '';
-  form.jobowner.value      = '';
-  form.charge.value        = '';
-  form.holidayDetail.value = detail;
-  form.action.value        = 'addHoliday';
-
-  const iframe = document.getElementById('hidden_frame');
-
-  // ✅ ปิด popup ทันที (กันความรู้สึก "ไม่ปิด")
-  closeHoliday();
-  localStorage.setItem('savedMonth', monthSel.value);
-  localStorage.setItem('savedYear', yearSel.value);
-  // รอ onload แล้วค่อยรีโหลด
-  iframe.onload = () => {
-    iframe.onload = null;
-    location.reload();
-  };
-
-  // Fallback ถ้า onload ไม่มาใน 6 วินาที
-  setTimeout(() => {
-    if (iframe.onload) {
-      iframe.onload = null;
-      location.reload();
-    }
-  }, 6000);
-
-  form.submit();
-}
-
-function deleteHoliday() {
-  const year  = (document.getElementById('holYear').value || '').trim();
-  const month = +document.getElementById('holMonth').value;
-  const date  = +document.getElementById('holDate').value;
-
-  if (!month || !date) { alert('กรุณากรอก Month และ Date'); return; }
-
-  const form = document.getElementById('submitForm');
-  form.year.value          = year;
-  form.month.value         = month;
-  form.date.value          = date;
-  form.name.value          = '';
-  form.type.value          = '';
-  form.time.value          = '';
-  form.datail.value        = '';
-  form.customer.value      = '';
-  form.place.value         = '';
-  form.jobowner.value      = '';
-  form.charge.value        = '';
-  form.holidayDetail.value = '';
-  form.action.value        = 'removeHoliday';
-
-  const iframe = document.getElementById('hidden_frame');
-
-  // ✅ ปิด popup ทันที
-  closeHoliday();
-  localStorage.setItem('savedMonth', monthSel.value);
-  localStorage.setItem('savedYear', yearSel.value);
-  iframe.onload = () => {
-    iframe.onload = null;
-    location.reload();
-  };
-  setTimeout(() => {
-    if (iframe.onload) {
-      iframe.onload = null;
-      location.reload();
-    }
-  }, 6000);
-
-  form.submit();
-}
-
-function downloadFullCalendarImage() {
-  const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.background = '#fff';
-  container.style.position = 'absolute';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-
-  const calendar = document.querySelector('.calendar-wrapper').cloneNode(true);
-  calendar.classList.remove('reverse', 'rtl', 'direction-reverse');
-
-  // 🔁 สลับชื่อไปซ้ายมือ
-  calendar.querySelectorAll('tr').forEach(tr => {
-    const cells = Array.from(tr.children);
-    if (cells.length > 1 && cells[0].tagName === "TH") {
-      tr.innerHTML = `<th>${cells.pop().innerHTML}</th>` + cells.map(td => `<th>${td.innerHTML}</th>`).join('');
-    } else if (cells.length > 1 && cells[0].tagName === "TD") {
-      tr.innerHTML = `<td>${cells.pop().innerHTML}</td>` + cells.map(td => `<td>${td.innerHTML}</td>`).join('');
-    }
-  });
-
-  container.appendChild(calendar);
-  document.body.appendChild(container);
-
-  calendar.style.maxHeight = 'unset';
-  calendar.style.overflow = 'visible';
-
-  html2canvas(container, {
-    scrollY: -window.scrollY,
-    windowWidth: document.body.scrollWidth
-  }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = `calendar-${yearSel.value}-${monthSel.value}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    document.body.removeChild(container);
-  });
-}
-    
-init();
-
-  </script>
+  </div><!-- /#app -->
+<script src="configcbi.js" defer></script>
+<script src="cascript.js" defer></script>
 </body>
 </html>
+
 
 
