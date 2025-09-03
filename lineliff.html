@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>CS Calendar (Login Protected)</title>
+  <title>CS CBI Calendar</title>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     body { font-family: sans-serif; padding: 1rem; }
@@ -39,9 +39,10 @@
     .TrainingSafety { background: #259b24; color: white; }
     .Telephone { background: #ab47bc; color: white; }
     .Meeting { background: #212121; color: white; }
-    .RepairPP { background: #0277bd; color: white; }
+    .RepairWelder { background: #0277bd; color: white; }
     .Sales { background: #78909c; color: white; }
     .Holiday, .Leave, .SafetyHealth { background: #c41411; color: white; }
+    .Other { background: #fff176; }
     .sun { background: #c41411 !important; }
     .mon { background: #fffacc !important; }
     .tue { background: #ffd1e3 !important; }
@@ -86,7 +87,7 @@
     <div class="login-box">
       <h2>🔐 เข้าสู่ระบบ</h2>
       <label>Username
-        <input type="text" id="loginUser" placeholder="เช่น bee" autocomplete="username" />
+        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
       </label>
       <label>Password
         <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
@@ -95,13 +96,13 @@
         <button class="btn-primary" onclick="doLogin()">Login</button>
         <button class="btn-secondary" onclick="resetLogin()">Clear</button>
       </div>
-      <div class="login-note">* เปลี่ยนรายชื่อผู้ใช้/รหัสผ่านในโค้ด (CREDENTIALS) ก่อนใช้งานจริง</div>
+      <div class="login-note">* </div>
     </div>
   </div>
 
   <!-- ===== App (hidden until authenticated) ===== -->
   <div id="app" style="display:none">
-    <h2>CS BKK Calendar
+    <h2>CS cbi Calendar
       <a href="https://irbeem.github.io/Cusdata/bkkbooking.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗓️ Multiple booking</a>
       <a href="https://irbeem.github.io/Cusdata/cbicalendar.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🔄 To CBI calendar</a>
       <button onclick="exportMonthToCSV()">📤 Export CSV</button>
@@ -119,7 +120,7 @@
     </div>
 
     <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
-    <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
+      <form id="submitForm" action="https://script.google.com/macros/s/AKfycbwytiSLg-Mo3sY8R3S2VaIUe0-G4AbQD0h2YgGo4fNquDWwyV9N3Ma-wQX26Tb9YhPbSQ/exec" method="POST" target="hidden_frame">
       <input type="hidden" name="year">
       <input type="hidden" name="month">
       <input type="hidden" name="date">
@@ -152,7 +153,7 @@
           <option value="TrainingSafety">TrainingSafety</option>
           <option value="LTC">LTC</option>
           <option value="Warranty">Warranty</option>
-          <option value="RepairPP">RepairPP</option>
+          <option value="Repairwelder">RepairWelder</option>
           <option value="Sales">Sales</option>
           <option value="Holiday">Holiday</option>
           <option value="Leave">Leave</option>
@@ -222,3 +223,6 @@
 <script src="cascript.js" defer></script>
 </body>
 </html>
+
+
+
