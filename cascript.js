@@ -1,4 +1,32 @@
- function showLogin() {
+// อ่านค่าจาก config.js (ผ่าน window.*)
+const CREDENTIALS = window.CREDENTIALS || [];
+const AUTH_KEY = window.AUTH_KEY || "cs_calendar_auth_user";
+const SHEET_ID = window.SHEET_ID;
+const CALENDAR_SHEET = window.CALENDAR_SHEET;
+const NAMES_SHEET = window.NAMES_SHEET;
+const SpecialHolidays_SHEET = window.SpecialHolidays_SHEET;
+
+// ---------- ตัวแปร/อิลิเมนต์เดิม ----------
+let names = [], allData = [], specialHolidays = [];
+let activeCell = null;
+
+const monthSel = document.getElementById("month");
+const yearSel  = document.getElementById("year");
+const overlay  = document.getElementById("overlay");
+const popup    = document.getElementById("popupForm");
+
+const popupName     = document.getElementById("popupName");
+const popupDate     = document.getElementById("popupDate");
+const popupType     = document.getElementById("popupType");
+const popupTime     = document.getElementById("popupTime");
+const popupDetail   = document.getElementById("popupDetail");
+const popupCustomer = document.getElementById("popupCustomer");
+const popupPlace    = document.getElementById("popupPlace");
+const popupJobowner = document.getElementById("popupJobowner");
+const popupCharge   = document.getElementById("popupCharge");
+
+
+function showLogin() {
       document.getElementById('loginOverlay').style.display = 'block';
       document.getElementById('app').style.display = 'none';
       setTimeout(() => document.getElementById('loginUser').focus(), 50);
