@@ -1,3 +1,265 @@
+ function showLogin() {
+      document.getElementById('loginOverlay').style.display = 'block';
+      document.getElementById('app').style.display = 'none';
+      setTimeout(() => document.getElementById('loginUser').focus(), 50);
+    }
+
+    function showApp() {
+      document.getElementById('loginOverlay').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    }
+
+    function resetLogin() {
+      document.getElementById('loginUser').value = '';
+      document.getElementById('loginPass').value = '';
+      document.getElementById('loginUser').focus();
+    }
+
+    function doLogin() {
+      const u = document.getElementById('loginUser').value.trim();
+      const p = document.getElementById('loginPass').value;
+      const ok = CREDENTIALS.some(c => c.user === u && c.pass === p);
+      if (ok) {
+        localStorage.setItem(AUTH_KEY, u);
+        showApp();
+        // ✅ เรียก init() หลัง Login สำเร็จเท่านั้น
+        init();
+      } else {
+        alert('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem(AUTH_KEY);
+      location.reload();
+    }
+
+    // Enter key shortcuts
+    document.addEventListener('keydown', (e) => {
+      const overlayVisible = document.getElementById('loginOverlay').style.display !== 'none';
+      if (overlayVisible && e.key === 'Enter') {
+        e.preventDefault();
+        doLogin();
+      }
+    });
+
+    // ===== Existing calendar script (mostly unchanged) =====
+    let names = [], allData = [], specialHolidays = [];
+    let activeCell = null;
+
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const CALENDAR_SHEET = 'Carlendar';
+    const NAMES_SHEET = 'Names';
+    const SpecialHolidays_SHEET = 'SpecialHolidays';
+
+    const monthSel = document.getElementById("month");
+    const yearSel = document.getElementById("year");
+    const overlay = document.getElementById("overlay");
+    const popup = document.getElementById("popupForm");
+    const popupName = document.getElementById("popupName");
+    const popupDate = document.getElementById("popupDate");
+    const popupType = document.getElementById("popupType");
+    const popupTime = document.getElementById("popupTime");
+    const popupDetail = document.getElementById("popupDetail");
+    const popupCustomer = document.getElementById("popupCustomer");
+    const popupPlace = document.getElementById("popupPlace");
+    const popupJobowner = document.getElementById("popupJobowner");
+    const popupCharge = document.getElementById("popupCharge");
+
+    const LONG_PRESS_MS = 600;
+    let longPressTimer = null;
+    let touchMoved = false;
+
+    function handleTouchStart(e) {
+      const td = e.currentTarget;
+      touchMoved = false;
+      clearTimeout(longPressTimer);
+      longPressTimer = setTimeout(() => { openPopup(td); }, LONG_PRESS_MS);
+    }
+    function handleTouchMove() { touchMoved = true; clearTimeout(longPressTimer); }
+    function handleTouchEnd() { clearTimeout(longPressTimer); }
+    function handleContextMenu(e) { e.preventDefault(); const td = e.currentTarget; openPopup(td); }
+
+    function attachHandlersToCells() {
+      document.querySelectorAll('#calendar-table tbody td').forEach(td => {
+        td.addEventListener('touchstart', handleTouchStart, { passive: true });
+        td.addEventListener('touchmove', handleTouchMove, { passive: true });
+        td.addEventListener('touchend', handleTouchEnd);
+        td.addEventListener('contextmenu', handleContextMenu);
+      });
+    }
+
+    function init() {
+      const now = new Date();
+      const savedMonth = parseInt(localStorage.getItem('savedMonth'));
+      const savedYear = parseInt(localStorage.getItem('savedYear'));
+      const defaultMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
+      const defaultYear = !isNaN(savedYear) ? savedYear : now.getFullYear();
+
+      // populate month/year
+      monthSel.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        const opt = new Option(i, i);
+        if (i === defaultMonth) opt.selected = true; monthSel.add(opt);
+      }
+      yearSel.innerHTML = '';
+      for (let y = 2025; y <= now.getFullYear() + 1; y++) {
+        const opt = new Option(y, y);
+        if (y === defaultYear) opt.selected = true; yearSel.add(opt);
+      }
+
+      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+      Promise.all([
+        fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+        fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())
+      ]).then(([namesTxt, dataTxt, holidayTxt]) => {
+        const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+        names = namesJson.table.rows.map(r => r.c[0]?.v).filter(name => name && name.toLowerCase() !== "summary");
+
+        const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+        const cols = dataJson.table.cols.map(c => c.label);
+        allData = dataJson.table.rows.map(r => {
+          const o = {}; r.c.forEach((c, i) => o[cols[i]] = c?.v || ""); return o;
+        });
+
+        const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+        specialHolidays = holidayJson.table.rows.map(r => ({
+          year:   r.c[0]?.v || '',
+          month:  r.c[1]?.v,
+          date:   r.c[2]?.v,
+          detail: r.c[3]?.v || ''
+        })).filter(h => h.month && h.date);
+
+        renderTable();
+      });
+    }
+
+    function renderTable() {
+      const year = +yearSel.value;
+      const month = +monthSel.value;
+      const days = new Date(year, month, 0).getDate();
+      const thead = document.querySelector("#calendar-table thead");
+      const tbody = document.querySelector("#calendar-table tbody");
+
+      const extraNames = new Set();
+      allData.forEach(d => { if (d.name && !names.includes(d.name)) extraNames.add(d.name); });
+      const allNames = [...names, ...[...extraNames].sort()];
+
+      const dataMap = {}; const summary = { Service: 0, Standby: 0, Meeting: 0, Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0, LTC: 0, Warranty: 0, RepairPP: 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
+      allNames.forEach(name => dataMap[name] = {});
+
+      allData.forEach(d => {
+        if (+d.year === year && +d.month === month) {
+          const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
+          const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer || ''}</div>`;
+          (dataMap[d.name][d.date] ||= []).push(html);
+          if (summary[d.type] !== undefined) summary[d.type]++;
+        }
+      });
+
+      const dayClass = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      const daysHeader = Array.from({ length: days }, (_, i) => {
+        const d = i + 1; const date = new Date(year, month - 1, d); const dow = date.getDay();
+        const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+        const holiday = specialHolidays.find(h => h.date == d && h.month == month && (!h.year || +h.year === year));
+        const isHoliday = !!holiday; const holidayName = holiday?.detail || "";
+        return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}" data-day="${d}" style="user-select:none;" onclick="openHolidayModal(${year},${month},${d})">
+                  <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+                  <div style="font-size:1.2em;">${d}</div>
+                  ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
+                </th>`;
+      });
+      thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
+
+      const bodyHTML = allNames.map(name => {
+        const row = [`<td>${name}</td>`];
+        for (let d = 1; d <= days; d++) {
+          const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+          row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
+        }
+        return `<tr>${row.join('')}</tr>`;
+      }).join('');
+      tbody.innerHTML = bodyHTML;
+
+      const oldSummary = document.getElementById("summaryBox"); if (oldSummary) oldSummary.remove();
+      const totalDiv = document.createElement("div"); totalDiv.id = "summaryBox";
+      totalDiv.innerHTML = `<h4>📊 Summary job ${month}/${year}</h4><ul>${Object.entries(summary).map(([k, v]) => `<li>${k}: ${v} Times</li>`).join("")}</ul>`;
+      document.querySelector(".calendar-wrapper").appendChild(totalDiv);
+
+      localStorage.removeItem('savedMonth'); localStorage.removeItem('savedYear');
+
+      specialHolidays.forEach(h => {
+        if (h.month === month && (!h.year || +h.year === year)) {
+          const idx = h.date;
+          const th = thead.querySelector(`th[data-day="${idx}"]`); if (th) th.classList.add("holiday", "special-holiday");
+          document.querySelectorAll(`#calendar-table tbody td[data-day="${idx}"]`).forEach(td => td.classList.add("holiday-col", "special-holiday"));
+        }
+      });
+      highlightWeekendColumns();
+      attachHandlersToCells();
+    }
+
+    function openPopup(td) {
+      activeCell = td;
+      popupName.textContent = td.dataset.name;
+      popupDate.textContent = td.dataset.day;
+      popupType.value = "Service";
+      popupTime.value = ""; popupDetail.value = ""; popupCustomer.value = ""; popupPlace.value = ""; popupJobowner.value = ""; popupCharge.value = "Nocharge";
+      overlay.classList.add("active"); popup.classList.add("active");
+    }
+    function closePopup() { overlay.classList.remove("active"); popup.classList.remove("active"); }
+
+    function saveData() {
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value; form.month.value = monthSel.value; form.date.value = activeCell.dataset.day; form.name.value = activeCell.dataset.name;
+      form.type.value = popupType.value; form.time.value = popupTime.value; form.datail.value = popupDetail.value; form.customer.value = popupCustomer.value;
+      form.place.value = popupPlace.value; form.jobowner.value = popupJobowner.value; form.charge.value = popupCharge.value;
+      form.sendEmail.value = document.getElementById("popupSendEmail").checked ? "true" : "false"; form.action.value = "save";
+
+      const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
+      activeCell.innerHTML = html; closePopup();
+      localStorage.setItem('savedMonth', monthSel.value); localStorage.setItem('savedYear', yearSel.value);
+      submitAndWait();
+    }
+
+    function deleteData() {
+      if (!confirm("Delete?")) return;
+      const form = document.getElementById("submitForm");
+      form.year.value = yearSel.value; form.month.value = monthSel.value; form.date.value = activeCell.dataset.day; form.name.value = activeCell.dataset.name;
+      form.type.value = popupType.value; form.time.value = popupTime.value; form.datail.value = ""; form.action.value = "delete";
+      activeCell.innerHTML = ""; closePopup();
+      localStorage.setItem('savedMonth', monthSel.value); localStorage.setItem('savedYear', yearSel.value);
+      submitAndWait();
+    }
+
+    document.querySelector('#calendar-table tbody')?.addEventListener('click', (e) => {
+      const td = e.target.closest('td'); if (!td) return;
+      if (td.cellIndex === 0) {
+        const tr = td.parentElement;
+        document.querySelectorAll('#calendar-table tbody tr.selected-row').forEach(r => r.classList.remove('selected-row'));
+        tr.classList.add('selected-row');
+      }
+    });
+
+    function submitAndWait() {
+      const form = document.getElementById('submitForm');
+      const iframe = document.getElementById('hidden_frame');
+      if (!iframe) { form.submit(); setTimeout(() => location.reload(), 2000); return; }
+      closePopup();
+      iframe.onload = () => { iframe.onload = null; closePopup(); location.reload(); };
+      setTimeout(() => { if (iframe.onload) { iframe.onload = null; closePopup(); location.reload(); } }, 6000);
+      form.submit();
+    }
+
+    function cellClick(td) {
+      activeCell = td;
+      const year = +yearSel.value; const month = +monthSel.value; const day = +td.dataset.day; const name = td.dataset.name;
+      const items = allData.filter(d => +d.year === year && +d.month === month && +d.date === day && String(d.name) === String(name));
+      if (items.length > 0) { showDetails(items, { name, day, month, year }); } else { openPopup(td); }
+    }
+
     function showDetails(items, meta) {
       const box = document.getElementById('detailContent');
       const html = items.map((d, i) => {
@@ -141,8 +403,6 @@ window.deleteHoliday = deleteHoliday;
 window.exportMonthToCSV = exportMonthToCSV;
 window.downloadFullCalendarImage = downloadFullCalendarImage;
 
-
-  </script>
 
 
 
