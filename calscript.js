@@ -90,13 +90,13 @@ async function fetchUserRole(uid) {
     if (!role) {
       alert("บัญชีนี้ยังไม่มีสิทธิ์เข้าใช้งาน (ไม่พบ role)");
       await signOut(auth);
-      showLogin();
+      //showLogin();
       return;
     }
     if (ALLOWED_ROLES.length > 0 && !ALLOWED_ROLES.includes(role)) {
       alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
       await signOut(auth);
-      showLogin();
+      //showLogin();
       return;
     }
     // เก็บ role ไว้เผื่อส่วนอื่นใช้
