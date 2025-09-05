@@ -203,37 +203,46 @@
       </div>
     </div>
   </div><!-- /#app -->
-<script src="config.js" defer></script>
-<script type="module" src="calscript.js"></script>
-<!-- Auth Guard: แค่ตรวจว่ามี user ไหม ถ้าไม่มีก็กลับไป index -->
+<!-- 1) ต้องโหลด config (โปรเจกต์เดียวกับหน้า index) -->
+<script src="config.js?v=2025-09-05a"></script>
+
+<!-- 2) โหลดโค้ดปฏิทินของคุณ (ไฟล์นี้ต้องมีฟังก์ชันจริงทั้งหมด) -->
+<script type="module" src="calscript.js?v=2025-09-05a"></script>
+
+<!-- 3) GUARD: แค่ตรวจว่าล็อกอินจากหน้า index แล้วหรือยัง; ถ้ายัง -> กลับ index -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getApps, getApp, initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-  // ใช้ config เดียวกับหน้า index
-  const app = initializeApp(window.FIREBASE_CONFIG);
+  const app  = getApps().length ? getApp() : initializeApp(window.FIREBASE_CONFIG);
   const auth = getAuth(app);
 
   const appRoot = document.getElementById('app');
-  const loginOverlay = document.getElementById('loginOverlay'); // มีอยู่ก็ซ่อนไว้
+  if (appRoot) appRoot.style.display = 'none'; // ซ่อนไว้ก่อน
 
-  // ซ่อน app ไว้ก่อน
-  if (appRoot) appRoot.style.display = 'none';
-  if (loginOverlay) loginOverlay.style.display = 'none'; // หน้านี้ไม่ใช้ฟอร์มล็อกอิน
+  function runInitSafely() {
+    if (typeof window.init === 'function') {
+      try { window.init(); } 
+      catch (e) { console.error('init() error:', e); alert('โหลดข้อมูลไม่สำเร็จ ดู Console สำหรับรายละเอียด'); }
+    } else {
+      // กันจังหวะที่ calscript ยังโหลดไม่เสร็จ
+      const iv = setInterval(() => {
+        if (typeof window.init === 'function') {
+          clearInterval(iv);
+          try { window.init(); } 
+          catch (e) { console.error('init() error:', e); alert('โหลดข้อมูลไม่สำเร็จ ดู Console สำหรับรายละเอียด'); }
+        }
+      }, 50);
+      setTimeout(() => clearInterval(iv), 4000);
+    }
+  }
 
   onAuthStateChanged(auth, (user) => {
-    if (!user) {
-      // ยังไม่ล็อกอิน -> กลับหน้าแรก
-      location.replace('index.html');
-      return;
-    }
-    // ล็อกอินแล้ว -> แสดงแอป แล้วค่อยให้โค้ดปฏิทินทำงาน
-    if (appRoot) appRoot.style.display = 'block';
-    if (typeof init === 'function') {
-      try { init(); } catch (e) { console.error('init error:', e); }
-    }
+    console.log('[Guard] projectId:', auth.app.options.projectId, 'user:', user?.uid || null);
+    if (!user) { location.replace('index.html'); return; }   // ยังไม่ล็อกอิน -> กลับหน้าแรก
+    if (appRoot) appRoot.style.display = 'block';            // ผ่าน -> แสดงแอป
+    runInitSafely();                                         // แล้วค่อย init ตาราง
   });
- 
 </script>
 
 <!-- โค้ดปฏิทินของคุณ -->
@@ -242,6 +251,7 @@
 
 </body>
 </html>
+
 
 
 
