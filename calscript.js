@@ -53,12 +53,17 @@ const db   = getDatabase(app);
 
 // ===== UI Helper เดิม =====
 function showLogin() {
-  loginOverlay.style.display = "block";
-  appRoot.style.display = "none";
+  const overlay = document.getElementById('loginOverlay');
+  const app = document.getElementById('app');
+  if (overlay) overlay.style.display = 'block';
+  if (app) app.style.display = 'none';
 }
+
 function showApp() {
-  loginOverlay.style.display = "none";
-  appRoot.style.display = "block";
+  const overlay = document.getElementById('loginOverlay');
+  const app = document.getElementById('app');
+  if (overlay) overlay.style.display = 'none';
+  if (app) app.style.display = 'block';
 }
 
 // ===== Auth Gate =====
@@ -72,12 +77,12 @@ async function fetchUserRole(uid) {
   }
 }
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    // ยังไม่ล็อกอิน
-    showLogin();
-    return;
-  }
+// onAuthStateChanged(auth, async (user) => {
+//   if (!user) {
+//     // ยังไม่ล็อกอิน
+//     showLogin();
+//     return;
+//   }
 
   // ล็อกอินแล้ว → ตรวจ role (ถ้าบังคับ)
   if (REQUIRE_ROLE) {
