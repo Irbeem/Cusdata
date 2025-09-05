@@ -145,6 +145,8 @@ function resetLogin() {
 // - exportMonthToCSV()
 // - wheel scroll handler ฯลฯ
 // ---------- Calendar Core ----------
+
+// ---------- Calendar Core ----------
 function init() {
   const now = new Date();
   const savedMonth = parseInt(localStorage.getItem('savedMonth'));
@@ -199,9 +201,6 @@ function init() {
     alert("โหลดข้อมูลไม่สำเร็จ ดู Console สำหรับรายละเอียด");
     showLogin(); // กันหน้าเงียบ
   });
-}
-  if (activeCell) openPopup(activeCell);
-  else overlay.classList.remove('active');
 }
 
 function renderTable() {
@@ -321,6 +320,7 @@ function openPopup(td) {
 }
 function closePopup() {
   overlay.classList.remove("active");
+  popup.classList.remove("active");
 }
 function saveData() {
   const form = document.getElementById("submitForm");
@@ -413,6 +413,7 @@ function openEditFromDetail() {
   if (activeCell) openPopup(activeCell);
   else overlay.classList.remove('active');
 }
+
 function highlightWeekendColumns() {
   const table = document.getElementById('calendar-table');
   const headCells = table.querySelectorAll('thead th');
@@ -526,6 +527,7 @@ document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e
   const step = rowHeight * 2;
   this.scrollTop += (e.deltaY > 0 ? step : -step);
 });
+
 
 
 // ----- Expose to window (ปรับเฉพาะ auth/boot) -----
