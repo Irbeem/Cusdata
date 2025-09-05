@@ -342,5 +342,12 @@ document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e
 window.doLogin = doLogin;
 window.resetLogin = resetLogin;
 window.logout = logout;
+// หลังจากประกาศ function init() แล้ว
+window.init = init;
+
+// (ถ้ามีฟังก์ชันอื่นที่หน้า HTML เรียกโดยตรง ก็ผูกให้เป็น global ด้วย เช่น)
+window.renderTable = renderTable;
+window.openPopup   = openPopup;
+// ...ตามที่หน้า HTML ใช้ onclick เรียก
 
 // หมายเหตุ: การ expose ฟังก์ชันอื่น ๆ ของ calendar เดิมคุณ (renderTable/saveData/...) ให้คงไว้ตามเดิม
