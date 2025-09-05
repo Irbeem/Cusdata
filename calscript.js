@@ -84,30 +84,30 @@ async function fetchUserRole(uid) {
 //     return;
 //   }
 
-  // ล็อกอินแล้ว → ตรวจ role (ถ้าบังคับ)
-  if (REQUIRE_ROLE) {
-    const role = await fetchUserRole(user.uid);
-    if (!role) {
-      alert("บัญชีนี้ยังไม่มีสิทธิ์เข้าใช้งาน (ไม่พบ role)");
-      await signOut(auth);
-      //showLogin();
-      return;
-    }
-    if (ALLOWED_ROLES.length > 0 && !ALLOWED_ROLES.includes(role)) {
-      alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
-      await signOut(auth);
-      //showLogin();
-      return;
-    }
-    // เก็บ role ไว้เผื่อส่วนอื่นใช้
-    window.CURRENT_ROLE = role;
-  }
+//  // ล็อกอินแล้ว → ตรวจ role (ถ้าบังคับ)
+  // if (REQUIRE_ROLE) {
+  //   const role = await fetchUserRole(user.uid);
+  //   if (!role) {
+  //     alert("บัญชีนี้ยังไม่มีสิทธิ์เข้าใช้งาน (ไม่พบ role)");
+  //     await signOut(auth);
+  //     //showLogin();
+  //     return;
+  //   }
+  //   if (ALLOWED_ROLES.length > 0 && !ALLOWED_ROLES.includes(role)) {
+  //     alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
+  //     await signOut(auth);
+  //     //showLogin();
+  //     return;
+  //   }
+  //   // เก็บ role ไว้เผื่อส่วนอื่นใช้
+  //   window.CURRENT_ROLE = role;
+  // }
 
-  // ผ่าน gate → แสดงแอปและโหลดข้อมูล
-  window.CURRENT_UID = user.uid;
-  showApp();
-  init(); // ← เรียกฟังก์ชันเดิมของคุณ เพื่อโหลดข้อมูล/เรนเดอร์ตาราง
-});
+//   // ผ่าน gate → แสดงแอปและโหลดข้อมูล
+//   window.CURRENT_UID = user.uid;
+//   showApp();
+//   init(); // ← เรียกฟังก์ชันเดิมของคุณ เพื่อโหลดข้อมูล/เรนเดอร์ตาราง
+// });
 
 // ===== ปุ่ม Login / Logout =====
 async function doLogin() {
