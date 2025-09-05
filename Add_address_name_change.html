@@ -2,379 +2,229 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8" />
-  <title>CS Calendar — Summary Only</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CS Calendar</title>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; margin: 0; background:#f6f8fb; color:#222; }
-    header { padding:16px; background:#1976d2; color:#fff; }
-    header h1 { margin:0 0 8px 0; font-size:1.4rem; }
-    .container { padding:16px; }
+    body { font-family: sans-serif; padding: 1rem; }
+    /* ===== Login Gate ===== */
+    .login-overlay { display: none; position: fixed; inset: 0; background: #f7f7f7; z-index: 2000; }
+    .login-box { width: 360px; max-width: 92vw; background: #fff; border: 1px solid #ddd; border-radius: 12px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.12); position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+    .login-box h2 { margin: 0 0 10px; text-align: center; }
+    .login-box label { display: block; margin-top: 10px; font-weight: 600; }
+    .login-box input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 6px; }
+    .login-actions { margin-top: 14px; display: flex; gap: 8px; }
+    .login-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; cursor: pointer; }
+    .btn-primary { background: #1976d2; color: #fff; }
+    .btn-secondary { background: #bbb; color: #000; }
+    .login-note { font-size: 12px; color: #666; margin-top: 8px; text-align: center; }
 
-    .panel {
-      background:#fff; border:1px solid #e5e7eb; border-radius:12px;
-      padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04);
-    }
-    .controls {
-      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
-    }
-    .controls label { font-weight:600; }
-    .controls input[type="date"] {
-      padding:6px 8px; font-size:15px; border:1px solid #d1d5db; border-radius:8px;
-      background:#fff;
-    }
-    .btn {
-      padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600;
-    }
-    .btn-primary { background:#1976d2; color:#fff; }
-    .btn-outline { background:#fff; border:1px solid #9ca3af; color:#111827; }
-
-    .hint { color:#6b7280; font-size:.9rem; margin-top:6px; }
-
-    /* ตารางสรุป */
-    #summary-range { margin-top:12px; overflow:auto; max-height:70vh; }
-    #summary-range table {
-      border-collapse: collapse; width:max-content; background:#fff; font-size:14px;
-    }
-    #summary-range th, #summary-range td {
-      border:1px solid #e5e7eb; padding:6px 8px; text-align:right; white-space:nowrap;
-    }
-    #summary-range thead th {
-      position: sticky; top:0; background:#eef3ff; z-index:1;
-    }
-    #summary-range th:first-child, #summary-range td:first-child {
-      position: sticky; left:0; background:#f9fafb; text-align:left; font-weight:700;
-      z-index:2; /* ให้อยู่เหนือหัวตารางแนวนอน */
-    }
-    #summary-range tfoot td { font-weight:700; background:#fff8e1; }
-
-    .badge {
-      display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff;
-      color:#1f2937; font-size:12px; margin-left:6px;
-    }
-
-    .loading {
-      padding:10px; color:#374151;
-    }
-    .error {
-      padding:10px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; border-radius:8px;
-      margin-top:10px;
-    }
+    /* ===== Existing styles (unchanged) ===== */
+    .calendar-wrapper { overflow-y: auto; max-height: 80vh; scroll-behavior: smooth;}
+    #calendar-table td.weekend { background: #fff1f1 !important; }
+    #calendar-table td.weekend.sat { background: #f3ecff !important; }
+    thead th.holiday { background: #ffd9d9 !important; color: #333; }
+    #calendar-table td.holiday-col { background: #ffd9d9 !important; }
+    table { border-collapse: collapse; width: max-content; }
+    th, td { border: 1px solid #ccc; padding: 6px; width: 120px; height: 80px; text-align: left; vertical-align: top; background: white; cursor: pointer; }
+    thead th { position: sticky; top: 0; font-size: 2.1em; text-align: center; vertical-align: middle; }
+    td:first-child, th:first-child { position: sticky; left: 0; background: #f1f1f1; font-weight: bold;}
+    #calendar-table td:first-child { font-size: clamp(20px, 2vw, 40px);}    
+    .event { font-size: 0.85rem; padding: 2px; display: block; }
+    .Warranty { background: #72d572; }
+    .Service { background: #2a36b1; color: white; }
+    .Standby { background: #009688; color: white; }
+    .LTC { background: #795548; color: white; }
+    .Training { background: #cddc39; color: black; }
+    .Inspection { background: #00bcd4; color: white; }
+    .TrainingSafety { background: #259b24; color: white; }
+    .Telephone { background: #ab47bc; color: white; }
+    .Meeting { background: #212121; color: white; }
+    .RepairPP { background: #0277bd; color: white; }
+    .Sales { background: #78909c; color: white; }
+    .Holiday, .Leave, .SafetyHealth { background: #c41411; color: white; }
+    .Other { background: #fff176; }
+    .sun { background: #c41411 !important; }
+    .mon { background: #fffacc !important; }
+    .tue { background: #ffd1e3 !important; }
+    .wed { background: #d0f0c0 !important; }
+    .thu { background: #ffe0b3 !important; }
+    .fri { background: #d0e6ff !important; }
+    .sat { background: #e0ccff !important; }
+    .overlay, .modal { display: none; }
+    .overlay.active, .modal.active { display: block; }
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 998; }
+    .modal { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; z-index: 999; width: 300px; border-radius: 8px; max-height: 80vh; overflow-y: auto; }
+    .modal h3 { margin-top: 0; text-align: center; }
+    .modal label { display: block; margin-top: 10px; font-weight: bold; }
+    .modal input[type="text"], .modal select { width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; }
+    .modal button { margin-top: 12px; padding: 6px 12px; margin-right: 6px; border: none; border-radius: 4px; cursor: pointer; }
+    .modal button:hover { opacity: 0.9; }
+    .modal button:nth-child(1) { background: #4CAF50; color: white; }
+    .modal button:nth-child(2) { background: #f44336; color: white; }
+    .modal button:nth-child(3) { background: #bbb; }
+    .selected-row td {background: #fff4b3 !important; }
+    .modal-sm { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:16px; z-index:1000; box-shadow:0 5px 15px rgba(0,0,0,.3); width:320px; border-radius:8px; display:none; }
+    .modal-sm.active { display:block; }
+    .modal-sm h3 { margin:0 0 8px; text-align:center; }
+    .modal-sm label { display:block; margin-top:8px; }
+    .modal-sm input[type="text"], .modal-sm input[type="number"] { width:100%; padding:6px; }
+    .modal-sm .row { display:flex; gap:8px; }
+    .modal-sm .row > div { flex:1; }
+    .modal-sm .btns { margin-top:12px; display:flex; gap:8px; }
+    .modal-sm .btns button { flex:1; padding:8px; border:none; border-radius:4px; cursor:pointer; }
+    .btn-save { background:#4CAF50; color:#fff; }
+    .btn-del  { background:#f44336; color:#fff; }
+    .btn-cancel{ background:#bbb; }
+    .highlight-row { background-color: rgba(255, 215, 0, 0.4);}    
+    .special-holiday,td.special-holiday {background: #fcb8d2 !important;}
+    thead th.holiday { background:#f70a39 !important; color:#333; }
+    #calendar-table td.holiday-col { background:#fff7d6 !important; }
+    tr.selected-row td {background: #fff4b3 !important; /* เหลืองอ่อน */}
   </style>
 </head>
 <body>
-  <header>
-    <h1>📊 CS BKK — Summary (ชื่อ x ชนิดงาน) <span class="badge">ช่วงวันที่เลือกได้</span></h1>
-    <div style="opacity:.9">สรุปจำนวนงานต่อ “คน” และ “ชนิดงาน” จากข้อมูล Google Sheet เดิม</div>
-  </header>
-
-  <div class="container">
-    <div class="panel">
-      <div class="controls">
-        <label>From:
-          <input type="date" id="rangeStart">
-        </label>
-        <label>To:
-          <input type="date" id="rangeEnd">
-        </label>
-
-        <button class="btn btn-primary" id="applyRange">🔍 สรุปช่วงวันที่</button>
-        <button class="btn btn-outline" id="exportRangeCsv">📤 Export CSV</button>
-
-        <label style="margin-left:auto; display:flex; gap:6px; align-items:center;">
-          <input type="checkbox" id="includeHoliday">
-          รวม Holiday ในสรุป
-        </label>
-        <label style="display:flex; gap:6px; align-items:center;">
-          <input type="checkbox" id="sortByTotals" checked>
-          เรียงคอลัมน์ตามยอดรวมมาก→น้อย
-        </label>
+  <!-- ===== Login Overlay ===== -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🔐 เข้าสู่ระบบ</h2>
+      <label>Username
+        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
+      </label>
+      <label>Password
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+      </label>
+      <div class="login-actions">
+        <button class="btn-primary" onclick="doLogin()">Login</button>
+        <button class="btn-secondary" onclick="resetLogin()">Clear</button>
       </div>
-      <div class="hint">ถ้ายังไม่เลือก From/To ระบบจะสรุปเดือนปัจจุบันให้โดยอัตโนมัติ</div>
-      <div id="status" class="loading">กำลังโหลดข้อมูล…</div>
-      <div id="summary-range"></div>
+      <div class="login-note">* </div>
     </div>
   </div>
 
-  <script>
-    /********** 🔧 ตั้งค่าแหล่งข้อมูล (เหมือนหน้าเดิม) **********/
-    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
-    const CALENDAR_SHEET = 'Carlendar';
-    const NAMES_SHEET = 'Names';
+  <!-- ===== App (hidden until authenticated) ===== -->
+  <div id="app" style="display:none">
+    <h2>CS BKK Calendar
+      <a href="https://irbeem.github.io/Cusdata/bkkbooking.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗓️ Multiple booking</a>
+      <a href="https://irbeem.github.io/Cusdata/cbicalendar.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🔄 To CBI calendar</a>
+      <button onclick="exportMonthToCSV()">📤 Export CSV</button>
+      <button id="logoutBtn" style="float:right" onclick="logout()">🚪 Logout</button>
+    </h2>
 
-    /********** 📚 ตัวแปรหลัก **********/
-    let names = [];      // จากชีต Names (ไม่รวม Summary)
-    let allData = [];    // ข้อมูลงานทั้งหมดจากชีต Carlendar
+    <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+    <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
 
-    // ชนิดงานที่จะสรุปเป็นคอลัมน์ (ตัวเลือก)
-    const BASE_JOB_TYPES = [
-      "Service","Standby","Meeting","Inspection","Telephone",
-      "Training","TrainingSafety","LTC","Warranty","RepairPP",
-      "Sales","Leave","SafetyHealth","Other"
-    ];
-
-    /********** ⛏️ Utility **********/
-    function rowToDate(d) {
-      const y = parseInt(d.year, 10);
-      const m = parseInt(d.month, 10);
-      const day = parseInt(d.date, 10);
-      if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(day)) return null;
-      return new Date(y, m - 1, day);
-    }
-
-    function getAllDistinctNames() {
-      const extra = new Set();
-      allData.forEach(d => {
-        if (d.name && !names.includes(d.name)) extra.add(d.name);
-      });
-      return [...names, ...[...extra].sort()];
-    }
-
-    function parseGvizTextToJson(txt) {
-      // gviz response starts with "/*O_o*/\ngoogle.visualization.Query.setResponse(...);"
-      return JSON.parse(txt.substring(47).slice(0, -2));
-    }
-
-    /********** 📥 โหลดข้อมูลจาก Google Sheet **********/
-    async function loadData() {
-      const status = document.getElementById('status');
-      try {
-        const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-        const [namesTxt, dataTxt] = await Promise.all([
-          fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
-          fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
-        ]);
-
-        // Names
-        const namesJson = parseGvizTextToJson(namesTxt);
-        names = namesJson.table.rows
-          .map(r => r.c[0]?.v)
-          .filter(n => n && String(n).toLowerCase() !== 'summary');
-
-        // Carlendar
-        const dataJson = parseGvizTextToJson(dataTxt);
-        const cols = dataJson.table.cols.map(c => c.label);
-        allData = dataJson.table.rows.map(r => {
-          const o = {};
-          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
-          return o;
-        });
-
-        status.textContent = 'โหลดข้อมูลสำเร็จ';
-        setTimeout(() => { status.textContent = ''; }, 800);
-      } catch (err) {
-        console.error(err);
-        status.className = 'error';
-        status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า หรือเช็คการตั้งค่าแชร์ของชีต';
-      }
-    }
-
-    /********** 🧮 สร้างสรุปตามช่วงวัน **********/
-   function renderRangeSummary() {
-  const box = document.getElementById('summary-range');
-  const status = document.getElementById('status');
-  const startInput = document.getElementById('rangeStart');
-  const endInput   = document.getElementById('rangeEnd');
-  const includeHoliday = document.getElementById('includeHoliday').checked;
-  const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
-
-  // job types ที่จะใช้ (รวม Holiday หรือไม่)
-  const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
-
-  // default ช่วง = เดือนปัจจุบัน ถ้ายังไม่เลือก
-  let startDate = startInput.value ? new Date(startInput.value) : null;
-  let endDate   = endInput.value   ? new Date(endInput.value)   : null;
-
-  const now = new Date();
-  if (!startDate || !endDate) {
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    startDate = new Date(y, m, 1);
-    endDate   = new Date(y, m + 1, 0);
-    startInput.value = startDate.toISOString().slice(0,10);
-    endInput.value   = endDate.toISOString().slice(0,10);
-  }
-  // รวมทั้งวัน
-  endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
-
-  // เตรียมโครงนับ
-  const nameList = getAllDistinctNames();
-  const tableMap = {};
-  nameList.forEach(n => {
-    tableMap[n] = {};
-    JOB_TYPES.forEach(t => tableMap[n][t] = 0);
-  });
-
-  // กรองแล้วนับ
-  allData.forEach(d => {
-    const dt = rowToDate(d);
-    if (!dt) return;
-    if (dt >= startDate && dt <= endDate) {
-      const nm = d.name || '';
-      const tp = d.type || '';
-      if (nm && JOB_TYPES.includes(tp)) {
-        tableMap[nm][tp] += 1;
-      }
-    }
-  });
-
-  // รวมยอดคอลัมน์ก่อน เพื่อใช้เรียง
-  const colTotalsRaw = {};
-  JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
-  nameList.forEach(nm => {
-    JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
-  });
-
-  // ลำดับคอลัมน์: เรียงตามยอดรวมมาก→น้อย (หรือคงลำดับเดิม)
-  const TYPES_ORDER = sortByTotals
-    ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
-    : [...JOB_TYPES];
-
-  // คำนวณ colTotals ตามลำดับที่แสดงจริง
-  const colTotals = {};
-  TYPES_ORDER.forEach(t => colTotals[t] = colTotalsRaw[t]);
-
-  // สร้างแถว
-  const rowsHtml = nameList.map(nm => {
-    const tds = TYPES_ORDER.map(tp => `<td>${tableMap[nm][tp] || 0}</td>`);
-    const rowSum = TYPES_ORDER.reduce((s,tp)=> s + (tableMap[nm][tp]||0), 0);
-    return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
-  }).join('');
-
-  const grandTotal = TYPES_ORDER.reduce((s,tp)=> s + colTotals[tp], 0);
-  const footerHtml = `
-    <tr>
-      <td>รวมต่อชนิดงาน</td>
-      ${TYPES_ORDER.map(tp => `<td>${colTotals[tp]}</td>`).join('')}
-      <td>${grandTotal}</td>
-    </tr>
-  `;
-
-  const html = `
-    <div style="font-weight:700; margin:8px 0;">
-      ช่วง ${startInput.value} ถึง ${endInput.value}
-      ${includeHoliday ? '<span class="badge">รวม Holiday</span>' : ''}
-      ${sortByTotals ? '<span class="badge">จัดเรียงตามยอดรวม</span>' : ''}
-    </div>
-    <div style="overflow:auto;">
-      <table id="summary-range-table">
-        <thead>
-          <tr>
-            <th>ชื่อ</th>
-            ${TYPES_ORDER.map(t => `<th>${t}</th>`).join('')}
-            <th>รวม/คน</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rowsHtml}
-        </tbody>
-        <tfoot>
-          ${footerHtml}
-        </tfoot>
+    <div class="calendar-wrapper">
+      <table id="calendar-table">
+        <thead></thead>
+        <tbody></tbody>
       </table>
     </div>
-  `;
-  box.innerHTML = html;
-  status.textContent = '';
-}
 
-function exportRangeSummaryCSV() {
-  const includeHoliday = document.getElementById('includeHoliday').checked;
-  const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
-  const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+    <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
+    <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
+      <input type="hidden" name="year">
+      <input type="hidden" name="month">
+      <input type="hidden" name="date">
+      <input type="hidden" name="name">
+      <input type="hidden" name="type">
+      <input type="hidden" name="time">
+      <input type="hidden" name="datail">
+      <input type="hidden" name="customer">
+      <input type="hidden" name="place">
+      <input type="hidden" name="jobowner">
+      <input type="hidden" name="charge">
+      <input type="hidden" name="action">
+      <input type="hidden" name="holidayDetail">
+      <input type="hidden" name="sendEmail">
+    </form>
 
-  const start = document.getElementById('rangeStart').value;
-  const end   = document.getElementById('rangeEnd').value;
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="popupForm">
+      <h3>Booking</h3>
+      <div>Name: <span id="popupName"></span></div>
+      <div>Date: <span id="popupDate"></span></div>
+      <label>Job Type:
+        <select id="popupType">
+          <option value="Service">Service</option>
+          <option value="Standby">Standby</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Telephone">Telephone</option>
+          <option value="Training">Training</option>
+          <option value="TrainingSafety">TrainingSafety</option>
+          <option value="LTC">LTC</option>
+          <option value="Warranty">Warranty</option>
+          <option value="RepairPP">RepairPP</option>
+          <option value="Sales">Sales</option>
+          <option value="Holiday">Holiday</option>
+          <option value="Leave">Leave</option>
+          <option value="SafetyHealth">SafetyHealth</option>
+          <option value="Other">Other</option>
+        </select>
+      </label><br>
+      <label>Customer: <input type="text" id="popupCustomer"></label><br>
+      <label>Time: <input type="text" id="popupTime"></label><br>
+      <label>Job detail: <input type="text" id="popupDetail"></label><br>
+      <label>Place: <input type="text" id="popupPlace"></label><br>
+      <label>Job owner: <input type="text" id="popupJobowner"></label><br>
+      <label>Charge:
+        <select id="popupCharge">
+          <option value="Charge">Charge</option>
+          <option value="Nocharge">Nocharge</option>
+          <option value="Warranty">Warranty</option>
+          <option value="Sales">Sales</option>
+          <option value="Other">Other</option>
+        </select>
+      </label><br>
+      <label><input type="checkbox" id="popupSendEmail"> Send e-mail</label><br>
+      <button type="button" onclick="saveData()">Save</button>
+      <button type="button" onclick="deleteData()">Delete</button>
+      <button type="button" onclick="closePopup()">Cancel</button>
+    </div>
 
-  let startDate = start ? new Date(start) : null;
-  let endDate   = end   ? new Date(end)   : null;
-  const now = new Date();
-  if (!startDate || !endDate) {
-    const y = now.getFullYear(), m = now.getMonth();
-    startDate = new Date(y, m, 1);
-    endDate   = new Date(y, m + 1, 0);
-  }
-  endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    <div class="modal" id="detailModal">
+      <h3>Job Detail</h3>
+      <div id="detailContent"></div>
+      <div style="margin-top:12px;">
+        <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
+        <button type="button" onclick="closeDetails()">Close</button>
+      </div>
+    </div>
 
-  const nameList = getAllDistinctNames();
-  const tableMap = {};
-  nameList.forEach(n => {
-    tableMap[n] = {};
-    JOB_TYPES.forEach(t => tableMap[n][t] = 0);
-  });
-
-  allData.forEach(d => {
-    const dt = rowToDate(d);
-    if (!dt) return;
-    if (dt >= startDate && dt <= endDate) {
-      const nm = d.name || '';
-      const tp = d.type || '';
-      if (nm && JOB_TYPES.includes(tp)) {
-        tableMap[nm][tp] += 1;
-      }
-    }
-  });
-
-  // รวมเพื่อเรียงคอลัมน์
-  const colTotalsRaw = {};
-  JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
-  nameList.forEach(nm => {
-    JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
-  });
-
-  const TYPES_ORDER = sortByTotals
-    ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
-    : [...JOB_TYPES];
-
-  const headers = ["Name", ...TYPES_ORDER, "TotalPerPerson"];
-  const rows = [headers.join(",")];
-
-  nameList.forEach(nm => {
-    const counts = TYPES_ORDER.map(tp => tableMap[nm][tp] || 0);
-    const sum = counts.reduce((s,v)=>s+v,0);
-    rows.push([nm, ...counts, sum].join(","));
-  });
-
-  const colTotals = TYPES_ORDER.map(tp =>
-    nameList.reduce((s,nm)=> s + (tableMap[nm][tp]||0), 0)
-  );
-  const grand = colTotals.reduce((s,v)=>s+v,0);
-  rows.push(["TOTAL_BY_TYPE", ...colTotals, grand].join(","));
-
-  const BOM = "\uFEFF";
-  const csvContent = BOM + rows.join("\n");
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `summary_${(start||'auto')}_${(end||'auto')}${includeHoliday ? '_withHoliday':''}${sortByTotals ? '_sorted':''}.csv`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-    /********** 🔗 Bind Events & Init **********/
-    function bindEvents() {
-      const applyBtn = document.getElementById('applyRange');
-      const exportBtn = document.getElementById('exportRangeCsv');
-      const startInput = document.getElementById('rangeStart');
-      const endInput   = document.getElementById('rangeEnd');
-      const includeHoliday = document.getElementById('includeHoliday');
-
-      applyBtn.onclick = renderRangeSummary;
-      exportBtn.onclick = exportRangeSummaryCSV;
-
-      // อัปเดตอัตโนมัติเมื่อเปลี่ยนวัน/ติ๊ก Holiday
-      startInput.onchange = renderRangeSummary;
-      endInput.onchange   = renderRangeSummary;
-      includeHoliday.onchange = renderRangeSummary;
-    }
-
-    (async function init() {
-      bindEvents();
-      await loadData();
-      renderRangeSummary();
-    })();
-  </script>
+    <div class="modal-sm" id="holidayModal">
+      <h3>Special Holiday</h3>
+      <div class="row">
+        <div>
+          <label>Year
+            <input type="number" id="holYear" placeholder="เว้นว่าง = ทุกปี">
+          </label>
+        </div>
+        <div>
+          <label>Month
+            <input type="number" id="holMonth" min="1" max="12">
+          </label>
+        </div>
+        <div>
+          <label>Date
+            <input type="number" id="holDate" min="1" max="31">
+          </label>
+        </div>
+      </div>
+      <label>Detail
+        <input type="text" id="holDetail" placeholder="เช่น วันชดเชย, วันหยุดพิเศษ">
+      </label>
+      <div class="btns">
+        <button class="btn-save"  onclick="saveHoliday()">Save</button>
+        <button class="btn-del"   onclick="deleteHoliday()">Delete</button>
+        <button class="btn-cancel" onclick="closeHoliday()">Cancel</button>
+      </div>
+    </div>
+  </div><!-- /#app -->
+<script src="config.js" defer></script>
+<script type="module" src="cascript.js" defer></script>
 </body>
 </html>
+
+
+
 
