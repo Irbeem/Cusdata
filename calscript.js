@@ -532,33 +532,22 @@ document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e
 window.doLogin = doLogin;
 window.resetLogin = resetLogin;
 window.logout = logout;
-(function exposeGlobals() {
-  const fns = {
-    init,
-    renderTable,
-    cellClick,
-    openPopup,
-    closePopup,
-    saveData,
-    deleteData,
-    showDetails,
-    closeDetails,
-    openEditFromDetail,
-    openHolidayModal,
-    closeHoliday,
-    saveHoliday,
-    deleteHoliday,
-    exportMonthToCSV,
-    // ใส่เพิ่มถ้าคุณมีฟังก์ชันนี้จริงในไฟล์
-    highlightWeekendColumns,
-  };
 
-  for (const [name, fn] of Object.entries(fns)) {
-    if (typeof fn === 'function') {
-      window[name] = fn;
-    } else {
-      // ไม่ให้แครช ถ้าไม่มีฟังก์ชันนั้นจริง จะเตือนใน Console แทน
-      console.warn(`[CS Calendar] Missing function: ${name}`);
-    }
-  }
-})();
+window.renderTable = renderTable;
+window.cellClick = cellClick;
+
+window.openPopup = openPopup;
+window.closePopup = closePopup;
+window.saveData = saveData;
+window.deleteData = deleteData;
+
+window.showDetails = showDetails;
+window.closeDetails = closeDetails;
+window.openEditFromDetail = openEditFromDetail;
+
+window.openHolidayModal = openHolidayModal;
+window.closeHoliday = closeHoliday;
+window.saveHoliday = saveHoliday;
+window.deleteHoliday = deleteHoliday;
+
+window.exportMonthToCSV = exportMonthToCSV;
