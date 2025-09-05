@@ -157,19 +157,76 @@ function init() {
   for (let i = 1; i <= 12; i++) {
     const opt = new Option(i, i);
     if (i === defMonth) opt.selected = true;
-  headCells.forEach((th, idx) => {
-    if (th.classList.contains('sun') || th.classList.contains('sat')) {
-      weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
-    }
-  });
-  table.querySelectorAll('tbody td.weekend').forEach(td => td.classList.remove('weekend', 'sat'));
-  table.querySelectorAll('tbody tr').forEach(tr => {
-    weekendIdx.forEach(({ index, cls }) => {
-      const td = tr.querySelector(`td:nth-child(${index})`);
-      if (td) { td.classList.add('weekend'); if (cls === 'sat') td.classList.add('sat'); }
+    monthSel.add(opt);
+  }
+  yearSel.innerHTML = "";
+  for (let y = 2025; y <= now.getFullYear() + 1; y++) {
+    const opt = new Option(y, y);
+    if (y === defYear) opt.selected = true;
+    yearSel.add(opt);
+  }
+
+  const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+  Promise.all([
+    fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text()),
+    fetch(`${base}&sheet=${SpecialHolidays_SHEET}`).then(r => r.text())
+  ]).then(([namesTxt, dataTxt, holidayTxt]) => {
+    const namesJson = JSON.parse(namesTxt.substring(47).slice(0, -2));
+    names = namesJson.table.rows
+      .map(r => r.c[0]?.v)
+      .filter(name => name && name.toLowerCase() !== "summary");
+
+    const dataJson = JSON.parse(dataTxt.substring(47).slice(0, -2));
+    const cols = dataJson.table.cols.map(c => c.label);
+    allData = dataJson.table.rows.map(r => {
+      const o = {};
+      r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+      return o;
     });
+
+    const holidayJson = JSON.parse(holidayTxt.substring(47).slice(0, -2));
+    specialHolidays = holidayJson.table.rows.map(r => ({
+      year:   r.c[0]?.v || '',
+      month:  r.c[1]?.v,
+      date:   r.c[2]?.v,
+      detail: r.c[3]?.v || ''
+    })).filter(h => h.month && h.date);
+
+    renderTable();
+  }).catch(err => {
+    console.error("โหลดข้อมูลไม่สำเร็จ:", err);
+    alert("โหลดข้อมูลไม่สำเร็จ ดู Console สำหรับรายละเอียด");
+    showLogin(); // กันหน้าเงียบ
   });
 }
+// function init() {
+//   const now = new Date();
+//   const savedMonth = parseInt(localStorage.getItem('savedMonth'));
+//   const savedYear  = parseInt(localStorage.getItem('savedYear'));
+//   const defMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
+//   const defYear  = !isNaN(savedYear)  ? savedYear  : now.getFullYear();
+
+//   // เติม month/year
+//   monthSel.innerHTML = "";
+//   for (let i = 1; i <= 12; i++) {
+//     const opt = new Option(i, i);
+//     if (i === defMonth) opt.selected = true;
+//   headCells.forEach((th, idx) => {
+//     if (th.classList.contains('sun') || th.classList.contains('sat')) {
+//       weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
+//     }
+//   });
+//   table.querySelectorAll('tbody td.weekend').forEach(td => td.classList.remove('weekend', 'sat'));
+//   table.querySelectorAll('tbody tr').forEach(tr => {
+//     weekendIdx.forEach(({ index, cls }) => {
+//       const td = tr.querySelector(`td:nth-child(${index})`);
+//       if (td) { td.classList.add('weekend'); if (cls === 'sat') td.classList.add('sat'); }
+//     });
+//   });
+// }
+//}
+
 
 function openHolidayModal(y, m, d) {
   const yy = (y != null ? y : +document.getElementById('year').value);
@@ -182,10 +239,12 @@ function openHolidayModal(y, m, d) {
   overlay.classList.add('active');
   document.getElementById('holidayModal').classList.add('active');
 }
+
 function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
   overlay.classList.remove('active');
 }
+
 function saveHoliday() {
   const year = (document.getElementById('holYear').value || '').trim();
   const month = +document.getElementById('holMonth').value;
@@ -205,6 +264,7 @@ function saveHoliday() {
   setTimeout(() => { if (iframe.onload) { iframe.onload = null; location.reload(); } }, 6000);
   form.submit();
 }
+
 function deleteHoliday() {
   const year = (document.getElementById('holYear').value || '').trim();
   const month = +document.getElementById('holMonth').value;
