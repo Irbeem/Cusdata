@@ -172,6 +172,26 @@ function renderTable() {
   }).join('');
   tbody.innerHTML = bodyHTML;
 
+  // ===== Highlight row when click first column (Name) ===== 5/9/25 bee
+  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+  const td = e.target.closest('td');
+  if (!td) return;
+
+  // ถ้าเป็นคอลัมน์แรก (ชื่อ)
+  if (td.cellIndex === 0) {
+    const tr = td.parentElement;
+
+    // ลบไฮไลท์เดิม
+      document
+        .querySelectorAll('#calendar-table tbody tr.selected-row')
+        .forEach(r => r.classList.remove('selected-row'));
+  
+      // ใส่ไฮไลท์ใหม่
+      tr.classList.add('selected-row');
+    }
+  });
+
+  
   // Summary
   document.getElementById("summaryBox")?.remove();
   const totalDiv = document.createElement("div");
