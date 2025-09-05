@@ -84,23 +84,6 @@
 </head>
 <body>
   <!-- ===== Login Overlay ===== -->
-  <div class="login-overlay" id="loginOverlay">
-    <div class="login-box">
-      <h2>🔐 เข้าสู่ระบบ</h2>
-      <label>Username
-        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
-      </label>
-      <label>Password
-        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
-      </label>
-      <div class="login-actions">
-        <button class="btn-primary" onclick="doLogin()">Login</button>
-        <button class="btn-secondary" onclick="resetLogin()">Clear</button>
-      </div>
-      <div class="login-note">* </div>
-    </div>
-  </div>
-
   <!-- ===== App (hidden until authenticated) ===== -->
   <div id="app" style="display:none">
     <h2>CS BKK Calendar
@@ -221,9 +204,61 @@
     </div>
   </div><!-- /#app -->
 <script src="config.js" defer></script>
+<!-- Auth Guard: แค่ตรวจว่ามี user ไหม ถ้าไม่มีก็กลับไป index -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+  // ใช้ config เดียวกับหน้า index
+  const app = initializeApp(window.FIREBASE_CONFIG);
+  const auth = getAuth(app);
+
+  const appRoot = document.getElementById('app');
+  const loginOverlay = document.getElementById('loginOverlay'); // มีอยู่ก็ซ่อนไว้
+
+  // ซ่อน app ไว้ก่อน
+  if (appRoot) appRoot.style.display = 'none';
+  if (loginOverlay) loginOverlay.style.display = 'none'; // หน้านี้ไม่ใช้ฟอร์มล็อกอิน
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      // ยังไม่ล็อกอิน -> กลับหน้าแรก
+      location.replace('index.html');
+      return;
+    }
+    // ล็อกอินแล้ว -> แสดงแอป แล้วค่อยให้โค้ดปฏิทินทำงาน
+    if (appRoot) appRoot.style.display = 'block';
+    if (typeof init === 'function') {
+      try { init(); } catch (e) { console.error('init error:', e); }
+    }
+  });
+ /*<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h2>🔐 เข้าสู่ระบบ</h2>
+      <label>Username
+        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
+      </label>
+      <label>Password
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
+      </label>
+      <div class="login-actions">
+        <button class="btn-primary" onclick="doLogin()">Login</button>
+        <button class="btn-secondary" onclick="resetLogin()">Clear</button>
+      </div>
+      <div class="login-note">* </div>
+    </div>
+  </div>*/
+
+  
+</script>
+
+<!-- โค้ดปฏิทินของคุณ -->
+
+  
 <script type="module" src="calscript.js"></script>
 </body>
 </html>
+
 
 
 
