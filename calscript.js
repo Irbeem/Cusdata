@@ -200,33 +200,146 @@ function init() {
     showLogin(); // กันหน้าเงียบ
   });
 }
-// function init() {
-//   const now = new Date();
-//   const savedMonth = parseInt(localStorage.getItem('savedMonth'));
-//   const savedYear  = parseInt(localStorage.getItem('savedYear'));
-//   const defMonth = !isNaN(savedMonth) ? savedMonth : now.getMonth() + 1;
-//   const defYear  = !isNaN(savedYear)  ? savedYear  : now.getFullYear();
+  if (activeCell) openPopup(activeCell);
+  else overlay.classList.remove('active');
+}
 
-//   // เติม month/year
-//   monthSel.innerHTML = "";
-//   for (let i = 1; i <= 12; i++) {
-//     const opt = new Option(i, i);
-//     if (i === defMonth) opt.selected = true;
-//   headCells.forEach((th, idx) => {
-//     if (th.classList.contains('sun') || th.classList.contains('sat')) {
-//       weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
-//     }
-//   });
-//   table.querySelectorAll('tbody td.weekend').forEach(td => td.classList.remove('weekend', 'sat'));
-//   table.querySelectorAll('tbody tr').forEach(tr => {
-//     weekendIdx.forEach(({ index, cls }) => {
-//       const td = tr.querySelector(`td:nth-child(${index})`);
-//       if (td) { td.classList.add('weekend'); if (cls === 'sat') td.classList.add('sat'); }
-//     });
-//   });
-// }
-//}
+function renderTable() {
+  const year = +yearSel.value;
+  const month = +monthSel.value;
+  const days = new Date(year, month, 0).getDate();
+  const thead = document.querySelector("#calendar-table thead");
+  const tbody = document.querySelector("#calendar-table tbody");
 
+  // รวมรายชื่อจาก Names + จากข้อมูลจริง
+  const extraNames = new Set();
+  allData.forEach(d => {
+    if (d.name && !names.includes(d.name)) extraNames.add(d.name);
+  });
+  const allNames = [...names, ...[...extraNames].sort()];
+
+  const dataMap = {};
+  const summary = { Service: 0, Standby: 0, Meeting: 0, Telephone: 0, Training: 0, TrainingSafety: 0, Inspection: 0, LTC: 0, Warranty: 0, RepairPP: 0, Sales: 0, Leave: 0, SafetyHealth: 0, Other: 0 };
+  allNames.forEach(name => (dataMap[name] = {}));
+
+  allData.forEach(d => {
+    if (+d.year === year && +d.month === month) {
+      const tooltip = `${d.type}\n${d.customer}\n${d.time}\n${d.datail}\n${d.place}\n${d.jobowner}\n${d.charge}`;
+      const html = `<div class='event ${d.type}' title="${tooltip}">${d.type}<br>${d.customer || ''}</div>`;
+      (dataMap[d.name][d.date] ||= []).push(html);
+      if (summary[d.type] !== undefined) summary[d.type]++;
+    }
+  });
+
+  const dayClass = ["sun","mon","tue","wed","thu","fri","sat"];
+  const daysHeader = Array.from({ length: days }, (_, i) => {
+    const d = i + 1;
+    const dow = new Date(year, month - 1, d).getDay();
+    const dayName = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][dow];
+    const holiday = specialHolidays.find(h =>
+      h.date == d && h.month == month && (!h.year || +h.year === year)
+    );
+    const isHoliday = !!holiday; const holidayName = holiday?.detail || "";
+    return `<th class="${dayClass[dow]}${isHoliday ? ' holiday' : ''}" data-day="${d}" style="user-select:none;"
+              onclick="openHolidayModal(${year},${month},${d})">
+              <div style="font-size:.7em;font-weight:normal;">${dayName}</div>
+              <div style="font-size:1.2em;">${d}</div>
+              ${isHoliday ? `<div style="font-size:.6em;color:#1156c4;">${holidayName}</div>` : ""}
+            </th>`;
+  });
+  thead.innerHTML = `<tr><th>Name</th>${daysHeader.join('')}</tr>`;
+
+  const bodyHTML = allNames.map(name => {
+    const row = [`<td>${name}</td>`];
+    for (let d = 1; d <= days; d++) {
+      const cell = (dataMap[name] && dataMap[name][d]) ? dataMap[name][d].join('') : "";
+      row.push(`<td data-name="${name}" data-day="${d}" onclick="cellClick(this)">${cell}</td>`);
+    }
+    return `<tr>${row.join('')}</tr>`;
+  }).join('');
+  tbody.innerHTML = bodyHTML;
+
+  // ===== Highlight row when click first column (Name) ===== 5/9/25 bee
+  document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
+  const td = e.target.closest('td');
+  if (!td) return;
+
+  // ถ้าเป็นคอลัมน์แรก (ชื่อ)
+  if (td.cellIndex === 0) {
+    const tr = td.parentElement;
+
+    // ลบไฮไลท์เดิม
+      document
+        .querySelectorAll('#calendar-table tbody tr.selected-row')
+        .forEach(r => r.classList.remove('selected-row'));
+  
+      // ใส่ไฮไลท์ใหม่
+      tr.classList.add('selected-row');
+    }
+  });
+
+  
+  // Summary
+  document.getElementById("summaryBox")?.remove();
+  const totalDiv = document.createElement("div");
+  totalDiv.id = "summaryBox";
+  totalDiv.innerHTML = `<h4>📊 Summary job ${month}/${year}</h4>
+    <ul>${Object.entries(summary).map(([k,v]) => `<li>${k}: ${v} Times</li>`).join("")}</ul>`;
+  document.querySelector(".calendar-wrapper").appendChild(totalDiv);
+
+  localStorage.removeItem('savedMonth');
+  localStorage.removeItem('savedYear');
+
+  // ไฮไลท์วันหยุดพิเศษทั้งคอลัมน์
+  specialHolidays.forEach(h => {
+    if (h.month === month && (!h.year || +h.year === year)) {
+      const idx = h.date;
+      const th = thead.querySelector(`th[data-day="${idx}"]`);
+      if (th) th.classList.add("holiday", "special-holiday");
+      document.querySelectorAll(`#calendar-table tbody td[data-day="${idx}"]`)
+        .forEach(td => td.classList.add("holiday-col", "special-holiday"));
+    }
+  });
+
+  highlightWeekendColumns();
+}
+
+// ---- ส่วนป๊อปอัป/แก้ไข/บันทึก (คงโค้ดเดิม) ----
+function openPopup(td) {
+  activeCell = td;
+  popupName.textContent = td.dataset.name;
+  popupDate.textContent = td.dataset.day;
+  popupType.value = "Service";
+  popupTime.value = "";
+  popupDetail.value = "";
+  popupCustomer.value = "";
+  popupPlace.value = "";
+  popupJobowner.value = "";
+  popupCharge.value = "Nocharge";
+  overlay.classList.add("active");
+  popup.classList.add("active");
+}
+function closePopup() {
+  overlay.classList.remove("active");
+}
+
+function highlightWeekendColumns() {
+  const table = document.getElementById('calendar-table');
+  const headCells = table.querySelectorAll('thead th');
+  const weekendIdx = [];
+  headCells.forEach((th, idx) => {
+    if (th.classList.contains('sun') || th.classList.contains('sat')) {
+      weekendIdx.push({ index: idx + 1, cls: th.classList.contains('sat') ? 'sat' : 'sun' });
+    }
+  });
+  table.querySelectorAll('tbody td.weekend').forEach(td => td.classList.remove('weekend', 'sat'));
+  table.querySelectorAll('tbody tr').forEach(tr => {
+    weekendIdx.forEach(({ index, cls }) => {
+      const td = tr.querySelector(`td:nth-child(${index})`);
+      if (td) { td.classList.add('weekend'); if (cls === 'sat') td.classList.add('sat'); }
+    });
+  });
+}
 
 function openHolidayModal(y, m, d) {
   const yy = (y != null ? y : +document.getElementById('year').value);
@@ -239,12 +352,10 @@ function openHolidayModal(y, m, d) {
   overlay.classList.add('active');
   document.getElementById('holidayModal').classList.add('active');
 }
-
 function closeHoliday() {
   document.getElementById('holidayModal').classList.remove('active');
   overlay.classList.remove('active');
 }
-
 function saveHoliday() {
   const year = (document.getElementById('holYear').value || '').trim();
   const month = +document.getElementById('holMonth').value;
@@ -264,7 +375,6 @@ function saveHoliday() {
   setTimeout(() => { if (iframe.onload) { iframe.onload = null; location.reload(); } }, 6000);
   form.submit();
 }
-
 function deleteHoliday() {
   const year = (document.getElementById('holYear').value || '').trim();
   const month = +document.getElementById('holMonth').value;
@@ -327,27 +437,64 @@ document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e
   this.scrollTop += (e.deltaY > 0 ? step : -step);
 });
 
-// ---------- Boot ----------
-// (function boot() {
-//   const currentUser = localStorage.getItem(AUTH_KEY);
-//   if (currentUser) { showApp(); init(); }
-//   else { showLogin(); }
-// })();
-
-// (สำคัญ) เอาโค้ดเดิมที่ใช้ localStorage เช็ค login ออก:
-//   (function boot() { ... })  // ← ลบทิ้ง
-// เพราะตอนนี้เราใช้ onAuthStateChanged แทนเรียบร้อยแล้ว
-
+function showDetails(items, meta) {
+  const box = document.getElementById('detailContent');
+  const html = items.map((d, i) => {
+    const lines = [
+      `<b>${i+1}. ${d.type || '-'}</b>`,
+      d.customer ? `Customer: ${d.customer}` : '',
+      d.time ? `Time: ${d.time}` : '',
+      d.datail ? `Detail: ${d.datail}` : '',
+      d.place ? `Place: ${d.place}` : '',
+      d.jobowner ? `Job Owner: ${d.jobowner}` : '',
+      d.charge ? `Charge: ${d.charge}` : ''
+    ].filter(Boolean);
+    return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
+  }).join('') || '<i>No detail</i>';
+  box.innerHTML = `<div style="margin-bottom:6px;color:#555">👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}</div>${html}`;
+  overlay.classList.add("active");
+  document.getElementById('detailModal').classList.add('active');
+}
+function closeDetails() {
+  document.getElementById('detailModal').classList.remove('active');
+  overlay.classList.remove('active');
+}
+function openEditFromDetail() {
+  document.getElementById('detailModal').classList.remove('active');
+  if (activeCell) openPopup(activeCell);
+  else overlay.classList.remove('active');
+}
 // ----- Expose to window (ปรับเฉพาะ auth/boot) -----
 window.doLogin = doLogin;
 window.resetLogin = resetLogin;
 window.logout = logout;
-// หลังจากประกาศ function init() แล้ว
-window.init = init;
+(function exposeGlobals() {
+  const fns = {
+    init,
+    renderTable,
+    cellClick,
+    openPopup,
+    closePopup,
+    saveData,
+    deleteData,
+    showDetails,
+    closeDetails,
+    openEditFromDetail,
+    openHolidayModal,
+    closeHoliday,
+    saveHoliday,
+    deleteHoliday,
+    exportMonthToCSV,
+    // ใส่เพิ่มถ้าคุณมีฟังก์ชันนี้จริงในไฟล์
+    highlightWeekendColumns,
+  };
 
-// (ถ้ามีฟังก์ชันอื่นที่หน้า HTML เรียกโดยตรง ก็ผูกให้เป็น global ด้วย เช่น)
-window.renderTable = renderTable;
-window.openPopup   = openPopup;
-// ...ตามที่หน้า HTML ใช้ onclick เรียก
-
-// หมายเหตุ: การ expose ฟังก์ชันอื่น ๆ ของ calendar เดิมคุณ (renderTable/saveData/...) ให้คงไว้ตามเดิม
+  for (const [name, fn] of Object.entries(fns)) {
+    if (typeof fn === 'function') {
+      window[name] = fn;
+    } else {
+      // ไม่ให้แครช ถ้าไม่มีฟังก์ชันนั้นจริง จะเตือนใน Console แทน
+      console.warn(`[CS Calendar] Missing function: ${name}`);
+    }
+  }
+})();
