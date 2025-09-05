@@ -224,7 +224,7 @@
   onAuthStateChanged(auth, (user) => {
     if (!user) {
       // ยังไม่ล็อกอิน -> กลับหน้าแรก
-      //location.replace('index.html');
+      location.replace('index.html');
       return;
     }
     // ล็อกอินแล้ว -> แสดงแอป แล้วค่อยให้โค้ดปฏิทินทำงาน
@@ -242,6 +242,7 @@
 
 </body>
 </html>
+
 
 
 
