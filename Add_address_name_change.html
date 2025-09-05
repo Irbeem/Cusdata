@@ -204,6 +204,7 @@
     </div>
   </div><!-- /#app -->
 <script src="config.js" defer></script>
+<script type="module" src="calscript.js"></script>
 <!-- Auth Guard: แค่ตรวจว่ามี user ไหม ถ้าไม่มีก็กลับไป index -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
@@ -232,32 +233,16 @@
       try { init(); } catch (e) { console.error('init error:', e); }
     }
   });
- /*<div class="login-overlay" id="loginOverlay">
-    <div class="login-box">
-      <h2>🔐 เข้าสู่ระบบ</h2>
-      <label>Username
-        <input type="text" id="loginUser" placeholder=" " autocomplete="username" />
-      </label>
-      <label>Password
-        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" />
-      </label>
-      <div class="login-actions">
-        <button class="btn-primary" onclick="doLogin()">Login</button>
-        <button class="btn-secondary" onclick="resetLogin()">Clear</button>
-      </div>
-      <div class="login-note">* </div>
-    </div>
-  </div>*/
-
-  
+ 
 </script>
 
 <!-- โค้ดปฏิทินของคุณ -->
 
   
-<script type="module" src="calscript.js"></script>
+
 </body>
 </html>
+
 
 
 
