@@ -322,7 +322,97 @@ function openPopup(td) {
 function closePopup() {
   overlay.classList.remove("active");
 }
+function saveData() {
+  const form = document.getElementById("submitForm");
+  form.year.value = yearSel.value;
+  form.month.value = monthSel.value;
+  form.date.value = activeCell.dataset.day;
+  form.name.value = activeCell.dataset.name;
+  form.type.value = popupType.value;
+  form.time.value = popupTime.value;
+  form.datail.value = popupDetail.value;
+  form.customer.value = popupCustomer.value;
+  form.place.value = popupPlace.value;
+  form.jobowner.value = popupJobowner.value;
+  form.charge.value = popupCharge.value;
+  form.sendEmail.value = document.getElementById("popupSendEmail").checked ? "true" : "false";
+  form.action.value = "save";
 
+  const html = `<div class='event ${form.type.value}'>${form.type.value}<br>${form.time.value}<br>${form.datail.value}<br>${form.customer.value}<br>${form.place.value}<br>${form.jobowner.value}<br>${form.charge.value}</div>`;
+  activeCell.innerHTML = html;
+  closePopup();
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
+  submitAndWait();
+}
+function deleteData() {
+  if (!confirm("Delete?")) return;
+  const form = document.getElementById("submitForm");
+  form.year.value = yearSel.value;
+  form.month.value = monthSel.value;
+  form.date.value = activeCell.dataset.day;
+  form.name.value = activeCell.dataset.name;
+  form.type.value = popupType.value;
+  form.time.value = popupTime.value;
+  form.datail.value = "";
+  form.action.value = "delete";
+  activeCell.innerHTML = "";
+  closePopup();
+  localStorage.setItem('savedMonth', monthSel.value);
+  localStorage.setItem('savedYear', yearSel.value);
+  submitAndWait();
+}
+function submitAndWait() {
+  const form = document.getElementById('submitForm');
+  const iframe = document.getElementById('hidden_frame');
+  if (!iframe) { form.submit(); setTimeout(() => location.reload(), 2000); return; }
+  closePopup();
+  iframe.onload = () => { iframe.onload = null; closePopup(); location.reload(); };
+  setTimeout(() => {
+    if (iframe.onload) { iframe.onload = null; closePopup(); location.reload(); }
+  }, 6000);
+  form.submit();
+}
+
+function cellClick(td) {
+  activeCell = td;
+  const year = +yearSel.value;
+  const month = +monthSel.value;
+  const day = +td.dataset.day;
+  const name = td.dataset.name;
+  const items = allData.filter(d =>
+    +d.year === year && +d.month === month && +d.date === day && String(d.name) === String(name)
+  );
+  if (items.length > 0) showDetails(items, { name, day, month, year });
+  else openPopup(td);
+}
+function showDetails(items, meta) {
+  const box = document.getElementById('detailContent');
+  const html = items.map((d, i) => {
+    const lines = [
+      `<b>${i+1}. ${d.type || '-'}</b>`,
+      d.customer ? `Customer: ${d.customer}` : '',
+      d.time ? `Time: ${d.time}` : '',
+      d.datail ? `Detail: ${d.datail}` : '',
+      d.place ? `Place: ${d.place}` : '',
+      d.jobowner ? `Job Owner: ${d.jobowner}` : '',
+      d.charge ? `Charge: ${d.charge}` : ''
+    ].filter(Boolean);
+    return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
+  }).join('') || '<i>No detail</i>';
+  box.innerHTML = `<div style="margin-bottom:6px;color:#555">👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}</div>${html}`;
+  overlay.classList.add("active");
+  document.getElementById('detailModal').classList.add('active');
+}
+function closeDetails() {
+  document.getElementById('detailModal').classList.remove('active');
+  overlay.classList.remove('active');
+}
+function openEditFromDetail() {
+  document.getElementById('detailModal').classList.remove('active');
+  if (activeCell) openPopup(activeCell);
+  else overlay.classList.remove('active');
+}
 function highlightWeekendColumns() {
   const table = document.getElementById('calendar-table');
   const headCells = table.querySelectorAll('thead th');
@@ -437,33 +527,7 @@ document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e
   this.scrollTop += (e.deltaY > 0 ? step : -step);
 });
 
-function showDetails(items, meta) {
-  const box = document.getElementById('detailContent');
-  const html = items.map((d, i) => {
-    const lines = [
-      `<b>${i+1}. ${d.type || '-'}</b>`,
-      d.customer ? `Customer: ${d.customer}` : '',
-      d.time ? `Time: ${d.time}` : '',
-      d.datail ? `Detail: ${d.datail}` : '',
-      d.place ? `Place: ${d.place}` : '',
-      d.jobowner ? `Job Owner: ${d.jobowner}` : '',
-      d.charge ? `Charge: ${d.charge}` : ''
-    ].filter(Boolean);
-    return `<div style="padding:8px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">${lines.join('<br>')}</div>`;
-  }).join('') || '<i>No detail</i>';
-  box.innerHTML = `<div style="margin-bottom:6px;color:#555">👤 <b>${meta.name}</b> — 📅 ${meta.day}/${meta.month}/${meta.year}</div>${html}`;
-  overlay.classList.add("active");
-  document.getElementById('detailModal').classList.add('active');
-}
-function closeDetails() {
-  document.getElementById('detailModal').classList.remove('active');
-  overlay.classList.remove('active');
-}
-function openEditFromDetail() {
-  document.getElementById('detailModal').classList.remove('active');
-  if (activeCell) openPopup(activeCell);
-  else overlay.classList.remove('active');
-}
+
 // ----- Expose to window (ปรับเฉพาะ auth/boot) -----
 window.doLogin = doLogin;
 window.resetLogin = resetLogin;
