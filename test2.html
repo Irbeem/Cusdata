@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS Calendar — Summary Only</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background:#f6f8fb; color:#222; }
+    header { padding:16px; background:#1976d2; color:#fff; }
+    header h1 { margin:0 0 8px 0; font-size:1.4rem; }
+    .container { padding:16px; }
+
+    .panel { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04); }
+    .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .controls label { font-weight:600; }
+    .controls input[type="date"] { padding:6px 8px; font-size:15px; border:1px solid #d1d5db; border-radius:8px; background:#fff; }
+    .btn { padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600; }
+    .btn-primary { background:#1976d2; color:#fff; }
+    .btn-outline { background:#fff; border:1px solid #9ca3af; color:#111827; }
+    .hint { color:#6b7280; font-size:.9rem; margin-top:6px; }
+
+    /* ตารางสรุป */
+    #summary-range { margin-top:12px; overflow:auto; max-height:70vh; }
+    #summary-range table { border-collapse: collapse; width:max-content; background:#fff; font-size:14px; }
+    #summary-range th, #summary-range td { border:1px solid #e5e7eb; padding:6px 8px; text-align:right; white-space:nowrap; background:#fff; }
+    #summary-range thead th { position: sticky; top:0; background:#eef3ff; z-index:3; }
+    #summary-range th:first-child, #summary-range td:first-child { position: sticky; left:0; background:#f9fafb; text-align:left; font-weight:700; z-index:2; }
+    #summary-range thead th:first-child { z-index:4; }
+    #summary-range tfoot td { font-weight:700; background:#fff8e1; }
+
+    .badge { display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff; color:#1f2937; font-size:12px; margin-left:6px; }
+    .loading { padding:10px; color:#374151; }
+    .error { padding:10px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; border-radius:8px; margin-top:10px; }
+
+    /* 🆕 ฟิลเตอร์ชนิดงาน */
+    .type-filter { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-left:auto; }
+    .type-filter .chip { display:flex; gap:6px; align-items:center; padding:6px 10px; border:1px solid #d1d5db; border-radius:999px; background:#fff; font-size:13px; }
+    .type-filter .title { font-weight:700; margin-right:4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 CS BKK — Summary <span class="badge">ช่วงวันที่เลือกได้</span></h1>
+    <div style="opacity:.9">สรุปจำนวนงานต่อ “คน” และ “ชนิดงาน”</div>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <div class="controls">
+        <label>From:
+          <input type="date" id="rangeStart">
+        </label>
+        <label>To:
+          <input type="date" id="rangeEnd">
+        </label>
+
+        <button class="btn btn-primary" id="applyRange">🔍 สรุปช่วงวันที่</button>
+        <button class="btn btn-outline" id="exportRangeCsv">📤 Export CSV</button>
+
+        <label style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="includeHoliday">
+          รวม Holiday ในสรุป
+        </label>
+        <label style="display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="sortByTotals" checked>
+          เรียงคอลัมน์ตามยอดรวมมาก→น้อย
+        </label>
+      </div>
+
+      <!-- 🆕 ที่วางเช็คบ็อกซ์ซ่อนชนิดงาน -->
+      <div id="typeFilterWrap" class="type-filter"></div>
+
+      <div class="hint">ถ้ายังไม่เลือก From/To ระบบจะสรุปเดือนปัจจุบันให้โดยอัตโนมัติ</div>
+      <div id="status" class="loading">กำลังโหลดข้อมูล…</div>
+      <div id="summary-range"></div>
+    </div>
+  </div>
+
+  <script>
+    /********** ตั้งค่าข้อมูล **********/
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const CALENDAR_SHEET = 'Carlendar';
+    const NAMES_SHEET = 'Names';
+
+    let names = [];
+    let allData = [];
+
+    const BASE_JOB_TYPES = [
+      "Service","Standby","Meeting","Inspection","Telephone",
+      "Training","TrainingSafety","LTC","Warranty","RepairPP",
+      "Sales","Leave","SafetyHealth","Other"
+    ];
+
+    /********** Utils วันที่แบบ Local **********/
+    const pad = n => String(n).padStart(2,'0');
+    const formatYMDLocal = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    function parseDateInputLocal(s){ if(!s) return null; const [Y,M,D]=s.split('-').map(Number); if(!Y||!M||!D) return null; return new Date(Y,M-1,D); }
+    function getCurrentMonthRange(){ const now=new Date(); const y=now.getFullYear(), m=now.getMonth(); return { start:new Date(y,m,1), end:new Date(y,m+1,0) }; }
+
+    /********** Utils อื่น **********/
+    function rowToDate(d){ const y=+d.year, m=+d.month, day=+d.date; if(Number.isNaN(y)||Number.isNaN(m)||Number.isNaN(day)) return null; return new Date(y,m-1,day); }
+    function getAllDistinctNames(){ const extra=new Set(); allData.forEach(d=>{ if(d.name && !names.includes(d.name)) extra.add(d.name); }); return [...names, ...[...extra].sort()]; }
+    function parseGvizTextToJson(txt){ return JSON.parse(txt.substring(47).slice(0,-2)); }
+
+    /********** ฟิลเตอร์ชนิดงาน (Exclude) **********/
+    function buildTypeFilter(){
+      const wrap = document.getElementById('typeFilterWrap');
+      const includeHoliday = document.getElementById('includeHoliday').checked;
+      const allTypes = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+
+      // เก็บสถานะเดิมก่อนจะรีบิลด์ใหม่
+      const prev = new Set(getExcludedTypes());
+
+      // วาดใหม่
+      let html = `<span class="title">ซ่อนชนิดงาน:</span>`;
+      html += allTypes.map(t => {
+        const checked = prev.has(t) ? 'checked' : '';
+        return `<label class="chip"><input type="checkbox" class="type-exclude" data-type="${t}" ${checked}/> ${t}</label>`;
+      }).join('');
+      wrap.innerHTML = html;
+
+      // bind: ติ๊กแล้วเรนเดอร์ใหม่
+      wrap.querySelectorAll('.type-exclude').forEach(cb => {
+        cb.addEventListener('change', renderRangeSummary);
+      });
+    }
+    function getExcludedTypes(){
+      return Array.from(document.querySelectorAll('.type-exclude:checked')).map(el => el.getAttribute('data-type'));
+    }
+
+    /********** โหลดข้อมูล **********/
+    async function loadData(){
+      const status=document.getElementById('status');
+      status.className='loading'; status.textContent='กำลังโหลดข้อมูล…';
+      try{
+        const base=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+        const [namesTxt,dataTxt]=await Promise.all([
+          fetch(`${base}&sheet=${encodeURIComponent(NAMES_SHEET)}`).then(r=>r.text()),
+          fetch(`${base}&sheet=${encodeURIComponent(CALENDAR_SHEET)}`).then(r=>r.text())
+        ]);
+
+        const namesJson=parseGvizTextToJson(namesTxt);
+        names=namesJson.table.rows.map(r=>r.c[0]?.v).filter(n=>n && String(n).toLowerCase()!=='summary');
+
+        const dataJson=parseGvizTextToJson(dataTxt);
+        const cols=dataJson.table.cols.map(c=>c.label);
+        allData=dataJson.table.rows.map(r=>{ const o={}; r.c.forEach((c,i)=>o[cols[i]]=c?.v??""); return o; });
+
+        status.textContent='โหลดข้อมูลสำเร็จ'; setTimeout(()=>status.textContent='',600);
+        return true;
+      }catch(e){
+        console.error(e);
+        status.className='error'; status.textContent='โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า หรือเช็คสิทธิ์แชร์ชีต';
+        return false;
+      }
+    }
+
+    /********** เรนเดอร์สรุป **********/
+    function renderRangeSummary(){
+      const box=document.getElementById('summary-range');
+      const status=document.getElementById('status');
+      const startInput=document.getElementById('rangeStart');
+      const endInput=document.getElementById('rangeEnd');
+      const includeHoliday=document.getElementById('includeHoliday').checked;
+      const sortByTotals=document.getElementById('sortByTotals')?.checked ?? true;
+      const excluded=new Set(getExcludedTypes());
+
+      if(!Array.isArray(allData)||allData.length===0){ box.innerHTML=''; status.textContent='ยังไม่มีข้อมูลให้สรุป'; return; }
+
+      // job types ที่มีอยู่ + เอาที่ถูกซ่อนออก
+      const JOB_TYPES_BASE = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+      const JOB_TYPES = JOB_TYPES_BASE.filter(t => !excluded.has(t));
+
+      let startDate=parseDateInputLocal(startInput.value);
+      let endDate=parseDateInputLocal(endInput.value);
+      if(!startDate||!endDate){ const {start,end}=getCurrentMonthRange(); startDate=start; endDate=end; if(!startInput.value) startInput.value=formatYMDLocal(startDate); if(!endInput.value) endInput.value=formatYMDLocal(endDate); }
+      endDate=new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate(),23,59,59,999);
+
+      const nameList=getAllDistinctNames();
+      const tableMap={}; nameList.forEach(n=>{ tableMap[n]={}; JOB_TYPES.forEach(t=>tableMap[n][t]=0); });
+
+      let matched=0;
+      allData.forEach(d=>{
+        const dt=rowToDate(d); if(!dt) return;
+        if(dt>=startDate && dt<=endDate){
+          const nm=d.name||'', tp=d.type||'';
+          if(nm && JOB_TYPES.includes(tp)){ tableMap[nm][tp]+=1; matched++; }
+        }
+      });
+      if(matched===0){ box.innerHTML=''; status.textContent='ไม่พบข้อมูลในช่วงนี้'; return; }
+
+      // totals & order
+      const colTotalsRaw={}; JOB_TYPES.forEach(t=>colTotalsRaw[t]=0);
+      nameList.forEach(nm=>{ JOB_TYPES.forEach(tp=>{ colTotalsRaw[tp]+=(tableMap[nm][tp]||0); }); });
+      const TYPES_ORDER = sortByTotals ? [...JOB_TYPES].sort((a,b)=>colTotalsRaw[b]-colTotalsRaw[a]||a.localeCompare(b)) : [...JOB_TYPES];
+      const colTotals={}; TYPES_ORDER.forEach(t=>colTotals[t]=colTotalsRaw[t]);
+
+      const rowsHtml=nameList.map(nm=>{
+        const tds=TYPES_ORDER.map(tp=>`<td>${tableMap[nm][tp]||0}</td>`);
+        const rowSum=TYPES_ORDER.reduce((s,tp)=>s+(tableMap[nm][tp]||0),0);
+        return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
+      }).join('');
+
+      const grandTotal=TYPES_ORDER.reduce((s,tp)=>s+colTotals[tp],0);
+      const footerHtml=`<tr><td>รวมต่อชนิดงาน</td>${TYPES_ORDER.map(tp=>`<td>${colTotals[tp]}</td>`).join('')}<td>${grandTotal}</td></tr>`;
+
+      const exclBadge = excluded.size ? `<span class="badge">ซ่อน ${excluded.size} ชนิด</span>` : '';
+      const html = `
+        <div style="font-weight:700; margin:8px 0;">
+          ช่วง ${startInput.value} ถึง ${endInput.value}
+          ${includeHoliday?'<span class="badge">รวม Holiday</span>':''}
+          ${sortByTotals?'<span class="badge">จัดเรียงตามยอดรวม</span>':''}
+          ${exclBadge}
+        </div>
+        <table id="summary-range-table">
+          <thead><tr><th>ชื่อ</th>${TYPES_ORDER.map(t=>`<th>${t}</th>`).join('')}<th>รวม/คน</th></tr></thead>
+          <tbody>${rowsHtml}</tbody>
+          <tfoot>${footerHtml}</tfoot>
+        </table>`;
+      box.innerHTML = html;
+      status.textContent='';
+    }
+
+    /********** Export CSV (คำนึงถึงชนิดงานที่ซ่อน) **********/
+    function exportRangeSummaryCSV(){
+      const includeHoliday=document.getElementById('includeHoliday').checked;
+      const sortByTotals=document.getElementById('sortByTotals')?.checked ?? true;
+      const excluded=new Set(getExcludedTypes());
+
+      const JOB_TYPES_BASE = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+      const JOB_TYPES = JOB_TYPES_BASE.filter(t => !excluded.has(t));
+
+      const start=document.getElementById('rangeStart').value;
+      const end=document.getElementById('rangeEnd').value;
+
+      let startDate=parseDateInputLocal(start);
+      let endDate=parseDateInputLocal(end);
+      if(!startDate||!endDate){ const {start:s,end:e}=getCurrentMonthRange(); startDate=s; endDate=e; }
+      endDate=new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate(),23,59,59,999);
+
+      const nameList=getAllDistinctNames();
+      const tableMap={}; nameList.forEach(n=>{ tableMap[n]={}; JOB_TYPES.forEach(t=>tableMap[n][t]=0); });
+
+      allData.forEach(d=>{
+        const dt=rowToDate(d); if(!dt) return;
+        if(dt>=startDate && dt<=endDate){
+          const nm=d.name||'', tp=d.type||'';
+          if(nm && JOB_TYPES.includes(tp)) tableMap[nm][tp]+=1;
+        }
+      });
+
+      const colTotalsRaw={}; JOB_TYPES.forEach(t=>colTotalsRaw[t]=0);
+      nameList.forEach(nm=>{ JOB_TYPES.forEach(tp=>{ colTotalsRaw[tp]+=(tableMap[nm][tp]||0); }); });
+      const TYPES_ORDER = sortByTotals ? [...JOB_TYPES].sort((a,b)=>colTotalsRaw[b]-colTotalsRaw[a]||a.localeCompare(b)) : [...JOB_TYPES];
+
+      const headers=["Name",...TYPES_ORDER,"TotalPerPerson"];
+      const rows=[headers.join(",")];
+      nameList.forEach(nm=>{
+        const counts=TYPES_ORDER.map(tp=>tableMap[nm][tp]||0);
+        const sum=counts.reduce((s,v)=>s+v,0);
+        rows.push([nm,...counts,sum].join(","));
+      });
+
+      const colTotals=TYPES_ORDER.map(tp=>nameList.reduce((s,nm)=>s+(tableMap[nm][tp]||0),0));
+      const grand=colTotals.reduce((s,v)=>s+v,0);
+      rows.push(["TOTAL_BY_TYPE",...colTotals,grand].join(","));
+
+      const BOM="\uFEFF";
+      const csvContent=BOM+rows.join("\n");
+      const blob=new Blob([csvContent],{type:"text/csv;charset=utf-8;"});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement("a");
+      a.href=url;
+      const startName=start||formatYMDLocal(startDate);
+      const endName=end||formatYMDLocal(endDate);
+      a.download=`summary_${startName}_${endName}${excluded.size?`_hide${excluded.size}`:''}${includeHoliday?'_withHoliday':''}${sortByTotals?'_sorted':''}.csv`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    /********** Bind & Init **********/
+    function bindEvents(){
+      document.getElementById('applyRange').onclick=renderRangeSummary;
+      document.getElementById('exportRangeCsv').onclick=exportRangeSummaryCSV;
+      document.getElementById('rangeStart').onchange=renderRangeSummary;
+      document.getElementById('rangeEnd').onchange=renderRangeSummary;
+      document.getElementById('includeHoliday').onchange=()=>{ buildTypeFilter(); renderRangeSummary(); };
+      document.getElementById('sortByTotals').onchange=renderRangeSummary;
+    }
+
+    (async function init(){
+      bindEvents();
+      const ok=await loadData();
+      if(!ok) return;
+      const {start,end}=getCurrentMonthRange();
+      if(!rangeStart.value) rangeStart.value = formatYMDLocal(start);
+      if(!rangeEnd.value)   rangeEnd.value   = formatYMDLocal(end);
+      buildTypeFilter();     // 🆕 สร้างเช็คบ็อกซ์ซ่อนชนิดงาน
+      renderRangeSummary();
+    })();
+  </script>
+</body>
+</html>
