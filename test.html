@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS Calendar — Summary Only</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background:#f6f8fb; color:#222; }
+    header { padding:16px; background:#1976d2; color:#fff; }
+    header h1 { margin:0 0 8px 0; font-size:1.4rem; }
+    .container { padding:16px; }
+
+    .panel {
+      background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+      padding:12px; box-shadow:0 2px 10px rgba(0,0,0,0.04);
+    }
+    .controls {
+      display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+    }
+    .controls label { font-weight:600; }
+    .controls input[type="date"] {
+      padding:6px 8px; font-size:15px; border:1px solid #d1d5db; border-radius:8px;
+      background:#fff;
+    }
+    .btn {
+      padding:8px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600;
+    }
+    .btn-primary { background:#1976d2; color:#fff; }
+    .btn-outline { background:#fff; border:1px solid #9ca3af; color:#111827; }
+
+    .hint { color:#6b7280; font-size:.9rem; margin-top:6px; }
+
+    /* ตารางสรุป */
+    #summary-range { margin-top:12px; overflow:auto; max-height:70vh; }
+    #summary-range table {
+      border-collapse: collapse; width:max-content; background:#fff; font-size:14px;
+    }
+    #summary-range th, #summary-range td {
+      border:1px solid #e5e7eb; padding:6px 8px; text-align:right; white-space:nowrap;
+      background:#fff; /* ป้องกันโปร่งใสเวลา sticky ซ้อนกัน */
+    }
+    /* ทำให้หัวตารางติดอยู่ด้านบนของกล่องสกรอล (#summary-range) */
+    #summary-range thead th {
+      position: sticky; top:0; background:#eef3ff; z-index:3;
+    }
+    /* คอลัมน์แรกให้ sticky ด้านซ้ายทั้งหัวและตัวตาราง */
+    #summary-range th:first-child, #summary-range td:first-child {
+      position: sticky; left:0; background:#f9fafb; text-align:left; font-weight:700; z-index:2;
+    }
+    /* มุมซ้ายบน (หัวคอลัมน์แรก) ต้องสูงสุด ไม่งั้นโดนหัวตารางบัง */
+    #summary-range thead th:first-child { z-index:4; }
+
+    #summary-range tfoot td { font-weight:700; background:#fff8e1; }
+
+    .badge {
+      display:inline-block; padding:2px 8px; border-radius:999px; background:#eef2ff;
+      color:#1f2937; font-size:12px; margin-left:6px;
+    }
+
+    .loading { padding:10px; color:#374151; }
+    .error {
+      padding:10px; color:#b91c1c; background:#fee2e2; border:1px solid #fecaca; border-radius:8px;
+      margin-top:10px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📊 CS BKK — Summary <span class="badge">ช่วงวันที่เลือกได้</span></h1>
+    <div style="opacity:.9">สรุปจำนวนงานต่อ “คน” และ “ชนิดงาน”</div>
+  </header>
+
+  <div class="container">
+    <div class="panel">
+      <div class="controls">
+        <label>From:
+          <input type="date" id="rangeStart">
+        </label>
+        <label>To:
+          <input type="date" id="rangeEnd">
+        </label>
+
+        <button class="btn btn-primary" id="applyRange">🔍 สรุปช่วงวันที่</button>
+        <button class="btn btn-outline" id="exportRangeCsv">📤 Export CSV</button>
+
+        <label style="margin-left:auto; display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="includeHoliday">
+          รวม Holiday ในสรุป
+        </label>
+        <label style="display:flex; gap:6px; align-items:center;">
+          <input type="checkbox" id="sortByTotals" checked>
+          เรียงคอลัมน์ตามยอดรวมมาก→น้อย
+        </label>
+      </div>
+      <div class="hint">ถ้ายังไม่เลือก From/To ระบบจะสรุปเดือนปัจจุบันให้โดยอัตโนมัติ</div>
+      <div id="status" class="loading">กำลังโหลดข้อมูล…</div>
+      <div id="summary-range"></div>
+    </div>
+  </div>
+
+  <script>
+    /********** 🔧 ตั้งค่าแหล่งข้อมูล (เหมือนหน้าเดิม) **********/
+    const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+    const CALENDAR_SHEET = 'Carlendar';
+    const NAMES_SHEET = 'Names';
+
+    /********** 📚 ตัวแปรหลัก **********/
+    let names = [];
+    let allData = [];
+
+    const BASE_JOB_TYPES = [
+      "Service","Standby","Meeting","Inspection","Telephone",
+      "Training","TrainingSafety","LTC","Warranty","RepairPP",
+      "Sales","Leave","SafetyHealth","Other"
+    ];
+
+    function rowToDate(d) {
+      const y = parseInt(d.year, 10);
+      const m = parseInt(d.month, 10);
+      const day = parseInt(d.date, 10);
+      if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(day)) return null;
+      return new Date(y, m - 1, day);
+    }
+
+    function getAllDistinctNames() {
+      const extra = new Set();
+      allData.forEach(d => {
+        if (d.name && !names.includes(d.name)) extra.add(d.name);
+      });
+      return [...names, ...[...extra].sort()];
+    }
+
+    function parseGvizTextToJson(txt) {
+      return JSON.parse(txt.substring(47).slice(0, -2));
+    }
+
+    async function loadData() {
+      const status = document.getElementById('status');
+      try {
+        const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+        const [namesTxt, dataTxt] = await Promise.all([
+          fetch(`${base}&sheet=${NAMES_SHEET}`).then(r => r.text()),
+          fetch(`${base}&sheet=${CALENDAR_SHEET}`).then(r => r.text())
+        ]);
+
+        const namesJson = parseGvizTextToJson(namesTxt);
+        names = namesJson.table.rows
+          .map(r => r.c[0]?.v)
+          .filter(n => n && String(n).toLowerCase() !== 'summary');
+
+        const dataJson = parseGvizTextToJson(dataTxt);
+        const cols = dataJson.table.cols.map(c => c.label);
+        allData = dataJson.table.rows.map(r => {
+          const o = {};
+          r.c.forEach((c, i) => o[cols[i]] = c?.v || "");
+          return o;
+        });
+
+        status.textContent = 'โหลดข้อมูลสำเร็จ';
+        setTimeout(() => { status.textContent = ''; }, 800);
+      } catch (err) {
+        console.error(err);
+        status.className = 'error';
+        status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า หรือเช็คการตั้งค่าแชร์ของชีต';
+      }
+    }
+
+    function renderRangeSummary() {
+      const box = document.getElementById('summary-range');
+      const status = document.getElementById('status');
+      const startInput = document.getElementById('rangeStart');
+      const endInput   = document.getElementById('rangeEnd');
+      const includeHoliday = document.getElementById('includeHoliday').checked;
+      const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
+
+      const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+
+      let startDate = startInput.value ? new Date(startInput.value) : null;
+      let endDate   = endInput.value   ? new Date(endInput.value)   : null;
+
+      const now = new Date();
+      if (!startDate || !endDate) {
+        const y = now.getFullYear();
+        const m = now.getMonth();
+        startDate = new Date(y, m, 1);
+        endDate   = new Date(y, m + 1, 0);
+        startInput.value = startDate.toISOString().slice(0,10);
+        endInput.value   = endDate.toISOString().slice(0,10);
+      }
+      endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+
+      const nameList = getAllDistinctNames();
+      const tableMap = {};
+      nameList.forEach(n => {
+        tableMap[n] = {};
+        JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+      });
+
+      allData.forEach(d => {
+        const dt = rowToDate(d);
+        if (!dt) return;
+        if (dt >= startDate && dt <= endDate) {
+          const nm = d.name || '';
+          const tp = d.type || '';
+          if (nm && JOB_TYPES.includes(tp)) {
+            tableMap[nm][tp] += 1;
+          }
+        }
+      });
+
+      const colTotalsRaw = {};
+      JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
+      nameList.forEach(nm => {
+        JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+      });
+
+      const TYPES_ORDER = sortByTotals
+        ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
+        : [...JOB_TYPES];
+
+      const colTotals = {};
+      TYPES_ORDER.forEach(t => colTotals[t] = colTotalsRaw[t]);
+
+      const rowsHtml = nameList.map(nm => {
+        const tds = TYPES_ORDER.map(tp => `<td>${tableMap[nm][tp] || 0}</td>`);
+        const rowSum = TYPES_ORDER.reduce((s,tp)=> s + (tableMap[nm][tp]||0), 0);
+        return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
+      }).join('');
+
+      const grandTotal = TYPES_ORDER.reduce((s,tp)=> s + colTotals[tp], 0);
+      const footerHtml = `
+        <tr>
+          <td>รวมต่อชนิดงาน</td>
+          ${TYPES_ORDER.map(tp => `<td>${colTotals[tp]}</td>`).join('')}
+          <td>${grandTotal}</td>
+        </tr>
+      `;
+
+      /* ✅ เอา div overflow ชั้นในออก ให้ #summary-range เป็น scroll container เดียว */
+    const html = `
+      <div style="font-weight:700; margin:8px 0;">
+        ช่วง ${startInput.value || startDate.toISOString().slice(0,10)}
+        ถึง ${endInput.value || new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate()).toISOString().slice(0,10)}
+        ${includeHoliday ? '<span class="badge">รวม Holiday</span>' : ''}
+        ${sortByTotals ? '<span class="badge">จัดเรียงตามยอดรวม</span>' : ''}
+      </div>
+        <table id="summary-range-table">
+          <thead>
+            <tr>
+              <th>ชื่อ</th>
+              ${TYPES_ORDER.map(t => `<th>${t}</th>`).join('')}
+              <th>รวม/คน</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+          <tfoot>
+            ${footerHtml}
+          </tfoot>
+        </table>
+      `;
+      box.innerHTML = html;
+      status.textContent = '';
+    }
+
+    function exportRangeSummaryCSV() {
+      const includeHoliday = document.getElementById('includeHoliday').checked;
+      const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
+      const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+
+      const start = document.getElementById('rangeStart').value;
+      const end   = document.getElementById('rangeEnd').value;
+
+      let startDate = start ? new Date(start) : null;
+      let endDate   = end   ? new Date(end)   : null;
+      const now = new Date();
+      if (!startDate || !endDate) {
+        const y = now.getFullYear(), m = now.getMonth();
+        startDate = new Date(y, m, 1);
+        endDate   = new Date(y, m + 1, 0);
+      }
+      
+
+  function getCurrentMonthRange() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const start = new Date(y, m, 1);
+    const end   = new Date(y, m + 1, 0);
+    return { start, end };
+  }
+
+  function setDefaultRangeIfEmpty() {
+    const startInput = document.getElementById('rangeStart');
+    const endInput   = document.getElementById('rangeEnd');
+    if (!startInput.value || !endInput.value) {
+      const { start, end } = getCurrentMonthRange();
+      startInput.value = start.toISOString().slice(0,10);
+      endInput.value   = end.toISOString().slice(0,10);
+    }
+  }
+
+  function renderRangeSummary() {
+    const box = document.getElementById('summary-range');
+    const status = document.getElementById('status');
+    const startInput = document.getElementById('rangeStart');
+    const endInput   = document.getElementById('rangeEnd');
+    const includeHoliday = document.getElementById('includeHoliday').checked;
+    const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
+
+    const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+
+    // อ่านค่าปัจจุบันของ input; ถ้ายังว่าง ให้ใช้ค่าเริ่มต้นเดือนปัจจุบัน (แต่ไม่ไปเขียนทับ input)
+    let startDate = startInput.value ? new Date(startInput.value) : null;
+    let endDate   = endInput.value   ? new Date(endInput.value)   : null;
+    if (!startDate || !endDate) {
+      const { start, end } = getCurrentMonthRange();
+      startDate = start;
+      endDate   = end;
+    }
+    // รวมทั้งวันสุดท้าย
+        endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+
+
+
+      const nameList = getAllDistinctNames();
+      const tableMap = {};
+      nameList.forEach(n => {
+        tableMap[n] = {};
+        JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+      });
+
+      allData.forEach(d => {
+        const dt = rowToDate(d);
+        if (!dt) return;
+        if (dt >= startDate && dt <= endDate) {
+          const nm = d.name || '';
+          const tp = d.type || '';
+          if (nm && JOB_TYPES.includes(tp)) {
+            tableMap[nm][tp] += 1;
+          }
+        }
+      });
+
+      const colTotalsRaw = {};
+      JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
+      nameList.forEach(nm => {
+        JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+      });
+
+      const TYPES_ORDER = sortByTotals
+        ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
+        : [...JOB_TYPES];
+
+      const headers = ["Name", ...TYPES_ORDER, "TotalPerPerson"];
+      const rows = [headers.join(",")];
+
+      nameList.forEach(nm => {
+        const counts = TYPES_ORDER.map(tp => tableMap[nm][tp] || 0);
+        const sum = counts.reduce((s,v)=>s+v,0);
+        rows.push([nm, ...counts, sum].join(","));
+      });
+
+      const colTotals = TYPES_ORDER.map(tp =>
+        nameList.reduce((s,nm)=> s + (tableMap[nm][tp]||0), 0)
+      );
+      const grand = colTotals.reduce((s,v)=>s+v,0);
+      rows.push(["TOTAL_BY_TYPE", ...colTotals, grand].join(","));
+
+      const BOM = "\uFEFF";
+      const csvContent = BOM + rows.join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `summary_${(start||'auto')}_${(end||'auto')}${includeHoliday ? '_withHoliday':''}${sortByTotals ? '_sorted':''}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+ function bindEvents() {
+    const applyBtn = document.getElementById('applyRange');
+    const exportBtn = document.getElementById('exportRangeCsv');
+    const startInput = document.getElementById('rangeStart');
+    const endInput   = document.getElementById('rangeEnd');
+    const includeHoliday = document.getElementById('includeHoliday');
+
+    applyBtn.onclick = renderRangeSummary;
+    exportBtn.onclick = exportRangeSummaryCSV;
+
+    startInput.onchange = renderRangeSummary;
+    endInput.onchange   = renderRangeSummary;
+    includeHoliday.onchange = renderRangeSummary;
+  }
+
+  (async function init() {
+    bindEvents();
+    setDefaultRangeIfEmpty();   // ✅ เซ็ตช่วงเริ่มต้นเป็นเดือนปัจจุบัน
+    await loadData();
+    renderRangeSummary();
+  })();
+</script>
+</body>
+</html>
