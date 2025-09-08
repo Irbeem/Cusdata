@@ -83,7 +83,7 @@
   </style>
 </head>
 <body>
-    <!-- ===== App (hidden until authenticated) ===== -->
+  <!-- ===== App (hidden until authenticated) ===== -->
   <div id="app" style="display:none">
     <h2>CS BKK Calendar
       <a href="https://irbeem.github.io/Cusdata/bkkbooking.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗓️ Multiple booking</a>
@@ -91,6 +91,50 @@
       <button onclick="exportMonthToCSV()">📤 Export CSV</button>
       <button id="logoutBtn" style="float:right" onclick="logout()">🚪 Logout</button>
     </h2>
+
+    <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+    <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
+
+    <div class="calendar-wrapper">
+      <table id="calendar-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
+    <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
+      <input type="hidden" name="year">
+      <input type="hidden" name="month">
+      <input type="hidden" name="date">
+      <input type="hidden" name="name">
+      <input type="hidden" name="type">
+      <input type="hidden" name="time">
+      <input type="hidden" name="datail">
+      <input type="hidden" name="customer">
+      <input type="hidden" name="place">
+      <input type="hidden" name="jobowner">
+      <input type="hidden" name="charge">
+      <input type="hidden" name="action">
+      <input type="hidden" name="holidayDetail">
+      <input type="hidden" name="sendEmail">
+    </form>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="modal" id="popupForm">
+      <h3>Booking</h3>
+      <div>Name: <span id="popupName"></span></div>
+      <div>Date: <span id="popupDate"></span></div>
+      <label>Job Type:
+        <select id="popupType">
+          <option value="Service">Service</option>
+          <option value="Standby">Standby</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Telephone">Telephone</option>
+          <option value="Training">Training</option>
+          <option value="TrainingSafety">TrainingSafety</option>
+          <option value="LTC">LTC</option>
           <option value="Warranty">Warranty</option>
           <option value="RepairPP">RepairPP</option>
           <option value="Sales">Sales</option>
@@ -162,3 +206,6 @@
 <script type="module" src="calscript.js"></script>
 </body>
 </html>
+
+
+
