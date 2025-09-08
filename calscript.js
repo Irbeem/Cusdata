@@ -1,32 +1,28 @@
-// ====== calscript.js (หัวไฟล์ โค้ดใหม่) ======
+// ====== calscript.js (ตรวจ Auth ก่อนแสดงตาราง; ไม่มี login/logout หน้านี้) ======
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-import {
-  getAuth, onAuthStateChanged,
-  signInWithEmailAndPassword, signOut
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
-import {
-  getDatabase, ref, get
-} from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
 // ----- อ่านค่าจาก config.js -----
 const firebaseConfig = window.FIREBASE_CONFIG;
 const REQUIRE_ROLE   = window.REQUIRE_ROLE ?? true;
 const ALLOWED_ROLES  = Array.isArray(window.ALLOWED_ROLES) ? window.ALLOWED_ROLES : [];
 
+// ชีตจาก config.js
 const SHEET_ID = window.SHEET_ID;
 const CALENDAR_SHEET = window.CALENDAR_SHEET;
 const NAMES_SHEET = window.NAMES_SHEET;
 const SpecialHolidays_SHEET = window.SpecialHolidays_SHEET;
 
-// ----- DOM refs (ที่มีอยู่แล้วในหน้า) -----
-const loginOverlay = document.getElementById("loginOverlay");
-const appRoot      = document.getElementById("app");
+// ตั้ง path ของ "หน้า Login ต้นทาง" (ปรับให้ถูกกับของจริง)
+const LOGIN_PAGE_URL = "/index.html";
 
+// DOM หลัก
+const appRoot = document.getElementById("app");
 const monthSel = document.getElementById("month");
 const yearSel  = document.getElementById("year");
 const overlay  = document.getElementById("overlay");
 const popup    = document.getElementById("popupForm");
-
 const popupName     = document.getElementById("popupName");
 const popupDate     = document.getElementById("popupDate");
 const popupType     = document.getElementById("popupType");
@@ -37,37 +33,17 @@ const popupPlace    = document.getElementById("popupPlace");
 const popupJobowner = document.getElementById("popupJobowner");
 const popupCharge   = document.getElementById("popupCharge");
 
-// ----- ตัวแปรทำงานเดิม -----
+// ตัวแปรทำงาน
 let names = [], allData = [], specialHolidays = [];
 let activeCell = null;
 
-// ===== Firebase Init =====
-if (!firebaseConfig || !firebaseConfig.apiKey) {
-  console.error("🔥 ยังไม่ได้ตั้งค่า FIREBASE_CONFIG ใน config.js");
-  alert("ยังไม่ได้ตั้งค่า Firebase (config.js)");
-}
-
+// Init Firebase
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-// ===== UI Helper เดิม =====
-function showLogin() {
-  const overlay = document.getElementById('loginOverlay');
-  const app = document.getElementById('app');
-  if (overlay) overlay.style.display = 'block';
-  if (app) app.style.display = 'none';
-}
-
-function showApp() {
-  const overlay = document.getElementById('loginOverlay');
-  const app = document.getElementById('app');
-  if (overlay) overlay.style.display = 'none';
-  if (app) app.style.display = 'block';
-}
-
-// ===== Auth Gate =====
-async function fetchUserRole(uid) {
+// helper: ดึง role จาก RTDB
+async function getUserRole(uid) {
   try {
     const snap = await get(ref(db, `users/${uid}/role`));
     return snap.exists() ? snap.val() : null;
@@ -77,79 +53,43 @@ async function fetchUserRole(uid) {
   }
 }
 
-// onAuthStateChanged(auth, async (user) => {
-//   if (!user) {
-//     // ยังไม่ล็อกอิน
-//     showLogin();
-//     return;
-//   }
+// เริ่มตรวจ auth ทันทีที่โหลดหน้า
+onAuthStateChanged(auth, async (user) => {
+  // ซ่อนแอปไว้ก่อน
+  if (appRoot) appRoot.style.display = "none";
 
-//  // ล็อกอินแล้ว → ตรวจ role (ถ้าบังคับ)
-  // if (REQUIRE_ROLE) {
-  //   const role = await fetchUserRole(user.uid);
-  //   if (!role) {
-  //     alert("บัญชีนี้ยังไม่มีสิทธิ์เข้าใช้งาน (ไม่พบ role)");
-  //     await signOut(auth);
-  //     //showLogin();
-  //     return;
-  //   }
-  //   if (ALLOWED_ROLES.length > 0 && !ALLOWED_ROLES.includes(role)) {
-  //     alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
-  //     await signOut(auth);
-  //     //showLogin();
-  //     return;
-  //   }
-  //   // เก็บ role ไว้เผื่อส่วนอื่นใช้
-  //   window.CURRENT_ROLE = role;
-  // }
-
-//   // ผ่าน gate → แสดงแอปและโหลดข้อมูล
-//   window.CURRENT_UID = user.uid;
-//   showApp();
-//   init(); // ← เรียกฟังก์ชันเดิมของคุณ เพื่อโหลดข้อมูล/เรนเดอร์ตาราง
-// });
-
-// ===== ปุ่ม Login / Logout =====
-async function doLogin() {
-  const email = document.getElementById('loginUser').value.trim();
-  const pass  = document.getElementById('loginPass').value;
-  if (!email || !pass) {
-    alert('กรุณากรอกอีเมลและรหัสผ่าน');
+  if (!user) {
+    // ยังไม่ล็อกอิน -> เด้งไปหน้า login พร้อมแนบ back=<url ปัจจุบัน>
+    const back = encodeURIComponent(location.href);
+    location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
     return;
   }
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-    // onAuthStateChanged จะโชว์แอป+init ให้เอง
-  } catch (e) {
-    console.error(e);
-    alert(e?.message || 'เข้าสู่ระบบไม่สำเร็จ');
+
+  // ล็อกอินแล้ว: ตรวจ role ถ้าบังคับ
+  if (REQUIRE_ROLE) {
+    const role = await getUserRole(user.uid);
+    if (!role) {
+      alert("บัญชีนี้ยังไม่มีสิทธิ์เข้าใช้งาน (ไม่พบ role)");
+      await signOut(auth);
+      const back = encodeURIComponent(location.href);
+      location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+      return;
+    }
+    if (ALLOWED_ROLES.length > 0 && !ALLOWED_ROLES.includes(role)) {
+      alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
+      await signOut(auth);
+      const back = encodeURIComponent(location.href);
+      location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+      return;
+    }
+    window.CURRENT_ROLE = role;
   }
-}
 
-async function logout() {
-  try {
-    await signOut(auth);
-    showLogin();
-  } catch (e) {
-    console.error(e);
-    alert('ออกจากระบบไม่สำเร็จ');
-  }
-}
-
-function resetLogin() {
-  document.getElementById('loginUser').value = '';
-  document.getElementById('loginPass').value = '';
-  document.getElementById('loginUser').focus();
-}
-
-// ====== (คงไว้) ฟังก์ชัน calendar เดิมของคุณทั้งหมด อยู่ต่อจากนี้เลย ======
-// - init()
-// - renderTable(), cellClick(), openPopup(), closePopup(), saveData(), deleteData()
-// - showDetails(), closeDetails(), openEditFromDetail()
-// - openHolidayModal(), closeHoliday(), saveHoliday(), deleteHoliday()
-// - exportMonthToCSV()
-// - wheel scroll handler ฯลฯ
-// ---------- Calendar Core ----------
+  // ผ่าน Auth + Role → แสดงแอปและเริ่มโหลดตาราง
+  if (appRoot) appRoot.style.display = "";
+  window.CURRENT_UID = user.uid;
+  init(); // โหลด Google Sheet + render ตาราง
+});
 
 // ---------- Calendar Core ----------
 function init() {
@@ -204,7 +144,9 @@ function init() {
   }).catch(err => {
     console.error("โหลดข้อมูลไม่สำเร็จ:", err);
     alert("โหลดข้อมูลไม่สำเร็จ ดู Console สำหรับรายละเอียด");
-    showLogin(); // กันหน้าเงียบ
+    // กลับไปหน้า login เพื่อให้ผู้ใช้ลองใหม่
+    const back = encodeURIComponent(location.href);
+    location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
   });
 }
 
@@ -263,26 +205,18 @@ function renderTable() {
   }).join('');
   tbody.innerHTML = bodyHTML;
 
-  // ===== Highlight row when click first column (Name) ===== 5/9/25 bee
+  // ไฮไลท์ชื่อแถวเมื่อคลิกคอลัมน์แรก
   document.querySelector('#calendar-table tbody').addEventListener('click', (e) => {
-  const td = e.target.closest('td');
-  if (!td) return;
-
-  // ถ้าเป็นคอลัมน์แรก (ชื่อ)
-  if (td.cellIndex === 0) {
-    const tr = td.parentElement;
-
-    // ลบไฮไลท์เดิม
-      document
-        .querySelectorAll('#calendar-table tbody tr.selected-row')
+    const td = e.target.closest('td');
+    if (!td) return;
+    if (td.cellIndex === 0) {
+      const tr = td.parentElement;
+      document.querySelectorAll('#calendar-table tbody tr.selected-row')
         .forEach(r => r.classList.remove('selected-row'));
-  
-      // ใส่ไฮไลท์ใหม่
       tr.classList.add('selected-row');
     }
   });
 
-  
   // Summary
   document.getElementById("summaryBox")?.remove();
   const totalDiv = document.createElement("div");
@@ -308,7 +242,7 @@ function renderTable() {
   highlightWeekendColumns();
 }
 
-// ---- ส่วนป๊อปอัป/แก้ไข/บันทึก (คงโค้ดเดิม) ----
+// ---- ป๊อปอัป/แก้ไข/บันทึก ----
 function openPopup(td) {
   activeCell = td;
   popupName.textContent = td.dataset.name;
@@ -335,7 +269,7 @@ function saveData() {
   form.name.value = activeCell.dataset.name;
   form.type.value = popupType.value;
   form.time.value = popupTime.value;
-  form.datail.value = popupDetail.value;
+  form.datail.value = popupDetail.value; // NOTE: ถ้าจะเปลี่ยนเป็น detail ให้แก้ทั้งฝั่ง GAS/HTML
   form.customer.value = popupCustomer.value;
   form.place.value = popupPlace.value;
   form.jobowner.value = popupJobowner.value;
@@ -525,36 +459,29 @@ function exportMonthToCSV() {
   document.body.removeChild(link);
 }
 
-// สกรอลล์ล้อเมาส์ (คงเดิม)
-document.querySelector('.calendar-wrapper').addEventListener('wheel', function(e) {
-  e.preventDefault();
-  const rowHeight = 80;
-  const step = rowHeight * 2;
-  this.scrollTop += (e.deltaY > 0 ? step : -step);
-});
+// สกรอลล์ล้อเมาส์ (เช็ค element ก่อน)
+const wrapper = document.querySelector('.calendar-wrapper');
+if (wrapper) {
+  wrapper.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    const rowHeight = 80;
+    const step = rowHeight * 2;
+    this.scrollTop += (e.deltaY > 0 ? step : -step);
+  }, { passive: false });
+}
 
-
-
-// ----- Expose to window (ปรับเฉพาะ auth/boot) -----
-window.doLogin = doLogin;
-window.resetLogin = resetLogin;
-window.logout = logout;
-
+// ---------- Expose to Global (ให้ HTML เรียกได้ผ่าน onclick) ----------
 window.renderTable = renderTable;
 window.cellClick = cellClick;
-
 window.openPopup = openPopup;
 window.closePopup = closePopup;
 window.saveData = saveData;
 window.deleteData = deleteData;
-
 window.showDetails = showDetails;
 window.closeDetails = closeDetails;
 window.openEditFromDetail = openEditFromDetail;
-
 window.openHolidayModal = openHolidayModal;
 window.closeHoliday = closeHoliday;
 window.saveHoliday = saveHoliday;
 window.deleteHoliday = deleteHoliday;
-
 window.exportMonthToCSV = exportMonthToCSV;
