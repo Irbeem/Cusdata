@@ -98,13 +98,10 @@
     </div>
   </div>
 
-
-
-
 <script>
   /********** 🔧 ตั้งค่าแหล่งข้อมูล **********/
   const SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
-  const CALENDAR_SHEET = 'Carlendar'; // ตรวจชื่อชีตให้ตรงจริงๆ
+  const CALENDAR_SHEET = 'Carlendar';
   const NAMES_SHEET = 'Names';
 
   /********** 📚 ตัวแปรหลัก **********/
@@ -117,290 +114,260 @@
     "Sales","Leave","SafetyHealth","Other"
   ];
 
-  /********** ⛏️ Utils **********/
-  function getCurrentMonthRange() {
+  /********** ⛏️ Utils: จัดการวันที่แบบ Local **********/
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function formatYMDLocal(d){
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+  function parseDateInputLocal(s){
+    if(!s) return null;
+    const [Y,M,D] = s.split('-').map(Number);
+    if(!Y||!M||!D) return null;
+    return new Date(Y, M-1, D);
+  }
+  function getCurrentMonthRange(){
     const now = new Date();
-    const y = now.getFullYear();
-    const m = now.getMonth();
-    return { start: new Date(y, m, 1), end: new Date(y, m + 1, 0) };
+    const y = now.getFullYear(), m = now.getMonth();
+    return { start:new Date(y,m,1), end:new Date(y,m+1,0) };
   }
-  function setDefaultRangeIfEmpty() {
-    const startInput = document.getElementById('rangeStart');
-    const endInput   = document.getElementById('rangeEnd');
-    if (!startInput.value || !endInput.value) {
-      const { start, end } = getCurrentMonthRange();
-      startInput.value = start.toISOString().slice(0,10);
-      endInput.value   = end.toISOString().slice(0,10);
-    }
+
+  function rowToDate(d){
+    const y = parseInt(d.year,10);
+    const m = parseInt(d.month,10);
+    const day = parseInt(d.date,10);
+    if(Number.isNaN(y)||Number.isNaN(m)||Number.isNaN(day)) return null;
+    return new Date(y, m-1, day);
   }
-  function rowToDate(d) {
-    const y = parseInt(d.year, 10);
-    const m = parseInt(d.month, 10);
-    const day = parseInt(d.date, 10);
-    if (Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(day)) return null;
-    return new Date(y, m - 1, day);
-  }
-  function getAllDistinctNames() {
+  function getAllDistinctNames(){
     const extra = new Set();
-    allData.forEach(d => {
-      if (d.name && !names.includes(d.name)) extra.add(d.name);
+    allData.forEach(d=>{
+      if(d.name && !names.includes(d.name)) extra.add(d.name);
     });
     return [...names, ...[...extra].sort()];
   }
-  function parseGvizTextToJson(txt) {
-    // gviz: /*O_o*/\ngoogle.visualization.Query.setResponse(...);
-    return JSON.parse(txt.substring(47).slice(0, -2));
-  }
-  function toISODateOnly(d) {
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString().slice(0,10);
+  function parseGvizTextToJson(txt){
+    return JSON.parse(txt.substring(47).slice(0,-2));
   }
 
   /********** 📥 โหลดข้อมูล **********/
-  async function loadData() {
-    const status = document.getElementById('status');
-    status.className = 'loading';
-    status.textContent = 'กำลังโหลดข้อมูล…';
-    try {
-      const base = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
-      const [namesTxt, dataTxt] = await Promise.all([
-        fetch(`${base}&sheet=${encodeURIComponent(NAMES_SHEET)}`).then(r => r.text()),
-        fetch(`${base}&sheet=${encodeURIComponent(CALENDAR_SHEET)}`).then(r => r.text())
+  async function loadData(){
+    const status=document.getElementById('status');
+    status.className='loading';
+    status.textContent='กำลังโหลดข้อมูล…';
+    try{
+      const base=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+      const [namesTxt,dataTxt]=await Promise.all([
+        fetch(`${base}&sheet=${encodeURIComponent(NAMES_SHEET)}`).then(r=>r.text()),
+        fetch(`${base}&sheet=${encodeURIComponent(CALENDAR_SHEET)}`).then(r=>r.text())
       ]);
+      const namesJson=parseGvizTextToJson(namesTxt);
+      names=namesJson.table.rows
+        .map(r=>r.c[0]?.v)
+        .filter(n=>n && String(n).toLowerCase()!=='summary');
 
-      // Names
-      const namesJson = parseGvizTextToJson(namesTxt);
-      names = namesJson.table.rows
-        .map(r => r.c[0]?.v)
-        .filter(n => n && String(n).toLowerCase() !== 'summary');
-
-      // Calendar
-      const dataJson = parseGvizTextToJson(dataTxt);
-      const cols = dataJson.table.cols.map(c => c.label);
-      allData = dataJson.table.rows.map(r => {
-        const o = {};
-        r.c.forEach((c, i) => o[cols[i]] = c?.v ?? "");
+      const dataJson=parseGvizTextToJson(dataTxt);
+      const cols=dataJson.table.cols.map(c=>c.label);
+      allData=dataJson.table.rows.map(r=>{
+        const o={};
+        r.c.forEach((c,i)=>o[cols[i]]=c?.v??"");
         return o;
       });
 
-      status.textContent = 'โหลดข้อมูลสำเร็จ';
-      setTimeout(() => { status.textContent = ''; }, 600);
+      status.textContent='โหลดข้อมูลสำเร็จ';
+      setTimeout(()=>{status.textContent='';},600);
       return true;
-    } catch (err) {
+    }catch(err){
       console.error(err);
-      status.className = 'error';
-      status.textContent = 'โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า หรือเช็คการตั้งค่าแชร์ของชีต';
+      status.className='error';
+      status.textContent='โหลดข้อมูลไม่สำเร็จ กรุณารีเฟรชหน้า หรือเช็คการตั้งค่าแชร์ของชีต';
       return false;
     }
   }
 
-  /********** 🧮 เรนเดอร์สรุปช่วงวัน **********/
-  function renderRangeSummary() {
-    const box = document.getElementById('summary-range');
-    const status = document.getElementById('status');
-    const startInput = document.getElementById('rangeStart');
-    const endInput   = document.getElementById('rangeEnd');
-    const includeHoliday = document.getElementById('includeHoliday').checked;
-    const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
+  /********** 🧮 สรุป **********/
+  function renderRangeSummary(){
+    const box=document.getElementById('summary-range');
+    const status=document.getElementById('status');
+    const startInput=document.getElementById('rangeStart');
+    const endInput=document.getElementById('rangeEnd');
+    const includeHoliday=document.getElementById('includeHoliday').checked;
+    const sortByTotals=document.getElementById('sortByTotals')?.checked ?? true;
 
-    // ถ้ายังไม่มีข้อมูล ไม่ต้องเรนเดอร์
-    if (!Array.isArray(allData) || allData.length === 0) {
-      box.innerHTML = '';
-      status.textContent = 'ยังไม่มีข้อมูลให้สรุป';
-      return;
+    if(!Array.isArray(allData)||allData.length===0){
+      box.innerHTML=''; status.textContent='ยังไม่มีข้อมูลให้สรุป'; return;
     }
 
-    const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+    const JOB_TYPES=includeHoliday?[...BASE_JOB_TYPES,'Holiday']:[...BASE_JOB_TYPES];
 
-    // อ่านช่วงวันที่จาก input ถ้าว่าง ใช้เดือนปัจจุบัน
-    let startDate = startInput.value ? new Date(startInput.value) : null;
-    let endDate   = endInput.value   ? new Date(endInput.value)   : null;
-    if (!startDate || isNaN(+startDate) || !endDate || isNaN(+endDate)) {
-      const { start, end } = getCurrentMonthRange();
-      startDate = start; endDate = end;
+    let startDate=parseDateInputLocal(startInput.value);
+    let endDate=parseDateInputLocal(endInput.value);
+    if(!startDate||!endDate){
+      const {start,end}=getCurrentMonthRange();
+      startDate=start; endDate=end;
+      if(!startInput.value) startInput.value=formatYMDLocal(startDate);
+      if(!endInput.value)   endInput.value=formatYMDLocal(endDate);
     }
-    // รวมทั้งวันสุดท้าย
-    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    endDate=new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate(),23,59,59,999);
 
-    const nameList = getAllDistinctNames();
-    const tableMap = {};
-    nameList.forEach(n => {
-      tableMap[n] = {};
-      JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+    const nameList=getAllDistinctNames();
+    const tableMap={};
+    nameList.forEach(n=>{
+      tableMap[n]={};
+      JOB_TYPES.forEach(t=>tableMap[n][t]=0);
     });
 
-    // กรองและนับ
-    let matched = 0;
-    allData.forEach(d => {
-      const dt = rowToDate(d);
-      if (!dt) return;
-      if (dt >= startDate && dt <= endDate) {
-        const nm = d.name || '';
-        const tp = d.type || '';
-        if (nm && JOB_TYPES.includes(tp)) {
-          tableMap[nm][tp] += 1;
-          matched++;
+    let matched=0;
+    allData.forEach(d=>{
+      const dt=rowToDate(d);
+      if(!dt) return;
+      if(dt>=startDate && dt<=endDate){
+        const nm=d.name||'', tp=d.type||'';
+        if(nm && JOB_TYPES.includes(tp)){
+          tableMap[nm][tp]+=1; matched++;
         }
       }
     });
+    if(matched===0){ box.innerHTML=''; status.textContent='ไม่พบข้อมูลในช่วงนี้'; return; }
 
-    if (matched === 0) {
-      box.innerHTML = '';
-      status.textContent = 'ไม่พบข้อมูลในช่วงนี้';
-      return;
-    }
-
-    // รวมยอดคอลัมน์
-    const colTotalsRaw = {};
-    JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
-    nameList.forEach(nm => {
-      JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+    const colTotalsRaw={};
+    JOB_TYPES.forEach(t=>colTotalsRaw[t]=0);
+    nameList.forEach(nm=>{
+      JOB_TYPES.forEach(tp=>{ colTotalsRaw[tp]+=(tableMap[nm][tp]||0); });
     });
+    const TYPES_ORDER=sortByTotals
+      ?[...JOB_TYPES].sort((a,b)=>colTotalsRaw[b]-colTotalsRaw[a]||a.localeCompare(b))
+      :[...JOB_TYPES];
 
-    // เรียงคอลัมน์
-    const TYPES_ORDER = sortByTotals
-      ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
-      : [...JOB_TYPES];
+    const colTotals={};
+    TYPES_ORDER.forEach(t=>colTotals[t]=colTotalsRaw[t]);
 
-    const colTotals = {};
-    TYPES_ORDER.forEach(t => colTotals[t] = colTotalsRaw[t]);
-
-    // แถวข้อมูล
-    const rowsHtml = nameList.map(nm => {
-      const tds = TYPES_ORDER.map(tp => `<td>${tableMap[nm][tp] || 0}</td>`);
-      const rowSum = TYPES_ORDER.reduce((s,tp)=> s + (tableMap[nm][tp]||0), 0);
+    const rowsHtml=nameList.map(nm=>{
+      const tds=TYPES_ORDER.map(tp=>`<td>${tableMap[nm][tp]||0}</td>`);
+      const rowSum=TYPES_ORDER.reduce((s,tp)=>s+(tableMap[nm][tp]||0),0);
       return `<tr><td>${nm}</td>${tds.join('')}<td>${rowSum}</td></tr>`;
     }).join('');
 
-    const grandTotal = TYPES_ORDER.reduce((s,tp)=> s + colTotals[tp], 0);
-    const footerHtml = `
+    const grandTotal=TYPES_ORDER.reduce((s,tp)=>s+colTotals[tp],0);
+    const footerHtml=`
       <tr>
         <td>รวมต่อชนิดงาน</td>
-        ${TYPES_ORDER.map(tp => `<td>${colTotals[tp]}</td>`).join('')}
+        ${TYPES_ORDER.map(tp=>`<td>${colTotals[tp]}</td>`).join('')}
         <td>${grandTotal}</td>
-      </tr>
-    `;
+      </tr>`;
 
-    const headStartTxt = startInput.value || toISODateOnly(startDate);
-    const headEndTxt   = endInput.value   || toISODateOnly(endDate);
+    const headStartTxt=startInput.value;
+    const headEndTxt=endInput.value;
 
-    const html = `
+    const html=`
       <div style="font-weight:700; margin:8px 0;">
         ช่วง ${headStartTxt} ถึง ${headEndTxt}
-        ${includeHoliday ? '<span class="badge">รวม Holiday</span>' : ''}
-        ${sortByTotals ? '<span class="badge">จัดเรียงตามยอดรวม</span>' : ''}
+        ${includeHoliday?'<span class="badge">รวม Holiday</span>':''}
+        ${sortByTotals?'<span class="badge">จัดเรียงตามยอดรวม</span>':''}
       </div>
       <table id="summary-range-table">
         <thead>
           <tr>
             <th>ชื่อ</th>
-            ${TYPES_ORDER.map(t => `<th>${t}</th>`).join('')}
+            ${TYPES_ORDER.map(t=>`<th>${t}</th>`).join('')}
             <th>รวม/คน</th>
           </tr>
         </thead>
         <tbody>${rowsHtml}</tbody>
         <tfoot>${footerHtml}</tfoot>
-      </table>
-    `;
-    box.innerHTML = html;
-    status.textContent = '';
+      </table>`;
+    box.innerHTML=html;
+    status.textContent='';
   }
 
-  /********** 📤 CSV **********/
-  function exportRangeSummaryCSV() {
-    const includeHoliday = document.getElementById('includeHoliday').checked;
-    const sortByTotals   = document.getElementById('sortByTotals')?.checked ?? true;
-    const JOB_TYPES = includeHoliday ? [...BASE_JOB_TYPES, 'Holiday'] : [...BASE_JOB_TYPES];
+  /********** 📤 Export CSV **********/
+  function exportRangeSummaryCSV(){
+    const includeHoliday=document.getElementById('includeHoliday').checked;
+    const sortByTotals=document.getElementById('sortByTotals')?.checked ?? true;
+    const JOB_TYPES=includeHoliday?[...BASE_JOB_TYPES,'Holiday']:[...BASE_JOB_TYPES];
 
-    const start = document.getElementById('rangeStart').value;
-    const end   = document.getElementById('rangeEnd').value;
+    const start=document.getElementById('rangeStart').value;
+    const end=document.getElementById('rangeEnd').value;
 
-    let startDate = start ? new Date(start) : null;
-    let endDate   = end   ? new Date(end)   : null;
-    if (!startDate || isNaN(+startDate) || !endDate || isNaN(+endDate)) {
-      const { start: s, end: e } = getCurrentMonthRange();
-      startDate = s; endDate = e;
+    let startDate=parseDateInputLocal(start);
+    let endDate=parseDateInputLocal(end);
+    if(!startDate||!endDate){
+      const {start:s,end:e}=getCurrentMonthRange();
+      startDate=s; endDate=e;
     }
-    endDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 23, 59, 59, 999);
+    endDate=new Date(endDate.getFullYear(),endDate.getMonth(),endDate.getDate(),23,59,59,999);
 
-    const nameList = getAllDistinctNames();
-    const tableMap = {};
-    nameList.forEach(n => {
-      tableMap[n] = {};
-      JOB_TYPES.forEach(t => tableMap[n][t] = 0);
+    const nameList=getAllDistinctNames();
+    const tableMap={};
+    nameList.forEach(n=>{
+      tableMap[n]={};
+      JOB_TYPES.forEach(t=>tableMap[n][t]=0);
     });
 
-    allData.forEach(d => {
-      const dt = rowToDate(d);
-      if (!dt) return;
-      if (dt >= startDate && dt <= endDate) {
-        const nm = d.name || '';
-        const tp = d.type || '';
-        if (nm && JOB_TYPES.includes(tp)) {
-          tableMap[nm][tp] += 1;
-        }
+    allData.forEach(d=>{
+      const dt=rowToDate(d);
+      if(!dt) return;
+      if(dt>=startDate && dt<=endDate){
+        const nm=d.name||'', tp=d.type||'';
+        if(nm && JOB_TYPES.includes(tp)) tableMap[nm][tp]+=1;
       }
     });
 
-    const colTotalsRaw = {};
-    JOB_TYPES.forEach(t => colTotalsRaw[t] = 0);
-    nameList.forEach(nm => {
-      JOB_TYPES.forEach(tp => { colTotalsRaw[tp] += (tableMap[nm][tp] || 0); });
+    const colTotalsRaw={};
+    JOB_TYPES.forEach(t=>colTotalsRaw[t]=0);
+    nameList.forEach(nm=>{
+      JOB_TYPES.forEach(tp=>{ colTotalsRaw[tp]+=(tableMap[nm][tp]||0); });
     });
+    const TYPES_ORDER=sortByTotals
+      ?[...JOB_TYPES].sort((a,b)=>colTotalsRaw[b]-colTotalsRaw[a]||a.localeCompare(b))
+      :[...JOB_TYPES];
 
-    const TYPES_ORDER = sortByTotals
-      ? [...JOB_TYPES].sort((a,b) => colTotalsRaw[b] - colTotalsRaw[a] || a.localeCompare(b))
-      : [...JOB_TYPES];
-
-    const headers = ["Name", ...TYPES_ORDER, "TotalPerPerson"];
-    const rows = [headers.join(",")];
-
-    nameList.forEach(nm => {
-      const counts = TYPES_ORDER.map(tp => tableMap[nm][tp] || 0);
-      const sum = counts.reduce((s,v)=>s+v,0);
-      rows.push([nm, ...counts, sum].join(","));
+    const headers=["Name",...TYPES_ORDER,"TotalPerPerson"];
+    const rows=[headers.join(",")];
+    nameList.forEach(nm=>{
+      const counts=TYPES_ORDER.map(tp=>tableMap[nm][tp]||0);
+      const sum=counts.reduce((s,v)=>s+v,0);
+      rows.push([nm,...counts,sum].join(","));
     });
+    const colTotals=TYPES_ORDER.map(tp=>nameList.reduce((s,nm)=>s+(tableMap[nm][tp]||0),0));
+    const grand=colTotals.reduce((s,v)=>s+v,0);
+    rows.push(["TOTAL_BY_TYPE",...colTotals,grand].join(","));
 
-    const colTotals = TYPES_ORDER.map(tp =>
-      nameList.reduce((s,nm)=> s + (tableMap[nm][tp]||0), 0)
-    );
-    const grand = colTotals.reduce((s,v)=>s+v,0);
-    rows.push(["TOTAL_BY_TYPE", ...colTotals, grand].join(","));
-
-    const BOM = "\uFEFF";
-    const csvContent = BOM + rows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    const startName = (start || 'auto');
-    const endName   = (end || 'auto');
-    a.download = `summary_${startName}_${endName}${includeHoliday ? '_withHoliday':''}${sortByTotals ? '_sorted':''}.csv`;
+    const BOM="\uFEFF";
+    const csvContent=BOM+rows.join("\n");
+    const blob=new Blob([csvContent],{type:"text/csv;charset=utf-8;"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url;
+    const startName=start||formatYMDLocal(startDate);
+    const endName=end||formatYMDLocal(endDate);
+    a.download=`summary_${startName}_${endName}${includeHoliday?'_withHoliday':''}${sortByTotals?'_sorted':''}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 
   /********** 🔗 Bind & Init **********/
-  function bindEvents() {
-    const applyBtn = document.getElementById('applyRange');
-    const exportBtn = document.getElementById('exportRangeCsv');
-    const startInput = document.getElementById('rangeStart');
-    const endInput   = document.getElementById('rangeEnd');
-    const includeHoliday = document.getElementById('includeHoliday');
-
-    applyBtn.onclick = renderRangeSummary;
-    exportBtn.onclick = exportRangeSummaryCSV;
-
-    startInput.onchange = renderRangeSummary;
-    endInput.onchange   = renderRangeSummary;
-    includeHoliday.onchange = renderRangeSummary;
+  function bindEvents(){
+    document.getElementById('applyRange').onclick=renderRangeSummary;
+    document.getElementById('exportRangeCsv').onclick=exportRangeSummaryCSV;
+    document.getElementById('rangeStart').onchange=renderRangeSummary;
+    document.getElementById('rangeEnd').onchange=renderRangeSummary;
+    document.getElementById('includeHoliday').onchange=renderRangeSummary;
   }
 
-  (async function init() {
+  (async function init(){
     bindEvents();
-    const ok = await loadData();     // ✅ รอข้อมูลมาก่อน
-    if (!ok) return;
-    setDefaultRangeIfEmpty();        // ✅ ใส่ช่วงเริ่มต้นเป็นเดือนปัจจุบัน
-    renderRangeSummary();            // ✅ ค่อยเรนเดอร์หลังมีข้อมูลและมีช่วง
+    const ok=await loadData();
+    if(!ok) return;
+    const startInput=document.getElementById('rangeStart');
+    const endInput=document.getElementById('rangeEnd');
+    if(!startInput.value||!endInput.value){
+      const {start,end}=getCurrentMonthRange();
+      startInput.value=formatYMDLocal(start);
+      endInput.value=formatYMDLocal(end);
+    }
+    renderRangeSummary();
   })();
 </script>
+</body>
+</html>
