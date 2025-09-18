@@ -2,20 +2,24 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <title>CS Calendar Log Viewer</title>
+  <title>CS Log Viewer</title>
   <style>
     body { font-family: sans-serif; margin: 20px; }
-    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-    th { background: #1976d2; color: white; }
-    #controls { margin-top: 10px; }
-    button { margin: 5px; padding: 6px 12px; cursor: pointer; }
+    .hidden { display:none; }
+    #toolbar { margin: 8px 0 12px; }
+    button { padding: 6px 12px; margin-right: 6px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; vertical-align: top; }
+    th { background: #1976d2; color: #fff; }
+    .right { float: right; }
   </style>
+
+  <!-- Firebase v9 (module) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
 
-    // ==== Firebase Config (ใช้ config เดียวกับ Calendar) ====
+    // ===== Firebase Config (ปรับให้ตรงของคุณ) =====
     const firebaseConfig = {
       apiKey: "AIzaSyCWTkIN4dKaRI1ZlyHxxhxovhoMGF_8wPc",
       authDomain: "cusdata-51e4f.firebaseapp.com",
@@ -25,107 +29,143 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
 
-    // ==== Guard ====
-    const appRoot = document.getElementById("app");
-    const guardEl = document.getElementById("guard");
+    // ===== DOM =====
+    const guardEl = document.getElementById('guard');
+    const appEl   = document.getElementById('app');
+    const monthLabel = document.getElementById('monthLabel');
+    const tbody   = document.querySelector('#logTable tbody');
+
     function showGuard(msg){
-      guardEl.style.display="block";
       guardEl.innerHTML = msg + ' <a href="index.html">ไปหน้า Login</a>';
-      appRoot.style.display="none";
+      guardEl.classList.remove('hidden');
+      appEl.classList.add('hidden');
     }
     function showApp(){
-      guardEl.style.display="none";
-      appRoot.style.display="block";
+      guardEl.classList.add('hidden');
+      appEl.classList.remove('hidden');
     }
 
-    // ==== Auth Check ====
-    onAuthStateChanged(auth, user=>{
-      if(!user){ showGuard("ยังไม่ได้ล็อกอิน"); return; }
+    // ===== Sheet Config =====
+    const SHEET_ID   = "1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8"; // เปลี่ยนเป็นของคุณ
+    const SHEET_NAME = "log"; // ชื่อแท็บ
+    // ใช้ gviz API
+    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
+
+    // เดือนที่กำลังดู (default = เดือนนี้)
+    let current = new Date();
+
+    // ===== Auth Gate =====
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { showGuard("ยังไม่ได้ล็อกอิน"); return; }
       showApp();
-      loadLog();
+      await loadAndRender();
     });
 
-    // ==== Google Sheet Config ====
-    const SHEET_ID = "1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8";  // <== แก้เป็น sheet ของคุณ
-    const SHEET_NAME = "Log";  // ชื่อแท็บ
-    let currentDate = new Date(); // เริ่มที่เดือนปัจจุบัน
+    // ===== Helper: แปลง "18/9/2025, 14:43:49" => Date =====
+    function parseDMY(dateStr) {
+      if (!dateStr) return null;
+      const [dpart, tpartRaw] = dateStr.split(',');
+      if (!dpart) return null;
 
-    // ==== โหลดข้อมูลจาก Google Sheet ====
-    async function loadLog(){
-      const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${SHEET_NAME}`;
-      const res = await fetch(url);
-      const text = await res.text();
-      const json = JSON.parse(text.substr(47).slice(0,-2));
-
-      const rows = json.table.rows.map(r => ({
-        date: r.c[0]?.v || "",
-        detail: r.c[1]?.v || ""
-      }));
-
-      renderLog(rows);
+      const [dd, mm, yyyy] = dpart.trim().split('/').map(v => parseInt(v,10));
+      let hh = 0, mi = 0, ss = 0;
+      if (tpartRaw) {
+        const tpart = tpartRaw.trim();
+        const ts = tpart.split(':').map(v => parseInt(v,10));
+        hh = ts[0] || 0; mi = ts[1] || 0; ss = ts[2] || 0;
+      }
+      if (!yyyy || !mm || !dd) return null;
+      return new Date(yyyy, mm - 1, dd, hh, mi, ss);
     }
 
-    // ==== กรองเฉพาะเดือนที่เลือก และแสดงตาราง ====
-    function renderLog(rows){
-      const table = document.getElementById("logTable");
-      const tbody = table.querySelector("tbody");
-      tbody.innerHTML="";
+    // ===== โหลด & แสดง =====
+    async function loadAndRender() {
+      tbody.innerHTML = `<tr><td colspan="2">Loading...</td></tr>`;
+      let text;
+      try {
+        const res = await fetch(GVIZ_URL, { cache: "no-store" });
+        text = await res.text();
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="2" style="color:#b00">โหลดข้อมูลไม่ได้: ${e}</td></tr>`;
+        return;
+      }
 
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth()+1; // 1-12
+      // gviz response มี prefix "/*O_o*/google.visualization.Query.setResponse(...);"
+      let json;
+      try {
+        json = JSON.parse(text.substring(47).slice(0, -2));
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="2" style="color:#b00">แปลงข้อมูลไม่ได้ (ตรวจสิทธิ์การแชร์/Publish): ${e}</td></tr>`;
+        return;
+      }
 
-      document.getElementById("currentMonth").textContent = `${year}-${String(month).padStart(2,"0")}`;
+      const rows = (json.table.rows || []).map(r => ({
+        dateRaw:   r.c[0]?.v ?? "",
+        detailRaw: r.c[1]?.v ?? ""
+      }));
 
-      const filtered = rows.filter(r=>{
-        if(!r.date) return false;
-        const d = new Date(r.date);
-        return d.getFullYear()===year && (d.getMonth()+1)===month;
+      renderRows(rows);
+    }
+
+    function renderRows(rows) {
+      const year  = current.getFullYear();
+      const month = current.getMonth() + 1; // 1..12
+      monthLabel.textContent = `${year}-${String(month).padStart(2, '0')}`;
+
+      // กรองเฉพาะแถวเดือนนั้น
+      const filtered = rows.filter(r => {
+        const d = parseDMY(r.dateRaw);
+        return d && d.getFullYear() === year && (d.getMonth()+1) === month;
       });
 
-      filtered.forEach(r=>{
-        const tr = document.createElement("tr");
-        const td1 = document.createElement("td");
-        const td2 = document.createElement("td");
-        td1.textContent = r.date;
-        td2.textContent = r.detail;
+      tbody.innerHTML = "";
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="2" style="color:#555">ไม่พบข้อมูลในเดือนนี้</td></tr>`;
+        return;
+      }
+
+      // เรียงวันที่ล่าสุดก่อน (ถ้าต้องการ)
+      filtered.sort((a, b) => parseDMY(b.dateRaw) - parseDMY(a.dateRaw));
+
+      for (const r of filtered) {
+        const tr  = document.createElement('tr');
+        const td1 = document.createElement('td');
+        const td2 = document.createElement('td');
+
+        td1.textContent = r.dateRaw;
+        td2.textContent = r.detailRaw;
+
         tr.appendChild(td1);
         tr.appendChild(td2);
         tbody.appendChild(tr);
-      });
+      }
     }
 
-    // ==== ปุ่มเลื่อนเดือน ====
-    window.prevMonth = function(){
-      currentDate.setMonth(currentDate.getMonth()-1);
-      loadLog();
-    }
-    window.nextMonth = function(){
-      currentDate.setMonth(currentDate.getMonth()+1);
-      loadLog();
-    }
-    window.thisMonth = function(){
-      currentDate = new Date();
-      loadLog();
-    }
-    window.logout = async function(){
-      await signOut(auth);
-    }
+    // ===== ปุ่มเปลี่ยนเดือน =====
+    window.prevMonth = () => { current.setMonth(current.getMonth() - 1); loadAndRender(); };
+    window.nextMonth = () => { current.setMonth(current.getMonth() + 1); loadAndRender(); };
+    window.thisMonth = () => { current = new Date(); loadAndRender(); };
+    window.logout    = async () => { await signOut(auth); };
   </script>
 </head>
 <body>
-  <div id="guard" style="display:none;color:red;font-weight:bold"></div>
-  <div id="app" style="display:none">
-    <h2>📑 Log Viewer</h2>
-    <div id="controls">
+  <!-- guard -->
+  <div id="guard" class="hidden" style="color:#b00; font-weight:700"></div>
+
+  <!-- app -->
+  <div id="app" class="hidden">
+    <h2>📑 CS Log Viewer</h2>
+    <div id="toolbar">
       <button onclick="prevMonth()">« เดือนก่อนหน้า</button>
       <button onclick="thisMonth()">This Month</button>
       <button onclick="nextMonth()">เดือนถัดไป »</button>
-      <button onclick="logout()" style="float:right">🚪 Logout</button>
+      <button class="right" onclick="logout()">🚪 Logout</button>
     </div>
-    <h3>เดือนที่แสดง: <span id="currentMonth"></span></h3>
+
+    <h3>เดือนที่แสดง: <span id="monthLabel"></span></h3>
     <table id="logTable">
       <thead>
-        <tr><th>DateTime</th><th>Detail</th></tr>
+        <tr><th style="width:220px">DateTime</th><th>Detail</th></tr>
       </thead>
       <tbody></tbody>
     </table>
