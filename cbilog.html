@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>CS Log Viewer</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; }
+    .hidden { display:none; }
+    #toolbar { margin: 8px 0 12px; }
+    button { padding: 6px 12px; margin-right: 6px; cursor: pointer; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: left; vertical-align: top; }
+    th { background: #1976d2; color: #fff; }
+    .right { float: right; }
+  </style>
+
+  <script type="module">
+    // ===== Firebase SDK =====
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    // ===== Firebase Config (ของคุณ) =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyCWTkIN4dKaRI1ZlyHxxhxovhoMGF_8wPc",
+      authDomain: "cusdata-51e4f.firebaseapp.com",
+      databaseURL: "https://cusdata-51e4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cusdata-51e4f"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db   = getDatabase(app);
+
+    // ===== Sheet Config =====
+    const SHEET_ID   = "1Yv7-SwI9Iuv9QcEaqFVCEejEe3_8Ja77NNwrM61x-oA"; // <- แก้เป็นของคุณ
+    const SHEET_NAME = "Log";
+    // ดึงข้อมูลสองคอลัมน์ A,B เป็น CSV (เสถียรกว่า out:json)
+    const CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&tq=${encodeURIComponent("select A,B")}`;
+
+    // ===== DOM =====
+    const guardEl     = document.getElementById('guard');
+    const appEl       = document.getElementById('app');
+    const monthLabel  = document.getElementById('monthLabel');
+    const tbody       = document.querySelector('#logTable tbody');
+
+    function showGuard(msg){
+      guardEl.innerHTML = msg + ' <a href="index.html">ไปหน้า Login</a>';
+      guardEl.classList.remove('hidden');
+      appEl.classList.add('hidden');
+    }
+    function showApp(){
+      guardEl.classList.add('hidden');
+      appEl.classList.remove('hidden');
+    }
+
+    // ===== อ่าน role จาก RTDB =====
+    async function getUserRole(uid) {
+      try {
+        const snap = await get(ref(db, `users/${uid}/role`));
+        return snap.exists() ? snap.val() : null;
+      } catch {
+        return null;
+      }
+    }
+
+    // ===== Auth Gate =====
+    let current = new Date(); // เดือนที่กำลังดู
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) { showGuard("ยังไม่ได้ล็อกอิน"); return; }
+
+      const role = await getUserRole(user.uid);
+      if (role !== 'admin') {
+        showGuard(`บัญชีนี้ไม่มีสิทธิ์เข้าถึง (role: ${role || 'none'})`);
+        try { await signOut(auth); } catch {}
+        return;
+      }
+
+      showApp();
+      await loadAndRender();
+    });
+
+    // ===== CSV Parser (รองรับเครื่องหมายจุลภาคและเครื่องหมายคำพูด) =====
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cur = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i+1] === '"') { cur += '"'; i++; } // escape ""
+            else { inQuotes = false; }
+          } else {
+            cur += ch;
+          }
+        } else {
+          if (ch === '"') inQuotes = true;
+          else if (ch === ',') { row.push(cur); cur=''; }
+          else if (ch === '\n') { row.push(cur); rows.push(row); row=[]; cur=''; }
+          else if (ch === '\r') { /* ignore */ }
+          else { cur += ch; }
+        }
+      }
+      if (cur.length || row.length) { row.push(cur); rows.push(row); }
+      return rows;
+    }
+
+    // ===== parse วันที่ในรูปแบบ d/m/yyyy, HH:MM:SS =====
+    function parseDMY(str) {
+      if (!str) return null;
+      // รองรับรูปแบบที่มีหรือไม่มีเวลา
+      const [dpart, tpartRaw] = str.split(',');
+      if (!dpart) return null;
+      const [dd, mm, yyyy] = dpart.trim().split('/').map(x => parseInt(x,10));
+      let hh=0, mi=0, ss=0;
+      if (tpartRaw) {
+        const t = tpartRaw.trim().split(':').map(x=>parseInt(x,10));
+        hh=t[0]||0; mi=t[1]||0; ss=t[2]||0;
+      }
+      if (!yyyy || !mm || !dd) return null;
+      return new Date(yyyy, mm-1, dd, hh, mi, ss);
+    }
+
+    async function loadAndRender() {
+      tbody.innerHTML = `<tr><td colspan="2">Loading...</td></tr>`;
+      let csvText = '';
+      try {
+        const res = await fetch(CSV_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        csvText = await res.text();
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="2">โหลดข้อมูลไม่ได้: ${e.message}</td></tr>`;
+        return;
+      }
+
+      const rows = parseCSV(csvText);
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="2">ไม่พบข้อมูล</td></tr>`;
+        return;
+      }
+
+      // ตัด header: A1= "date", B1= "detail"
+      const dataRows = rows.slice(1).map(r => ({
+        dateRaw: r[0] || '',
+        detailRaw: r[1] || ''
+      }));
+
+      renderRows(dataRows);
+    }
+
+    function renderRows(rows) {
+      const year  = current.getFullYear();
+      const month = current.getMonth()+1;
+      monthLabel.textContent = `${year}-${String(month).padStart(2,'0')}`;
+
+      const filtered = rows.filter(r => {
+        const d = parseDMY(r.dateRaw);
+        return d && d.getFullYear() === year && (d.getMonth()+1) === month;
+      });
+
+      tbody.innerHTML = '';
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="2">ไม่พบข้อมูลในเดือนนี้</td></tr>`;
+        return;
+      }
+
+      // เรียงจากล่าสุดไปเก่าสุด
+      filtered.sort((a,b) => parseDMY(b.dateRaw) - parseDMY(a.dateRaw));
+
+      filtered.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="white-space:nowrap">${r.dateRaw}</td><td>${r.detailRaw}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ===== ปุ่มเปลี่ยนเดือน =====
+    window.prevMonth = () => { current.setMonth(current.getMonth() - 1); loadAndRender(); }
+    window.nextMonth = () => { current.setMonth(current.getMonth() + 1); loadAndRender(); }
+    window.thisMonth = () => { current = new Date(); loadAndRender(); }
+    window.logout    = async () => { await signOut(auth); }
+  </script>
+</head>
+<body>
+  <div id="guard" class="hidden" style="color:#b00;font-weight:700"></div>
+
+  <div id="app" class="hidden">
+    <h2>📑 CS Log Viewer</h2>
+    <div id="toolbar">
+      <button onclick="prevMonth()">« เดือนก่อนหน้า</button>
+      <button onclick="thisMonth()">This Month</button>
+      <button onclick="nextMonth()">เดือนถัดไป »</button>
+      <button class="right" onclick="logout()">🚪 Logout</button>
+    </div>
+
+    <h3>เดือนที่แสดง: <span id="monthLabel"></span></h3>
+
+    <table id="logTable">
+      <thead>
+        <tr><th style="width:220px">DateTime</th><th>Detail</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</body>
+</html>
