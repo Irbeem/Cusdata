@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>CS Log Viewer</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
+    body { font-family: system-ui, sans-serif; margin: 20px; }
     .hidden { display:none; }
     #toolbar { margin: 8px 0 12px; }
     button { padding: 6px 12px; margin-right: 6px; cursor: pointer; }
@@ -14,12 +14,13 @@
     .right { float: right; }
   </style>
 
-  <!-- Firebase v9 (module) -->
   <script type="module">
+    // ===== Firebase SDK =====
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-    // ===== Firebase Config (ปรับให้ตรงของคุณ) =====
+    // ===== Firebase Config (ของคุณ) =====
     const firebaseConfig = {
       apiKey: "AIzaSyCWTkIN4dKaRI1ZlyHxxhxovhoMGF_8wPc",
       authDomain: "cusdata-51e4f.firebaseapp.com",
@@ -28,12 +29,19 @@
     };
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
+    const db   = getDatabase(app);
+
+    // ===== Sheet Config =====
+    const SHEET_ID   = "1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8"; // <- แก้เป็นของคุณ
+    const SHEET_NAME = "Log";
+    // ดึงข้อมูลสองคอลัมน์ A,B เป็น CSV (เสถียรกว่า out:json)
+    const CSV_URL    = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(SHEET_NAME)}&tq=${encodeURIComponent("select A,B")}`;
 
     // ===== DOM =====
-    const guardEl = document.getElementById('guard');
-    const appEl   = document.getElementById('app');
-    const monthLabel = document.getElementById('monthLabel');
-    const tbody   = document.querySelector('#logTable tbody');
+    const guardEl     = document.getElementById('guard');
+    const appEl       = document.getElementById('app');
+    const monthLabel  = document.getElementById('monthLabel');
+    const tbody       = document.querySelector('#logTable tbody');
 
     function showGuard(msg){
       guardEl.innerHTML = msg + ' <a href="index.html">ไปหน้า Login</a>';
@@ -45,124 +53,139 @@
       appEl.classList.remove('hidden');
     }
 
-    // ===== Sheet Config =====
-    const SHEET_ID   = "1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8"; // เปลี่ยนเป็นของคุณ
-    const SHEET_NAME = "Log"; // ชื่อแท็บ
-    // ใช้ gviz API
-    const GVIZ_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(SHEET_NAME)}`;
-
-    // เดือนที่กำลังดู (default = เดือนนี้)
-    let current = new Date();
+    // ===== อ่าน role จาก RTDB =====
+    async function getUserRole(uid) {
+      try {
+        const snap = await get(ref(db, `users/${uid}/role`));
+        return snap.exists() ? snap.val() : null;
+      } catch {
+        return null;
+      }
+    }
 
     // ===== Auth Gate =====
+    let current = new Date(); // เดือนที่กำลังดู
     onAuthStateChanged(auth, async (user) => {
       if (!user) { showGuard("ยังไม่ได้ล็อกอิน"); return; }
+
+      const role = await getUserRole(user.uid);
+      if (role !== 'admin') {
+        showGuard(`บัญชีนี้ไม่มีสิทธิ์เข้าถึง (role: ${role || 'none'})`);
+        try { await signOut(auth); } catch {}
+        return;
+      }
+
       showApp();
       await loadAndRender();
     });
 
-    // ===== Helper: แปลง "18/9/2025, 14:43:49" => Date =====
-    function parseDMY(value) {
-  if (!value) return null;
+    // ===== CSV Parser (รองรับเครื่องหมายจุลภาคและเครื่องหมายคำพูด) =====
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let cur = '';
+      let inQuotes = false;
 
-  // ถ้าเป็น object date จาก gviz
-  if (typeof value === "object" && value instanceof Date) {
-    return value;
-  }
-
-  // ถ้าเป็น string เช่น "18/9/2025, 14:43:49"
-  if (typeof value === "string") {
-    const [dpart, tpartRaw] = value.split(",");
-    if (!dpart) return null;
-    const [dd, mm, yyyy] = dpart.trim().split("/").map(v => parseInt(v, 10));
-    let hh = 0, mi = 0, ss = 0;
-    if (tpartRaw) {
-      const ts = tpartRaw.trim().split(":").map(v => parseInt(v, 10));
-      hh = ts[0] || 0;
-      mi = ts[1] || 0;
-      ss = ts[2] || 0;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        if (inQuotes) {
+          if (ch === '"') {
+            if (text[i+1] === '"') { cur += '"'; i++; } // escape ""
+            else { inQuotes = false; }
+          } else {
+            cur += ch;
+          }
+        } else {
+          if (ch === '"') inQuotes = true;
+          else if (ch === ',') { row.push(cur); cur=''; }
+          else if (ch === '\n') { row.push(cur); rows.push(row); row=[]; cur=''; }
+          else if (ch === '\r') { /* ignore */ }
+          else { cur += ch; }
+        }
+      }
+      if (cur.length || row.length) { row.push(cur); rows.push(row); }
+      return rows;
     }
-    return new Date(yyyy, mm - 1, dd, hh, mi, ss);
-  }
 
-  return null;
-}
+    // ===== parse วันที่ในรูปแบบ d/m/yyyy, HH:MM:SS =====
+    function parseDMY(str) {
+      if (!str) return null;
+      // รองรับรูปแบบที่มีหรือไม่มีเวลา
+      const [dpart, tpartRaw] = str.split(',');
+      if (!dpart) return null;
+      const [dd, mm, yyyy] = dpart.trim().split('/').map(x => parseInt(x,10));
+      let hh=0, mi=0, ss=0;
+      if (tpartRaw) {
+        const t = tpartRaw.trim().split(':').map(x=>parseInt(x,10));
+        hh=t[0]||0; mi=t[1]||0; ss=t[2]||0;
+      }
+      if (!yyyy || !mm || !dd) return null;
+      return new Date(yyyy, mm-1, dd, hh, mi, ss);
+    }
 
-    // ===== โหลด & แสดง =====
     async function loadAndRender() {
       tbody.innerHTML = `<tr><td colspan="2">Loading...</td></tr>`;
-      let text;
+      let csvText = '';
       try {
-        const res = await fetch(GVIZ_URL, { cache: "no-store" });
-        text = await res.text();
+        const res = await fetch(CSV_URL, { cache: "no-store" });
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        csvText = await res.text();
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="2" style="color:#b00">โหลดข้อมูลไม่ได้: ${e}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="2">โหลดข้อมูลไม่ได้: ${e.message}</td></tr>`;
         return;
       }
 
-      // gviz response มี prefix "/*O_o*/google.visualization.Query.setResponse(...);"
-      let json;
-      try {
-        json = JSON.parse(text.substring(47).slice(0, -2));
-      } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="2" style="color:#b00">แปลงข้อมูลไม่ได้ (ตรวจสิทธิ์การแชร์/Publish): ${e}</td></tr>`;
+      const rows = parseCSV(csvText);
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="2">ไม่พบข้อมูล</td></tr>`;
         return;
       }
 
-      const rows = (json.table.rows || []).map(r => ({
-        dateRaw:   r.c[0]?.v ?? "",
-        detailRaw: r.c[1]?.v ?? ""
+      // ตัด header: A1= "date", B1= "detail"
+      const dataRows = rows.slice(1).map(r => ({
+        dateRaw: r[0] || '',
+        detailRaw: r[1] || ''
       }));
 
-      renderRows(rows);
+      renderRows(dataRows);
     }
 
     function renderRows(rows) {
       const year  = current.getFullYear();
-      const month = current.getMonth() + 1; // 1..12
-      monthLabel.textContent = `${year}-${String(month).padStart(2, '0')}`;
+      const month = current.getMonth()+1;
+      monthLabel.textContent = `${year}-${String(month).padStart(2,'0')}`;
 
-      // กรองเฉพาะแถวเดือนนั้น
       const filtered = rows.filter(r => {
         const d = parseDMY(r.dateRaw);
         return d && d.getFullYear() === year && (d.getMonth()+1) === month;
       });
 
-      tbody.innerHTML = "";
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="2" style="color:#555">ไม่พบข้อมูลในเดือนนี้</td></tr>`;
+      tbody.innerHTML = '';
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="2">ไม่พบข้อมูลในเดือนนี้</td></tr>`;
         return;
       }
 
-      // เรียงวันที่ล่าสุดก่อน (ถ้าต้องการ)
-      filtered.sort((a, b) => parseDMY(b.dateRaw) - parseDMY(a.dateRaw));
+      // เรียงจากล่าสุดไปเก่าสุด
+      filtered.sort((a,b) => parseDMY(b.dateRaw) - parseDMY(a.dateRaw));
 
-      for (const r of filtered) {
-        const tr  = document.createElement('tr');
-        const td1 = document.createElement('td');
-        const td2 = document.createElement('td');
-
-        td1.textContent = r.dateRaw;
-        td2.textContent = r.detailRaw;
-
-        tr.appendChild(td1);
-        tr.appendChild(td2);
+      filtered.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="white-space:nowrap">${r.dateRaw}</td><td>${r.detailRaw}</td>`;
         tbody.appendChild(tr);
-      }
+      });
     }
 
     // ===== ปุ่มเปลี่ยนเดือน =====
-    window.prevMonth = () => { current.setMonth(current.getMonth() - 1); loadAndRender(); };
-    window.nextMonth = () => { current.setMonth(current.getMonth() + 1); loadAndRender(); };
-    window.thisMonth = () => { current = new Date(); loadAndRender(); };
-    window.logout    = async () => { await signOut(auth); };
+    window.prevMonth = () => { current.setMonth(current.getMonth() - 1); loadAndRender(); }
+    window.nextMonth = () => { current.setMonth(current.getMonth() + 1); loadAndRender(); }
+    window.thisMonth = () => { current = new Date(); loadAndRender(); }
+    window.logout    = async () => { await signOut(auth); }
   </script>
 </head>
 <body>
-  <!-- guard -->
-  <div id="guard" class="hidden" style="color:#b00; font-weight:700"></div>
+  <div id="guard" class="hidden" style="color:#b00;font-weight:700"></div>
 
-  <!-- app -->
   <div id="app" class="hidden">
     <h2>📑 CS Log Viewer</h2>
     <div id="toolbar">
@@ -173,6 +196,7 @@
     </div>
 
     <h3>เดือนที่แสดง: <span id="monthLabel"></span></h3>
+
     <table id="logTable">
       <thead>
         <tr><th style="width:220px">DateTime</th><th>Detail</th></tr>
