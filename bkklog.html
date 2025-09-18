@@ -62,21 +62,31 @@
     });
 
     // ===== Helper: แปลง "18/9/2025, 14:43:49" => Date =====
-    function parseDMY(dateStr) {
-      if (!dateStr) return null;
-      const [dpart, tpartRaw] = dateStr.split(',');
-      if (!dpart) return null;
+    function parseDMY(value) {
+  if (!value) return null;
 
-      const [dd, mm, yyyy] = dpart.trim().split('/').map(v => parseInt(v,10));
-      let hh = 0, mi = 0, ss = 0;
-      if (tpartRaw) {
-        const tpart = tpartRaw.trim();
-        const ts = tpart.split(':').map(v => parseInt(v,10));
-        hh = ts[0] || 0; mi = ts[1] || 0; ss = ts[2] || 0;
-      }
-      if (!yyyy || !mm || !dd) return null;
-      return new Date(yyyy, mm - 1, dd, hh, mi, ss);
+  // ถ้าเป็น object date จาก gviz
+  if (typeof value === "object" && value instanceof Date) {
+    return value;
+  }
+
+  // ถ้าเป็น string เช่น "18/9/2025, 14:43:49"
+  if (typeof value === "string") {
+    const [dpart, tpartRaw] = value.split(",");
+    if (!dpart) return null;
+    const [dd, mm, yyyy] = dpart.trim().split("/").map(v => parseInt(v, 10));
+    let hh = 0, mi = 0, ss = 0;
+    if (tpartRaw) {
+      const ts = tpartRaw.trim().split(":").map(v => parseInt(v, 10));
+      hh = ts[0] || 0;
+      mi = ts[1] || 0;
+      ss = ts[2] || 0;
     }
+    return new Date(yyyy, mm - 1, dd, hh, mi, ss);
+  }
+
+  return null;
+}
 
     // ===== โหลด & แสดง =====
     async function loadAndRender() {
