@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>CS Calendar — Multiple Delete</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; padding: 16px; line-height: 1.5; }
+    h1 { margin: 0 0 12px; }
+    .gate { padding: 10px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; margin-bottom: 12px; }
+    .ok { color: #0a7; font-weight: 600; }
+    .warn { color: #c00; font-weight: 600; }
+
+    form { max-width: 900px; }
+    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; margin-top: 10px; }
+    .col-6 { grid-column: span 6; }
+    .col-4 { grid-column: span 4; }
+    .col-3 { grid-column: span 3; }
+    .col-12 { grid-column: span 12; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; }
+    input, select, button { width: 100%; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 8px; }
+    select[multiple] { height: 300px; overflow-y: auto; scroll-behavior: smooth; }
+    .hint { font-size: 12px; color: #666; margin-top: 4px; }
+    .btn { cursor: pointer; border: none; border-radius: 10px; padding: 12px 16px; font-weight: 600; }
+    .btn-primary { background: #d32f2f; color: #fff; }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-light { background: #eee; }
+    .toolbar { display: flex; gap: 8px; align-items:center; margin: 12px 0; }
+    .result { margin-top: 12px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+    .flex { display: flex; gap: 8px; align-items: center; }
+    .checkbox { width: auto; }
+  </style>
+
+  <script type="module">
+    /***** Firebase imports *****/
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    /***** Config (แก้ได้ตามต้องการ) *****/
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyCWTkIN4dKaRI1ZlyHxxhxovhoMGF_8wPc",
+      authDomain: "cusdata-51e4f.firebaseapp.com",
+      databaseURL: "https://cusdata-51e4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "cusdata-51e4f"
+    };
+
+    // หน้า login (ถ้าไม่ล็อกอินให้เด้งไป)
+    const LOGIN_PAGE_URL = "./index.html";
+
+    // Endpoint เดิม (เหมือนที่หน้า calendar ใช้)
+    const GOOGLE_SHEET_NAMES_URL = "https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec";
+    const SUBMIT_URL             = "https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec";
+
+    // บังคับ role
+    const REQUIRE_ROLE  = true;
+    const ALLOWED_ROLES = ["admin"]; // <— ลบ/เปลี่ยนได้ตามต้องการ
+
+    /***** Firebase init *****/
+    const app  = initializeApp(FIREBASE_CONFIG);
+    const auth = getAuth(app);
+    const db   = getDatabase(app);
+
+    /***** DOM *****/
+    const gateBox   = document.getElementById("gate");
+    const whoBox    = document.getElementById("who");
+    const formEl    = document.getElementById("delForm");
+    const namesSel  = document.getElementById("nameDropdown");
+    const datesSel  = document.getElementById("dateSelect");
+    const typeSel   = document.getElementById("typeSelect");
+    const yearInp   = document.getElementById("yearInput");
+    const monthInp  = document.getElementById("monthInput");
+    const ignoreTypeChk = document.getElementById("ignoreType");
+    const resultEl  = document.getElementById("result");
+
+    const actorNameHidden = document.getElementById("actorName");
+
+    // preset ปี/เดือนปัจจุบัน
+    (function presetYM(){
+      const now = new Date();
+      yearInp.value  = now.getFullYear();
+      monthInp.value = now.getMonth() + 1;
+    })();
+
+    // โหลดรายชื่อจาก Sheet
+    async function loadNames(){
+      const res   = await fetch(GOOGLE_SHEET_NAMES_URL);
+      const names = await res.json();
+      namesSel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join("");
+    }
+
+    // อ่าน role + name จาก RTDB
+    async function getUserProfile(uid){
+      try {
+        const snap = await get(ref(db, `users/${uid}`));
+        return snap.exists() ? snap.val() : { name: null, role: null };
+      } catch (e) {
+        console.error("getUserProfile error:", e);
+        return { name: null, role: null };
+      }
+    }
+
+    // Auth gate
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        gateBox.innerHTML = `<span class="warn">ยังไม่ล็อกอิน</span> → กำลังนำทางไปหน้า Login...`;
+        const back = encodeURIComponent(location.href);
+        location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+        return;
+      }
+
+      // โปรไฟล์
+      const profile = await getUserProfile(user.uid);
+      whoBox.textContent = `คุณ: ${profile?.name || user.email || "Unknown"} (${profile?.role || "no-role"})`;
+      actorNameHidden.value = profile?.name || user.email || "";
+
+      // บังคับ role
+      if (REQUIRE_ROLE) {
+        const role = profile?.role || null;
+        if (!role) {
+          alert("บัญชีนี้ยังไม่มี role");
+          await signOut(auth);
+          const back = encodeURIComponent(location.href);
+          location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+          return;
+        }
+        if (ALLOWED_ROLES.length && !ALLOWED_ROLES.includes(role)) {
+          alert(`สิทธิ์ไม่เพียงพอ (role = ${role})`);
+          await signOut(auth);
+          const back = encodeURIComponent(location.href);
+          location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+          return;
+        }
+      }
+
+      // ผ่านแล้ว → โหลดรายชื่อ
+      try {
+        await loadNames();
+        gateBox.innerHTML = `<span class="ok">ผ่านการยืนยันสิทธิ์แล้ว</span>`;
+      } catch (e) {
+        console.error(e);
+        gateBox.innerHTML = `<span class="warn">โหลดรายชื่อไม่สำเร็จ</span>`;
+      }
+    });
+
+    // ลบหลายรายการ
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = formEl.querySelector("button[type=submit]");
+      btn.disabled = true;
+
+      const names  = Array.from(namesSel.selectedOptions).map(o => o.value);
+      const dates  = Array.from(datesSel.selectedOptions).map(o => o.value);
+      const year   = yearInp.value.trim();
+      const month  = monthInp.value.trim();
+      let   type   = typeSel.value;
+
+      if (ignoreTypeChk.checked) {
+        // ส่ง type ว่าง เพื่อให้ GAS branch ที่ลบแบบไม่ระบุชนิดไปทำงาน (โค้ดคุณมี loop ที่เช็คแบบไม่ใช้ type)
+        type = "";
+      }
+
+      if (!actorNameHidden.value) {
+        alert("ไม่พบ actorName จาก Firebase");
+        btn.disabled = false;
+        return;
+      }
+      if (!names.length)  { alert("กรุณาเลือกชื่ออย่างน้อย 1 รายชื่อ"); btn.disabled=false; return; }
+      if (!dates.length)  { alert("กรุณาเลือกวันที่อย่างน้อย 1 วัน"); btn.disabled=false; return; }
+      if (!year || !month){ alert("กรุณาใส่ปีและเดือน"); btn.disabled=false; return; }
+
+      let ok = 0, fail = 0, total = 0;
+      resultEl.textContent = "⏳ กำลังลบ...";
+
+      for (const n of names) {
+        for (const d of dates) {
+          const fd = new FormData();
+          fd.set("action", "delete");
+          fd.set("year", year);
+          fd.set("month", month);
+          fd.set("date", d);
+          fd.set("name", n);
+          fd.set("type", type);               // อาจเป็นค่าว่างถ้า check 'ignore type'
+          fd.set("actorName", actorNameHidden.value); // ส่งไป log
+
+          try {
+            const r = await fetch(SUBMIT_URL, { method: "POST", body: fd });
+            if (r.ok) ok++; else fail++;
+          } catch (err) {
+            console.error(err);
+            fail++;
+          }
+          total++;
+        }
+      }
+
+      resultEl.textContent = `✅ ลบสำเร็จ: ${ok}  ❌ ล้มเหลว: ${fail}  (รวม ${total})`;
+      btn.disabled = false;
+    });
+
+    // ปุ่มเครื่องมือ
+    document.getElementById("thisMonth").addEventListener("click", () => {
+      const now = new Date();
+      yearInp.value  = now.getFullYear();
+      monthInp.value = now.getMonth() + 1;
+    });
+    document.getElementById("prevMonth").addEventListener("click", () => {
+      let y = +yearInp.value, m = +monthInp.value;
+      m--; if (m < 1) { m = 12; y--; }
+      yearInp.value = y; monthInp.value = m;
+    });
+    document.getElementById("nextMonth").addEventListener("click", () => {
+      let y = +yearInp.value, m = +monthInp.value;
+      m++; if (m > 12) { m = 1; y++; }
+      yearInp.value = y; monthInp.value = m;
+    });
+
+    // logout link
+    document.getElementById("logout").addEventListener("click", async () => {
+      try { await signOut(auth); } catch {}
+      const back = encodeURIComponent(location.href);
+      location.replace(`${LOGIN_PAGE_URL}?back=${back}`);
+    });
+  </script>
+</head>
+<body>
+  <h1>🗑️ CS Calendar — Multiple Delete</h1>
+
+  <div class="gate" id="gate">กำลังตรวจสอบสิทธิ์…</div>
+  <div class="gate"><span id="who">คุณ: -</span> • <button id="logout" class="btn btn-light" style="width:auto">Logout</button></div>
+
+  <form id="delForm">
+    <div class="toolbar">
+      <button type="button" class="btn btn-light" id="prevMonth">⟵ Prev</button>
+      <button type="button" class="btn btn-light" id="thisMonth">This Month</button>
+      <button type="button" class="btn btn-light" id="nextMonth">Next ⟶</button>
+    </div>
+
+    <div class="row">
+      <div class="col-3">
+        <label>Year</label>
+        <input id="yearInput" type="number" required />
+      </div>
+      <div class="col-3">
+        <label>Month</label>
+        <input id="monthInput" type="number" min="1" max="12" required />
+      </div>
+      <div class="col-6">
+        <label>Type (ต้องตรงกับที่บันทึก)</label>
+        <select id="typeSelect">
+          <option value="Service">Service</option>
+          <option value="Standby">Standby</option>
+          <option value="Meeting">Meeting</option>
+          <option value="Inspection">Inspection</option>
+          <option value="Telephone">Telephone</option>
+          <option value="Training">Training</option>
+          <option value="TrainingSafety">TrainingSafety</option>
+          <option value="LTC">LTC</option>
+          <option value="Warranty">Warranty</option>
+          <option value="RepairPP">RepairPP</option>
+          <option value="Sales">Sales</option>
+          <option value="Holiday">Holiday</option>
+          <option value="Leave">Leave</option>
+          <option value="SafetyHealth">SafetyHealth</option>
+          <option value="Other">Other</option>
+        </select>
+        <div class="flex" style="margin-top:8px;">
+          <input id="ignoreType" class="checkbox" type="checkbox" />
+          <label for="ignoreType" style="font-weight:400;margin:0;">ลบโดยไม่สนใจชนิดงาน (ส่ง type ว่าง)</label>
+        </div>
+        <div class="hint">* ถ้าเลือกตัวนี้ ระบบจะพยายามลบด้วยเงื่อนไข ปี/เดือน/วัน/ชื่อ โดยไม่ระบุ type (สอดคล้องกับโค้ด Apps Script ที่คุณมี)</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-6">
+        <label>ชื่อ (เลือกได้หลายคน — Ctrl/Shift เพื่อเลือกหลายรายการ)</label>
+        <select id="nameDropdown" multiple required>
+          <option>-- กำลังโหลด --</option>
+        </select>
+      </div>
+
+      <div class="col-6">
+        <label>วันที่ (เลือกได้หลายวัน — Ctrl/Shift เพื่อเลือกหลายรายการ)</label>
+        <select id="dateSelect" multiple required size="16">
+          <script>for (let i=1;i<=31;i++) document.write(`<option value="${i}">${i}</option>`);</script>
+        </select>
+      </div>
+    </div>
+
+    <!-- ส่งไป log ด้วย -->
+    <input type="hidden" id="actorName" name="actorName" value="" />
+
+    <div class="row">
+      <div class="col-12">
+        <button type="submit" class="btn btn-primary">ลบรายการที่เลือก</button>
+      </div>
+    </div>
+  </form>
+
+  <pre id="result" class="result"></pre>
+</body>
+</html>
