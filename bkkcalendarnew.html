@@ -4,407 +4,253 @@
   <meta charset="UTF-8" />
   <title>CS Calendar</title>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
- <style>
-  /* ===== Base ===== */
-:root {
-  --cal-scale: 1;
-  --cell-w: 140px;
-  --cell-h: 80px;
-  --base-font: 16px;
-}
-body { font-family: sans-serif; padding: 1rem; }
-.calendar-wrapper{
-  position: relative;
-  overflow-x: auto;   /* ให้เลื่อนเฉพาะแนวนอนในกรอบตาราง */
-  overflow-y: hidden; /* ตัดสไลด์แนวตั้งของกรอบตาราง */
-  height: auto;       /* ไม่ล็อกความสูง ให้สูงตามเนื้อหา */
-  max-height: none;
-  background: #fff;
-}
+  <style>
+    /* ===== Global Base ===== */
+    :root {
+      --cal-scale: 1;
+      --cell-w: 120px;
+      --cell-h: 80px;
+      --base-font: 16px;
+      --primary: #1976d2;
+      --accent: #10b981;
+      --danger: #f44336;
+      --gray: #6b7280;
+    }
 
-/* กันใครเผลอใส่ transform ซ้ำบนตาราง/ลูกหลาน */
-#calendar-table,
-#calendar-table * {
-  transform: none !important;
-  filter: none !important;         /* กันกรณีใช้ filter ก็ทำ sticky เสีย */
-  backdrop-filter: none !important;
-}
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: #f3f6fb;
+      color: #1f2937;
+    }
 
-#calendar-table { border-collapse: collapse; width: max-content; }
+    /* ===== Header ===== */
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 10px rgba(0,0,0,.05);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    nav a, nav button {
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    nav a:hover, nav button:hover {
+      background: #1565c0;
+    }
 
-#calendar-table th,
-#calendar-table td{
-  width:  calc(var(--cell-w) * var(--cal-scale));
-  height: calc(var(--cell-h) * var(--cal-scale));
-  padding: 6px;
-  border: 1px solid #ccc;
-  text-align: left;
-  vertical-align: top;
-  font-size: calc(var(--base-font) * (0.85 * var(--cal-scale)));
-  background: #fff;
-  cursor: pointer;
-}
+    /* ===== Toolbar ===== */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 24px;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      box-shadow: 0 4px 6px rgba(0,0,0,.03);
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-/* หัวตาราง sticky */
-#calendar-table thead th{
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: #fff;
-  text-align: center;
-  vertical-align: middle;
-  font-size: calc(2.1em * var(--cal-scale));
-  user-select: none;
-}
+    /* ปุ่ม */
+    .btn {
+      font-size: 16px;
+      padding: 8px 14px;
+      border: 1px solid #e3e6ea;
+      background: #fff;
+      color: #1f2937;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .08s ease, box-shadow .2s ease, background .2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    }
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,.1);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+      border-color: transparent;
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+      border-color: transparent;
+    }
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+      border-color: transparent;
+    }
 
-/* คอลัมน์ชื่อ sticky */
-#calendar-table th:first-child,
-#calendar-table td:first-child{
-  position: sticky;
-  left: 0;
-  z-index: 6;
-  background: #f1f1f1;
-  font-weight: bold;
-}
+    /* ช่องกรอก + label */
+    .goto-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f9fafb;
+      padding: 6px 10px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+    .goto-label {
+      font-size: 14px;
+      color: var(--gray);
+      font-weight: 600;
+    }
+    .input {
+      width: 80px;
+      font-size: 16px;
+      padding: 6px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      outline: none;
+      transition: box-shadow .2s, border-color .2s;
+    }
+    .input:focus {
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(147,197,253,.35);
+    }
 
-/* มุมซ้ายบนให้เด่นกว่า */
-#calendar-table thead th:first-child{ z-index: 7; }
+    /* ===== Calendar ===== */
+    .calendar-wrapper {
+      overflow: auto;
+      height: calc(100vh - 200px);
+      background: #fff;
+      margin: 16px;
+      border-radius: 12px;
+      box-shadow: 0 6px 16px rgba(0,0,0,.08);
+    }
+    #calendar-table {
+      border-collapse: collapse;
+      width: max-content;
+      min-width: 100%;
+    }
+    #calendar-table th,
+    #calendar-table td {
+      width: calc(var(--cell-w) * var(--cal-scale));
+      height: calc(var(--cell-h) * var(--cal-scale));
+      padding: 6px;
+      border: 1px solid #e5e7eb;
+      text-align: left;
+      vertical-align: top;
+      font-size: calc(var(--base-font) * (0.85 * var(--cal-scale)));
+      background: #fff;
+      cursor: pointer;
+    }
+    #calendar-table thead th {
+      position: sticky;
+      top: 0;
+      background: #f9fafb;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      z-index: 5;
+    }
+    #calendar-table th:first-child,
+    #calendar-table td:first-child {
+      position: sticky;
+      left: 0;
+      background: #f1f5f9;
+      font-weight: bold;
+      z-index: 6;
+    }
 
-/* ฟอนต์คอลัมน์ชื่อ */
-#calendar-table td:first-child { font-size: clamp(20px, 2vw, 40px); }
+    /* Event pill */
+    #calendar-table .event {
+      font-size: 0.85rem;
+      padding: 4px 6px;
+      border-radius: 6px;
+      margin: 2px 0;
+      font-weight: 500;
+      color: #111;
+    }
+    .Service { background: #2a36b1; color: #fff; }
+    .Standby { background: #009688; color: #fff; }
+    .Inspection { background: #00bcd4; color: #000; }
+    .TrainingSafety { background: #259b24; color: #fff; }
+    .Holiday, .Leave, .SafetyHealth { background: #c41411; color: #fff; }
 
-/* event */
-.event{ font-size: calc(var(--base-font) * (0.85 * var(--cal-scale))); padding:2px; display:block; border-radius:3px; margin-bottom:2px; }
-
-/* สีแต่ละ type */
-.Warranty { background: #72d572; }
-.Service { background: #2a36b1; color: #fff; }
-.Standby { background: #009688; color: #fff; }
-.LTC { background: #795548; color: #fff; }
-.Training { background: #cddc39; color: black; }
-.TrainingCustomer { background: #cddc39; }
-.TrainingInternal { background: #ffc107; }
-.TrainingSafety { background: #259b24; color: #fff; }
-.Inspection { background: #00bcd4; color: black; }
-.Telephone { background: #ab47bc; color: #fff; }
-.Meeting { background: #212121; color: #fff; }
-.RepairPP { background: #0277bd; color: #fff; }
-.Repair { background: #311b92; color: #fff; }
-.Sales { background: #78909c; color: #fff; }
-.Visit { background: #f9d4b4; }
-.Holiday, .Leave, .SafetyHealth { background: #c41411; color: #fff; }
-.Other { background: #fff176; }
-    .sun { background: #c41411 !important; }
-    .mon { background: #fffacc !important; }
-    .tue { background: #ffd1e3 !important; }
-    .wed { background: #d0f0c0 !important; }
-    .thu { background: #ffe0b3 !important; }
-    .fri { background: #d0e6ff !important; }
-    .sat { background: #e0ccff !important; }
-    /* แถบแนวตั้งวันหยุดสุดสัปดาห์ (tbody) */
-	#calendar-table td.weekend.sun { background:#ffe6e6 !important; }  /* Sunday */
-	#calendar-table td.weekend.sat { background:#f3ecff !important; }  /* Saturday */
-    .overlay, .modal { display: none; }
-    .overlay.active, .modal.active { display: block; }
-    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 998; }
-    .modal { position: fixed; top: 10%; left: 50%; transform: translateX(-50%); background: white; border: 1px solid #ccc; padding: 20px; z-index: 999; width: 300px; border-radius: 8px; max-height: 80vh; overflow-y: auto; }
-    .modal h3 { margin-top: 0; text-align: center; }
-    .modal label { display: block; margin-top: 10px; font-weight: bold; }
-    .modal input[type="text"], .modal select { width: 100%; padding: 6px; margin-top: 4px; border: 1px solid #ccc; border-radius: 4px; }
-    .modal button { margin-top: 12px; padding: 6px 12px; margin-right: 6px; border: none; border-radius: 4px; cursor: pointer; }
-    .modal button:hover { opacity: 0.9; }
-    .modal button:nth-child(1) { background: #4CAF50; color: white; }
-    .modal button:nth-child(2) { background: #f44336; color: white; }
-    .modal button:nth-child(3) { background: #bbb; }
-    .selected-row td {background: #fff4b3 !important; }
-    .modal-sm { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:16px; z-index:1000; box-shadow:0 5px 15px rgba(0,0,0,.3); width:320px; border-radius:8px; display:none; }
-    .modal-sm.active { display:block; }
-    .modal-sm h3 { margin:0 0 8px; text-align:center; }
-    .modal-sm label { display:block; margin-top:8px; }
-    .modal-sm input[type="text"], .modal-sm input[type="number"] { width:100%; padding:6px; }
-    .modal-sm .row { display:flex; gap:8px; }
-    .modal-sm .row > div { flex:1; }
-    .modal-sm .btns { margin-top:12px; display:flex; gap:8px; }
-    .modal-sm .btns button { flex:1; padding:8px; border:none; border-radius:4px; cursor:pointer; }
-    .btn-save { background:#4CAF50; color:#fff; }
-    .btn-del  { background:#f44336; color:#fff; }
-    .btn-cancel{ background:#bbb; }
-
-/* วันพิเศษ */
-.special-holiday, td.special-holiday { background:#fcb8d2 !important; }
-thead th.holiday { background:#f70a39 !important; color:#333; }
-#calendar-table td.holiday-col { background:#fff7d6 !important; }
-
-/* เลือกแถว */
-tr.selected-row td { background:#fff4b3 !important; }
-
-/* เลนส์ขยาย */
-#magnifierLens{
-  position: fixed;
-  pointer-events: none;
-  width: 300px; height: 300px;
-  border: 2px solid #333; border-radius: 50%;
-  box-shadow: 0 8px 20px rgba(0,0,0,.35);
-  background-repeat: no-repeat; background-position: center;
-  z-index: 1500; display: none;
-  transform: translate(-50%,-50%);
-}
-
-/* กล่องสรุป ลอยขวา ติดขอบ วิวนิ่ง */
-#summaryDock{
-  position: sticky;    /* ติด viewport ตอนสกรอลล์แนวตั้ง */
-  top: 12px;
-  margin-left: 12px;
-  z-index: 10;
-}
-
-.summary-box{
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0,0,0,.08);
-  padding: 12px 14px;
-  max-width: 280px;
-  font-size: 14px;
-}
-
-.summary-box h4{
-  margin: 0 0 8px;
-  font-size: 16px;
-}
-
-.summary-box ul{
-  margin: 0; padding-left: 18px;
-  max-height: 40vh; overflow: auto;
-}
-
-/* ปุ่มใน Special Holiday modal */
-.modal-sm .btns .btn-save {
-  background: #4CAF50 !important;  /* เขียว */
-  color: #fff !important;
-}
-.modal-sm .btns .btn-del {
-  background: #f44336 !important;  /* แดง */
-  color: #fff !important;
-}
-.modal-sm .btns .btn-cancel {
-  background: #bbb !important;     /* เทา */
-  color: #000 !important;
-}
-/* เอฟเฟกต์ hover เบา ๆ */
-.modal-sm .btns button:hover {
-  filter: brightness(0.95);
-}
-
-
-/* ===== Event pill ในเซลล์ตาราง ===== */
-
-/* ขนาดฟอนต์ “คงที่” แบบเหมือนเดิม ไม่ผูกกับตัวแปรซูม */
-#calendar-table .event{
-  font-size: 0.85rem;      /* <<< ปรับจุดนี้ให้เท่าที่ชอบ */
-  line-height: 1.25;       /* ระยะห่างบรรทัดกำลังดี */
-  padding: 4px 6px;        /* เว้นขอบให้อ่านง่ายขึ้น */
-  display: block;
-  border-radius: 4px;
-  margin: 2px 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;     /* ให้ตัดบรรทัดได้ */
-  word-break: break-word;  /* ช่วยตัดคำยาว ๆ */
-  border-left: 4px solid rgba(0,0,0,.15); /* เส้นนำสายตาแบบเดิม ๆ */
-  box-shadow: 0 1px 0 rgba(0,0,0,.05);    /* เงาบาง ๆ */
-}
-
-/* ถ้าอยากให้ฟอนต์ “ซูมตามตาราง” เหมือนเวอร์ชันก่อนหน้า ให้ใช้บรรทัดนี้แทน 0.85rem
-#calendar-table .event{ font-size: calc(var(--base-font) * (0.85 * var(--cal-scale))); }
-*/
-
-/* ตัวหนาบรรทัดแรก (เช่นชื่อประเภทงาน) */
-#calendar-table .event b:first-child{
-  font-weight: 700;
-}
-
-/* จำกัดความสูงต่อเซลล์ (กันยาวเกิน) — ปรับได้ */
-#calendar-table td{
-  /* สูงจากตัวแปรอยู่แล้ว แต่ถ้าอยากให้แน่นขึ้นเพิ่มค่า cell-h ใน :root */
-}
-
-/* สีพื้นตามประเภท (ถ้ามีซ้ำข้างบน ไม่ต้องซ้ำตรงนี้อีก) */
-#calendar-table .Service   { background:#2a36b1; color:#fff; }
-#calendar-table .Standby   { background:#009688; color:#fff; }
-#calendar-table .Inspection{ background:#00bcd4; color:black; }
-#calendar-table .TrainingSafety{ background:#259b24; color:#fff; }
-#calendar-table .Training,
-#calendar-table .TrainingCustomer{ background:#cddc39; color:#000; }
-#calendar-table .TrainingInternal{ background:#ffc107; color:#000; }
-#calendar-table .Warranty  { background:#72d572; }
-#calendar-table .RepairPP  { background:#0277bd; color:#fff; }
-#calendar-table .Repair    { background:#311b92; color:#fff; }
-#calendar-table .Sales     { background:#78909c; color:#fff; }
-#calendar-table .Visit     { background:#f9d4b4; color:#000; }
-#calendar-table .Holiday,
-#calendar-table .Leave,
-#calendar-table .SafetyHealth{ background:#c41411; color:#fff; }
-#calendar-table .Other     { background:#fff176; color:#000; }
-
-/* (ออปชัน) ทำให้ “เวลา” จางลงนิด อ่านเหมือนเดิมมากขึ้น */
-#calendar-table .event .time{
-  opacity:.85;
-  font-weight: 600;
-}
-
-
-</style>
+  </style>
 </head>
 <body>
-  <!-- ===== App (hidden until authenticated) ===== -->
-  <div id="app" style="display:none">
-    <h2>CS BKK Calendar
-      <a href="index.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🏠 Home Page</a>
-      <a href="bkkcalendarreport.html" target="_blank"  style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">📊 Report</a>
-	<a href="bkklog.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">📝 LOG Data</a>
-      <a href="bkkbooking.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗓️ Multiple Booking</a>
-      <a href="bkkmultidelete.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🗑️ Multiple Delete</a>
-      <a href="cbicalendar.html" style="display:inline-block;margin:10px 0;padding:8px 16px;background-color:#1976d2;color:#fff;text-decoration:none;border-radius:5px;font-weight:bold;">🔄 CBI Calendar</a>
-      <button onclick="exportMonthToCSV()"style="font-size:22px;padding:8px 16px; margin-left:8px; background:#1976d2; color:white;">📤 Export CSV</button>
-    </h2>
+  <!-- ===== Header ===== -->
+  <header>
+    <h1>📅 CS Calendar</h1>
+    <nav>
+      <a href="index.html">🏠 Home</a>
+      <a href="bkkcalendarreport.html" target="_blank">📊 Report</a>
+      <a href="bkklog.html">📝 Log</a>
+      <a href="bkkbooking.html">🗓️ Booking</a>
+      <a href="bkkmultidelete.html">🗑️ Delete</a>
+      <a href="cbicalendar.html">🔄 CBI</a>
+      <button onclick="exportMonthToCSV()">📤 Export</button>
+    </nav>
+  </header>
 
-    <label style="font-size:40px; font-weight:bold;">Month: <select id="month" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-    <label style="font-size:40px; font-weight:bold;"> Year: <select id="year" onchange="renderTable()" style="font-size:40px; padding:8px;"></select></label>
-    <!-- ปุ่มเลื่อนเดือน -->
-    <button id="prevMonthBtn" onclick="gotoPrevMonth()" style="font-size:30px; padding:6px 12px; margin-left:12px;">« Last month</button>
-        <button id="thisMonthBtn" onclick="gotoThisMonth()" style="font-size:30px; padding:6px 12px; background:#1976d2; color:white;">This Month</button>
-    <button id="nextMonthBtn" onclick="gotoNextMonth()" style="font-size:30px; padding:6px 12px; ">Next month »</button>
-    <!-- ปุ่มซูม -->
-<!-- ปุ่มซูม -->
-<button onclick="zoomOut()" 
-        style="font-size:30px; padding:6px 12px; margin-left:12px;">
-  − Zoom out
-</button>
-<button onclick="zoomReset()" 
-        style="font-size:30px; padding:6px 12px; margin-left:12px; background:#1976d2; color:white;">
-  Normal
-</button>
-<button onclick="zoomIn()" 
-        style="font-size:30px; padding:6px 12px; margin-left:12px;">
-  + Zoom in
-</button>
-
-    <div class="calendar-wrapper">
-      <table id="calendar-table">
-        <thead></thead>
-        <tbody></tbody>
-      </table>
+  <!-- ===== Toolbar ===== -->
+  <div class="toolbar">
+    <div class="toolbar-group">
+      <button class="btn" onclick="gotoPrevMonth()">« Last</button>
+      <button class="btn btn-primary" onclick="gotoThisMonth()">This Month</button>
+      <button class="btn" onclick="gotoNextMonth()">Next »</button>
     </div>
-
-    <iframe name="hidden_frame" id="hidden_frame" style="display:none;"></iframe>
-    <form id="submitForm" action="https://script.google.com/macros/s/AKfycbzr7NVLwYbYDQfaF6Y5SWWwlpKKLnIp_KZUQ8NF9_gXUj7R3tmSEum7yS_Z_A5y23Wi/exec" method="POST" target="hidden_frame">
-      <input type="hidden" name="year">
-      <input type="hidden" name="month">
-      <input type="hidden" name="date">
-      <input type="hidden" name="name">
-      <input type="hidden" name="type">
-      <input type="hidden" name="time">
-      <input type="hidden" name="datail">
-      <input type="hidden" name="customer">
-      <input type="hidden" name="place">
-      <input type="hidden" name="jobowner">
-      <input type="hidden" name="charge">
-      <input type="hidden" name="action">
-      <input type="hidden" name="holidayDetail">
-      <input type="hidden" name="sendEmail">
-      <input type="hidden" id="actorName"  name="actorName">
-    </form>
-
-    <div class="overlay" id="overlay"></div>
-    <div class="modal" id="popupForm">
-      <h3>Booking</h3>
-      <div>Name: <span id="popupName"></span></div>
-      <div>Date: <span id="popupDate"></span></div>
-      <label>Job Type:
-        <select id="popupType">
-          <option value="Service">Service</option>
-          <option value="Standby">Standby</option>
-          <option value="Meeting">Meeting</option>
-          <option value="Visit">Visit</option>
-          <option value="Inspection">Inspection</option>
-          <option value="Telephone">Telephone</option>
-          <option value="TrainingCustomer">TrainingCustomer</option>
-          <option value="TrainingInternal">TrainingInternal</option>
-          <option value="TrainingSafety">TrainingSafety</option>
-          <option value="LTC">LTC</option>
-          <option value="Warranty">Warranty</option>
-          <option value="RepairPP">RepairPP</option>
-          <option value="Repair">Repair</option>
-          <option value="Sales">Sales</option>
-          <option value="Holiday">Holiday</option>
-          <option value="Leave">Leave</option>
-          <option value="SafetyHealth">SafetyHealth</option>
-          <option value="Other">Other</option>
-        </select>
-      </label><br>
-      <label>Customer: <input type="text" id="popupCustomer"></label><br>
-      <label>Time: <input type="text" id="popupTime"></label><br>
-      <label>Job detail: <input type="text" id="popupDetail"></label><br>
-      <label>Place: <input type="text" id="popupPlace"></label><br>
-      <label>Job owner: <input type="text" id="popupJobowner"></label><br>
-      <label>Charge:
-        <select id="popupCharge">
-          <option value="Charge">Charge</option>
-          <option value="Nocharge">Nocharge</option>
-          <option value="Warranty">Warranty</option>
-          <option value="Sales">Sales</option>
-          <option value="Other">Other</option>
-        </select>
-      </label><br>
-      <label><input type="checkbox" id="popupSendEmail"> Send e-mail</label><br>
-      <button type="button" onclick="saveData()" class="btn-save">Save</button>
-      <button type="button" onclick="deleteData()" class="btn-del">Delete</button>
-      <button type="button" onclick="closePopup()" class="btn-cancel">Cancel</button>
-    </div>
-
-    <div class="modal" id="detailModal">
-      <h3>Job Detail</h3>
-      <div id="detailContent"></div>
-      <div style="margin-top:12px;">
-        <button type="button" onclick="openEditFromDetail()">Add/Delete</button>
-        <button type="button" onclick="closeDetails()">Close</button>
+    <div class="toolbar-group">
+      <div class="goto-wrap">
+        <span class="goto-label">Go to day</span>
+        <input id="gotoDayInput" type="number" min="1" max="31" value="15" class="input" />
+        <button class="btn btn-accent" onclick="goToDayInCurrentMonth(
+          parseInt(document.getElementById('gotoDayInput').value, 10) || 15
+        )">Go</button>
       </div>
     </div>
-
-    <div class="modal-sm" id="holidayModal">
-      <h3>Special Holiday</h3>
-      <div class="row">
-        <div>
-          <label>Year
-            <input type="number" id="holYear" placeholder="เว้นว่าง = ทุกปี">
-          </label>
-        </div>
-        <div>
-          <label>Month
-            <input type="number" id="holMonth" min="1" max="12">
-          </label>
-        </div>
-        <div>
-          <label>Date
-            <input type="number" id="holDate" min="1" max="31">
-          </label>
-        </div>
-      </div>
-      <label>Detail
-        <input type="text" id="holDetail" placeholder="เช่น วันชดเชย, วันหยุดพิเศษ">
-      </label>
-      <div class="btns">
-        <button class="btn-save"  onclick="saveHoliday()">Save</button>
-        <button class="btn-del"   onclick="deleteHoliday()">Delete</button>
-        <button class="btn-cancel" onclick="closeHoliday()">Cancel</button>
-      </div>
+    <div class="toolbar-group">
+      <button class="btn" onclick="zoomOut()">− Zoom out</button>
+      <button class="btn btn-primary" onclick="zoomReset()">Normal</button>
+      <button class="btn" onclick="zoomIn()">+ Zoom in</button>
     </div>
-  </div><!-- /#app -->
-<div id="summaryDock"></div>
-<script src="config.js" defer></script>
-<script type="module" src="calscriptnew.js"></script>
+  </div>
+
+  <!-- ===== Calendar ===== -->
+  <div class="calendar-wrapper">
+    <table id="calendar-table">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script src="config.js" defer></script>
+  <script type="module" src="calscriptnew.js"></script>
 </body>
 </html>
-
-
