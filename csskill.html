@@ -1,169 +1,184 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill Matrix (0/1/2) — Read: Sheet CSV, Write: Apps Script</title>
+  <title>Skill Matrix (ตารางกลุ่ม/สกิล • 0/1/2)</title>
   <style>
-    :root { --radius: 14px; --pad: 14px; }
-    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", "Helvetica Neue", Arial; }
-    header { position: sticky; top:0; background: white; border-bottom: 1px solid #e5e7eb; padding: 10px var(--pad); z-index: 10; }
-    h1 { font-size: 20px; margin: 0 0 8px 0; }
-    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .row { display: flex; gap: 8px; align-items: center; }
-    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: var(--radius); box-shadow: 0 1px 2px rgba(0,0,0,0.06); padding: var(--pad); }
-    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: var(--pad); }
-    @media(min-width: 900px){ .grid { grid-template-columns: 1fr 1fr; } }
-    .skill { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
-    .skill h3 { margin: 0; font-size: 15px; line-height: 1.35; }
-    .levels { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .level-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 999px; cursor: pointer; }
-    .level-pill input { accent-color: #111827; }
-    .muted { color: #6b7280; }
-    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
-    input[type="search"], select { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; min-width: 160px; }
-    button { padding: 10px 14px; border-radius: 12px; border: 1px solid #111827; background: #111827; color: white; cursor: pointer; }
-    button.secondary { border-color: #e5e7eb; background: white; color: #111827; }
-    .status { font-size: 13px; }
-    .kpis { display: flex; gap: 12px; flex-wrap: wrap; }
-    .kpis .card { padding: 10px 12px; }
-    .dirty-dot { width: 8px; height: 8px; border-radius: 999px; background: #ef4444; margin-left: 6px; display: inline-block; vertical-align: middle; }
-    footer { padding: var(--pad); color: #6b7280; font-size: 12px; }
+    :root { --pad: 12px; --border: #e5e7eb; --sticky: #f9fafb; }
+    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", Arial; }
+    header { padding: var(--pad); border-bottom: 1px solid var(--border); background: white; position: sticky; top:0; z-index: 3; }
+    h1 { font-size: 18px; margin: 0 0 8px 0; }
+    .controls { display:flex; flex-wrap: wrap; gap:8px; align-items:center; }
+    select, button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+    button.primary { background:#111827; color:white; border-color:#111827; cursor:pointer; }
+    button.secondary { background:white; color:#111827; cursor:pointer; }
+    .status { font-size: 13px; color:#374151; margin-top:8px; }
+    .wrap { padding: var(--pad); }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
+    th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 8px; background: white; white-space: nowrap; }
+    th:first-child, td:first-child { border-left: 1px solid var(--border); }
+    thead th { position: sticky; top: 0; background: var(--sticky); z-index: 2; }
+    thead tr:nth-child(1) th { top: 0; }
+    thead tr:nth-child(2) th { top: 34px; }
+    tbody td:first-child, thead th:first-child { position: sticky; left: 0; background: var(--sticky); z-index: 1; }
+    tbody tr:hover td { background: #fcfcfd; }
+    .name-cell { font-weight: 600; }
+    .readonly { color:#6b7280; }
+    .center { text-align: center; }
+    .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
+    .small { font-size:12px; color:#6b7280; }
     iframe { display:none; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Skill Matrix — Levels: 0 / 1 / 2</h1>
-    <div class="toolbar">
-      <div class="controls">
-        <label class="row">
-          <span class="muted">พนักงาน:</span>
-          <select id="person"></select>
-        </label>
-        <label class="row">
-          <span class="muted">ค้นหา:</span>
-          <input id="search" type="search" placeholder="พิมพ์ชื่อสกิล..." />
-        </label>
-        <label class="row">
-          <span class="muted">ตัวกรอง:</span>
-          <select id="filterLevel">
-            <option value="">ทั้งหมด</option>
-            <option value="0">0</option>
-            <option value="1">1</option>
-            <option value="2">2</option>
-          </select>
-        </label>
-      </div>
-      <div class="row" style="justify-content:flex-end;">
-        <button id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
-        <button id="resetBtn" class="secondary">ยกเลิก</button>
-      </div>
+    <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
+    <div class="controls">
+      <label>พนักงาน (เลือกเพื่อแก้ไข):
+        <select id="person"></select>
+      </label>
+      <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
+      <button id="resetBtn" class="secondary">ยกเลิก</button>
+      <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
     </div>
-    <div class="kpis">
-      <div class="card status">สรุป: <span id="count0">0</span> x 0 • <span id="count1">0</span> x 1 • <span id="count2">0</span> x 2</div>
-      <div class="card status">อัปเดตรอเซฟ: <span id="dirtyCount">0</span></div>
-      <div id="msg" class="status"></div>
-    </div>
+    <div id="msg" class="status"></div>
   </header>
 
-  <main class="grid" id="skills"></main>
+  <div class="wrap">
+    <div class="table-wrap">
+      <table id="skillTable" aria-label="Skill matrix table">
+        <thead>
+          <tr id="groupRow"></tr>
+          <tr id="skillRow"></tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
 
-  <footer>
-    <div class="muted">Read via published CSV (no CORS) • Write via Apps Script using hidden iframe (no CORS).</div>
-  </footer>
-
-  <!-- Hidden form + iframe for POST (avoid CORS) -->
+  <!-- hidden iframe + form สำหรับ POST ไป Apps Script (เลี่ยง CORS) -->
   <iframe id="gasTarget" name="gasTarget"></iframe>
   <form id="gasForm" method="POST" target="gasTarget" style="display:none;">
     <input type="hidden" name="payload" id="payload">
   </form>
 
 <script>
-/** ======== CONFIG: set these ======== **/
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill"; 
-// ตัวอย่างรูปแบบ:
-// https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill
-// หรือใช้ Export CSV แบบ gid: https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0
- // https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec
+/* =========================== CONFIG =========================== */
+// CSV ของแท็บที่ใช้ (Publish to the web → CSV)
+// ตัวอย่าง: https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:csv&sheet=csskill
+// หรือแบบ gid: https://docs.google.com/spreadsheets/d/<SHEET_ID>/export?format=csv&gid=0
+const CSV_URL = "https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:csv&sheet=csskill";
 
+// Apps Script Web App URL (exec)
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzLtBCAYaxFN3VdyDY-yQwCsUTWgYPhEbNvSvJCSkxa_Oos449q70ltD5qCI2z5C6q8iQ/exec";
-/** =================================== **/
+/* ============================================================= */
 
 const LEVELS = ["0","1","2"];
-
 let state = {
+  nameCol: 0,
   names: [],
-  skills: [],
-  levels: {},    // { name: { skill: "0"|"1"|"2"|"" } }
-  current: "",
-  dirty: new Map()
+  groups: [],   // group header (row 1) after forward-fill
+  skills: [],   // [{idx, label, group}]
+  rows: [],     // raw data rows (from row 3)
+  levels: {},   // { name: { skillLabel: "0"|"1"|"2"|"" } }
+  current: "",  // current editable person
+  dirty: new Map() // key: skillLabel -> "0"|"1"|"2"|"" (only for current person)
 };
 
 const $ = (id) => document.getElementById(id);
-const elSkills = $("skills");
-const elPerson = $("person");
-const elSearch = $("search");
-const elFilter = $("filterLevel");
-const elCount0 = $("count0");
-const elCount1 = $("count1");
-const elCount2 = $("count2");
-const elDirty  = $("dirtyCount");
-const elMsg    = $("msg");
+const elPerson   = $("person");
+const elMsg      = $("msg");
+const elGroupRow = $("groupRow");
+const elSkillRow = $("skillRow");
+const elTbody    = $("tbody");
 
 function setMessage(t){ elMsg.textContent = t; }
-function htmlEscape(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
-function idFromSkill(skill){ return "id_" + btoa(unescape(encodeURIComponent(skill))).replace(/=/g,""); }
+function toStr(v){ return String(v ?? "").trim(); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
 
-/* ---- CSV parsing ---- */
-async function loadFromCSV(){
-  setMessage("กำลังโหลดข้อมูลจาก Google Sheet (CSV)...");
-  const resp = await fetch(CSV_URL, { method: 'GET' });
-  if (!resp.ok) throw new Error("อ่าน CSV ไม่สำเร็จ");
-  const csvText = await resp.text();
-  const rows = parseCSV(csvText);
-  if (!rows.length) throw new Error("CSV ว่าง");
-
-  // แถวแรกเป็น header
-  const headers = rows[0].map((x)=>x.replace(/\n/g,' ').replace(/\s+/g,' ').trim());
-  const nameCol = headers.findIndex(h => (h||'').toLowerCase() === 'name');
-  if (nameCol === -1) throw new Error("ไม่พบคอลัมน์ name ใน CSV");
-
-  // skill columns
-  const skillCols = [];
-  headers.forEach((h, idx)=>{
-    if (idx === nameCol) return;
-    if (h) skillCols.push({ idx, label: h });
-  });
-
-  const names  = [];
-  const levels = {};
-  for (let i=1; i<rows.length; i++){
-    const row = rows[i];
-    const name = (row[nameCol] || "").toString().trim();
-    if (!name) continue;
-    names.push(name);
-    const mp = {};
-    for (const s of skillCols){
-      const v = (row[s.idx] || "").toString().trim();
-      mp[s.label] = normalize012(v); // force 0/1/2/""
-    }
-    levels[name] = mp;
-  }
-
-  state.names = names;
-  state.skills = skillCols.map(s=>s.label);
-  state.levels = levels;
-  elPerson.innerHTML = names.map(n=>`<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
-  state.current = names[0] || "";
-  state.dirty.clear();
-  setMessage("พร้อมใช้งาน");
-  render();
+function normalize012(v){
+  const s = toStr(v).toLowerCase();
+  if (s === "0" || s === "1" || s === "2" || s === "") return s;
+  if (s === "not yet" || s === "ยังทำไม่ได้") return "0";
+  if (s === "can do"   || s === "ทำได้")       return "1";
+  if (s === "can teach"|| s === "สอนต่อได้")   return "2";
+  return "";
 }
 
+/* ---------------- CSV Loader + Parse ---------------- */
+async function loadCSV(){
+  setMessage("กำลังโหลด CSV จาก Google Sheet...");
+  const r = await fetch(CSV_URL);
+  if (!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
+  const text = await r.text();
+  const matrix = parseCSV(text);
+  if (matrix.length < 3) throw new Error("ต้องมีอย่างน้อย 3 แถว (แถว1กลุ่ม, แถว2สกิล, แถว3ข้อมูล)");
+
+  // raw rows
+  const groupRowRaw = matrix[0].map(x => toStr(x).replace(/\s+/g,' '));
+  const skillRow    = matrix[1].map(x => toStr(x).replace(/\s+/g,' '));
+  const dataRows    = matrix.slice(2);
+
+  // forward-fill group header (รองรับเซลล์ merge)
+  const groupRow = [];
+  let lastGroup = "";
+  for (let c=0; c<groupRowRaw.length; c++){
+    const g = toStr(groupRowRaw[c]);
+    if (g) lastGroup = g;
+    groupRow[c] = lastGroup;
+  }
+
+  // หา column "name" จาก skillRow (ถ้าไม่พบ ใช้คอลัมน์แรก)
+  let nameCol = skillRow.findIndex(h => h.toLowerCase() === "name");
+  if (nameCol === -1) nameCol = 0;
+
+  // รวมคอลัมน์สกิล (ข้าม name และหัวว่าง)
+  const skillCols = [];
+  for (let c=0; c<skillRow.length; c++){
+    if (c === nameCol) continue;
+    const s = toStr(skillRow[c]);
+    if (!s) continue;
+    skillCols.push({ idx: c, label: s, group: toStr(groupRow[c]) });
+  }
+
+  // names + levels
+  const names = [];
+  const levels = {};
+  for (const row of dataRows){
+    const nm = toStr(row[nameCol]);
+    if (!nm) continue;
+    names.push(nm);
+    const mp = {};
+    for (const col of skillCols){
+      const v = normalize012(row[col.idx]);
+      mp[col.label] = v;
+    }
+    levels[nm] = mp;
+  }
+
+  // update state
+  state.nameCol = nameCol;
+  state.names   = names;
+  state.groups  = groupRow;
+  state.skills  = skillCols;
+  state.rows    = dataRows;
+  state.levels  = levels;
+  state.current = names[0] || "";
+  state.dirty.clear();
+
+  buildThead(skillCols);
+  buildTbody();
+
+  elPerson.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+  elPerson.value = state.current;
+
+  setMessage("พร้อมใช้งาน");
+}
+
+/* -------------- Basic CSV Parser (quoted) -------------- */
 function parseCSV(text){
-  // simple CSV parser (supports quoted fields)
   const rows = [];
   let i=0, cur="", row=[], inq=false;
   while(i<text.length){
@@ -185,121 +200,140 @@ function parseCSV(text){
   return rows;
 }
 
-function normalize012(v){
-  const s = String(v ?? "").trim().toLowerCase();
-  if (s === "0" || s === "1" || s === "2" || s === "") return s;
-  if (s === "not yet" || s === "ยังทำไม่ได้") return "0";
-  if (s === "can do"   || s === "ทำได้")       return "1";
-  if (s === "can teach"|| s === "สอนต่อได้")   return "2";
-  return "";
-}
+/* ---------------- Render THEAD (2 rows) ---------------- */
+function buildThead(skillCols){
+  elGroupRow.innerHTML = "";
+  elSkillRow.innerHTML = "";
 
-/* ---- UI render ---- */
-function skillCard(skill, level){
-  const idBase = idFromSkill(skill);
-  const isDirty = state.dirty.has(skill);
-  return `
-  <div class="card skill" data-skill="${htmlEscape(skill)}">
-    <h3>${htmlEscape(skill)} ${isDirty?'<span class="dirty-dot" title="แก้ไขแล้วยังไม่บันทึก"></span>':''}</h3>
-    <div class="levels" role="radiogroup" aria-label="${htmlEscape(skill)} level">
-      ${["0","1","2"].map((lv) => `
-        <label class="level-pill" title="ระดับ ${lv}">
-          <input type="radio" name="${idBase}" value="${lv}" ${level===lv?'checked':''}/>
-          <span>${lv}</span>
-        </label>
-      `).join("")}
-    </div>
-  </div>`;
-}
+  // คอลัมน์แรก: name → rowspan=2
+  const thName = document.createElement("th");
+  thName.textContent = "name";
+  thName.rowSpan = 2;
+  elGroupRow.appendChild(thName);
 
-function render(){
-  if(!state.current) return;
-  const personLevels = state.levels[state.current] || {};
-  const q = elSearch.value.trim().toLowerCase();
-  const f = elFilter.value;
-
-  let html = "";
-  let counts = [0,0,0];
-
-  for(const skill of state.skills){
-    const lv = state.dirty.has(skill) ? state.dirty.get(skill) : (personLevels[skill] || "");
-    if(q && !skill.toLowerCase().includes(q)) continue;
-    if(f && lv !== f) continue;
-    if(lv==="0") counts[0]++; else if(lv==="1") counts[1]++; else if(lv==="2") counts[2]++;
-    html += skillCard(skill, lv);
+  // กลุ่ม: รวมกลุ่มที่ต่อเนื่อง (colspan)
+  let i = 0;
+  while (i < skillCols.length) {
+    const g = skillCols[i].group || "";
+    let span = 1;
+    let j = i + 1;
+    while (j < skillCols.length && (skillCols[j].group || "") === g) { span++; j++; }
+    const th = document.createElement("th");
+    th.textContent = g;
+    th.colSpan = span;
+    elGroupRow.appendChild(th);
+    i = j;
   }
 
-  elSkills.innerHTML = html || '<div class="muted">ไม่พบสกิลตามเงื่อนไข</div>';
-  elCount0.textContent = counts[0];
-  elCount1.textContent = counts[1];
-  elCount2.textContent = counts[2];
-  elDirty.textContent  = state.dirty.size;
+  // แถวชื่อสกิล
+  for (const col of skillCols){
+    const th = document.createElement("th");
+    th.textContent = col.label;
+    elSkillRow.appendChild(th);
+  }
 }
 
-/* ---- Events ---- */
-function wireEvents(){
-  elSkills.addEventListener("change", (e)=>{
-    if(e.target && e.target.type === "radio"){
-      const card = e.target.closest(".skill");
-      const skill = card?.dataset?.skill;
-      const level = e.target.value; // "0"|"1"|"2"
-      state.dirty.set(skill, level);
-      render();
+/* ---------------- Render TBODY ---------------- */
+function buildTbody(){
+  elTbody.innerHTML = "";
+  for (const name of state.names){
+    const tr = document.createElement("tr");
+
+    // cell: name
+    const tdName = document.createElement("td");
+    tdName.className = "name-cell";
+    tdName.textContent = name;
+    tr.appendChild(tdName);
+
+    const editable = (name === state.current);
+    for (const col of state.skills){
+      const skill = col.label;
+      const currentVal = editable && state.dirty.has(skill)
+        ? state.dirty.get(skill)
+        : (state.levels[name]?.[skill] || "");
+
+      const td = document.createElement("td");
+      td.className = "center";
+
+      if (editable){
+        const sel = document.createElement("select");
+        for (const lv of ["", "0", "1", "2"]){
+          const opt = document.createElement("option");
+          opt.value = lv;
+          opt.textContent = lv === "" ? "-" : lv;
+          if (lv === currentVal) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.addEventListener("change", ()=>{
+          const v = sel.value;
+          if (v === (state.levels[name]?.[skill] || "")) {
+            state.dirty.delete(skill);
+            sel.classList.remove("dirty");
+          } else {
+            state.dirty.set(skill, v);
+            sel.classList.add("dirty");
+          }
+        });
+        if (state.dirty.has(skill)) sel.classList.add("dirty");
+        td.appendChild(sel);
+      } else {
+        td.classList.add("readonly");
+        td.textContent = currentVal || "-";
+      }
+
+      tr.appendChild(td);
     }
-  });
-
-  elPerson.addEventListener("change", ()=>{
-    state.current = elPerson.value;
-    state.dirty.clear();
-    render();
-  });
-
-  elSearch.addEventListener("input", render);
-  elFilter.addEventListener("change", render);
-
-  $("resetBtn").addEventListener("click", ()=>{
-    state.dirty.clear();
-    setMessage("ล้างรายการแก้ไขแล้ว");
-    render();
-  });
-
-  $("saveBtn").addEventListener("click", saveViaIframe);
+    elTbody.appendChild(tr);
+  }
 }
 
-/* ---- SAVE via hidden iframe (no CORS) ---- */
-function saveViaIframe(){
-  if(!state.current){ setMessage("❌ ไม่มีพนักงาน"); return; }
-  if(state.dirty.size === 0){ setMessage("ไม่มีรายการแก้ไข"); return; }
+/* ---------------- Events ---------------- */
+elPerson.addEventListener("change", ()=>{
+  state.current = elPerson.value;
+  state.dirty.clear();
+  buildTbody();
+});
 
-  const updates = [...state.dirty.entries()].map(([skill, level])=>({ skill, level }));
-  const payload = { name: state.current, updates };
+$("resetBtn").addEventListener("click", ()=>{
+  state.dirty.clear();
+  buildTbody();
+  setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
+});
 
-  const form = document.getElementById("gasForm");
-  const input = document.getElementById("payload");
-  form.action = GAS_ENDPOINT;           // set action dynamically
-  input.value = JSON.stringify(payload);
+$("saveBtn").addEventListener("click", ()=>{
+  if (!state.current){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
+  if (state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
+  const updates = [...state.dirty.entries()].map(([skill, level]) => ({ skill, level }));
+  saveViaIframe(state.current, updates);
+});
 
-  // Listen to iframe load -> assume success (ไม่อ่าน response)
+/* --------- Save via hidden iframe (no CORS) --------- */
+function saveViaIframe(name, updates){
+  const form   = document.getElementById("gasForm");
+  const input  = document.getElementById("payload");
   const iframe = document.getElementById("gasTarget");
+
+  form.action  = GAS_ENDPOINT;
+  input.value  = JSON.stringify({ name, updates });
+
   const onLoad = ()=>{
-    // merge saved values locally
-    const lv = state.levels[state.current] || (state.levels[state.current] = {});
-    for(const u of updates){ lv[u.skill] = u.level; }
+    // merge back
+    const mp = state.levels[name] || (state.levels[name] = {});
+    for (const u of updates){ mp[u.skill] = u.level; }
     state.dirty.clear();
-    render();
-    setMessage("✅ บันทึกสำเร็จ (ผ่าน Apps Script)");
-    iframe.removeEventListener('load', onLoad);
+    buildTbody();
+    setMessage("✅ บันทึกสำเร็จ");
+    iframe.removeEventListener("load", onLoad);
   };
-  iframe.addEventListener('load', onLoad, { once: true });
+  iframe.addEventListener("load", onLoad, { once: true });
 
   setMessage("กำลังบันทึก...");
   form.submit();
 }
 
-/* ---- Boot ---- */
-wireEvents();
-loadFromCSV().catch(err=>{
-  setMessage("❌ โหลด CSV ไม่สำเร็จ: " + err.message);
+/* ---------------- Boot ---------------- */
+loadCSV().catch(err=>{
+  setMessage("❌ โหลด CSV ไม่สำเร็จ: " + (err.message || err));
 });
 </script>
 </body>
