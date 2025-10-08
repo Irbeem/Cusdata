@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill Matrix (ตารางกลุ่ม/สกิล • 0/1/2)</title>
+  <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
   <style>
     :root { --pad: 12px; --border: #e5e7eb; --sticky: #f9fafb; }
-    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", Arial; }
+    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", Arial; color:#111827; background:#fff; }
     header { padding: var(--pad); border-bottom: 1px solid var(--border); background: white; position: sticky; top:0; z-index: 3; }
-    h1 { font-size: 18px; margin: 0 0 8px 0; }
+    h1 { font-size: 16px; margin: 0 0 8px 0; }
     .controls { display:flex; flex-wrap: wrap; gap:8px; align-items:center; }
-    select, button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
+    select, button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background:#fff; }
     button.primary { background:#111827; color:white; border-color:#111827; cursor:pointer; }
     button.secondary { background:white; color:#111827; cursor:pointer; }
     .status { font-size: 13px; color:#374151; margin-top:8px; }
@@ -24,7 +24,7 @@
     thead tr:nth-child(2) th { top: 34px; }
     tbody td:first-child, thead th:first-child { position: sticky; left: 0; background: var(--sticky); z-index: 1; }
     tbody tr:hover td { background: #fcfcfd; }
-    .name-cell { font-weight: 600; }
+    .name-cell { font-weight: 600; background:#fafafa; }
     .readonly { color:#6b7280; }
     .center { text-align: center; }
     .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
@@ -58,33 +58,31 @@
     </div>
   </div>
 
-  <!-- hidden iframe + form สำหรับ POST ไป Apps Script (เลี่ยง CORS) -->
+  <!-- ส่งข้อมูลไป Apps Script ผ่าน iframe (เลี่ยง CORS) -->
   <iframe id="gasTarget" name="gasTarget"></iframe>
-  <form id="gasForm" method="POST" target="gasTarget" style="display:none;">
-    <input type="hidden" name="payload" id="payload">
+  <form id="gasForm" method="POST" target="gasTarget" action="">
+    <input type="hidden" name="name" id="f_name">
+    <!-- จะเติม <input name="u_skill[]"> และ <input name="u_level[]"> ด้วย JS ตอนกด Save -->
   </form>
 
 <script>
 /* =========================== CONFIG =========================== */
-// CSV ของแท็บที่ใช้ (Publish to the web → CSV)
-// ตัวอย่าง: https://docs.google.com/spreadsheets/d/<SHEET_ID>/gviz/tq?tqx=out:csv&sheet=csskill
-// หรือแบบ gid: https://docs.google.com/spreadsheets/d/<SHEET_ID>/export?format=csv&gid=0
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill";
+/* เปลี่ยนเป็น export raw CSV เพื่อให้โครงสร้างตรงชีต 100% */
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0";
 
-// Apps Script Web App URL (exec)
+/* Apps Script Web App URL (exec) */
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
 /* ============================================================= */
 
-const LEVELS = ["0","1","2"];
 let state = {
   nameCol: 0,
   names: [],
   groups: [],   // group header (row 1) after forward-fill
   skills: [],   // [{idx, label, group}]
-  rows: [],     // raw data rows (from row 3)
+  rows: [],     // data rows (from row after skill header)
   levels: {},   // { name: { skillLabel: "0"|"1"|"2"|"" } }
-  current: "",  // current editable person
-  dirty: new Map() // key: skillLabel -> "0"|"1"|"2"|"" (only for current person)
+  current: "",  // selected person
+  dirty: new Map()
 };
 
 const $ = (id) => document.getElementById(id);
@@ -96,51 +94,47 @@ const elTbody    = $("tbody");
 
 function setMessage(t){ elMsg.textContent = t; }
 function toStr(v){ return String(v ?? "").trim(); }
-function escapeHtml(s){ return s.replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
-
-function normalize012(v){
-  const s = toStr(v).toLowerCase();
-  if (s === "0" || s === "1" || s === "2" || s === "") return s;
-  if (s === "not yet" || s === "ยังทำไม่ได้") return "0";
-  if (s === "can do"   || s === "ทำได้")       return "1";
-  if (s === "can teach"|| s === "สอนต่อได้")   return "2";
-  return "";
-}
+function esc(s){ return s.replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
 
 /* ---------------- CSV Loader + Parse ---------------- */
+/* ค้นหาแถวหัวอัตโนมัติ: แถวที่พบคำว่า "name" = หัวสกิล; แถวก่อนหน้า = หัวกลุ่ม */
 async function loadCSV(){
-  setMessage("กำลังโหลด CSV จาก Google Sheet...");
-  const r = await fetch(CSV_URL);
+  setMessage("กำลังโหลดข้อมูลจาก Google Sheet...");
+  const r = await fetch(CSV_URL, { cache: "no-store" });
   if (!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
   const text = await r.text();
   const matrix = parseCSV(text);
-  if (matrix.length < 3) throw new Error("ต้องมีอย่างน้อย 3 แถว (แถว1กลุ่ม, แถว2สกิล, แถว3ข้อมูล)");
 
-  // raw rows
-  const groupRowRaw = matrix[0].map(x => toStr(x).replace(/\s+/g,' '));
-  const skillRow    = matrix[1].map(x => toStr(x).replace(/\s+/g,' '));
-  const dataRows    = matrix.slice(2);
+  // หาแถวที่มี "name"
+  let skillHeaderRowIdx = -1, nameCol = -1;
+  for (let i = 0; i < Math.min(15, matrix.length); i++) {
+    const row = matrix[i];
+    const idx = row.findIndex(v => toStr(v).toLowerCase() === 'name');
+    if (idx !== -1) { skillHeaderRowIdx = i; nameCol = idx; break; }
+  }
+  if (skillHeaderRowIdx < 0) throw new Error('ไม่พบคอลัมน์ "name" ในส่วนหัว');
 
-  // forward-fill group header (รองรับเซลล์ merge)
+  const groupHeaderRowIdx = Math.max(0, skillHeaderRowIdx - 1);
+  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => toStr(x).replace(/\s+/g,' '));
+  const skillRow    = matrix[skillHeaderRowIdx].map(x => toStr(x).replace(/\s+/g,' '));
+  const dataRows    = matrix.slice(skillHeaderRowIdx + 1);
+
+  // forward-fill group header (รองรับ merge)
   const groupRow = [];
   let lastGroup = "";
   for (let c=0; c<groupRowRaw.length; c++){
-    const g = toStr(groupRowRaw[c]);
+    const g = groupRowRaw[c];
     if (g) lastGroup = g;
     groupRow[c] = lastGroup;
   }
-
-  // หา column "name" จาก skillRow (ถ้าไม่พบ ใช้คอลัมน์แรก)
-  let nameCol = skillRow.findIndex(h => h.toLowerCase() === "name");
-  if (nameCol === -1) nameCol = 0;
 
   // รวมคอลัมน์สกิล (ข้าม name และหัวว่าง)
   const skillCols = [];
   for (let c=0; c<skillRow.length; c++){
     if (c === nameCol) continue;
-    const s = toStr(skillRow[c]);
+    const s = skillRow[c];
     if (!s) continue;
-    skillCols.push({ idx: c, label: s, group: toStr(groupRow[c]) });
+    skillCols.push({ idx: c, label: s, group: groupRow[c] || '' });
   }
 
   // names + levels
@@ -152,8 +146,9 @@ async function loadCSV(){
     names.push(nm);
     const mp = {};
     for (const col of skillCols){
-      const v = normalize012(row[col.idx]);
-      mp[col.label] = v;
+      const raw = row[col.idx];
+      const v = (raw === undefined || raw === null) ? '' : toStr(raw);
+      mp[col.label] = (v === '0' || v === '1' || v === '2') ? v : '';
     }
     levels[nm] = mp;
   }
@@ -171,7 +166,7 @@ async function loadCSV(){
   buildThead(skillCols);
   buildTbody();
 
-  elPerson.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+  elPerson.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
   elPerson.value = state.current;
 
   setMessage("พร้อมใช้งาน");
@@ -205,13 +200,13 @@ function buildThead(skillCols){
   elGroupRow.innerHTML = "";
   elSkillRow.innerHTML = "";
 
-  // คอลัมน์แรก: name → rowspan=2
+  // name column → rowspan=2
   const thName = document.createElement("th");
   thName.textContent = "name";
   thName.rowSpan = 2;
   elGroupRow.appendChild(thName);
 
-  // กลุ่ม: รวมกลุ่มที่ต่อเนื่อง (colspan)
+  // groups with colspan
   let i = 0;
   while (i < skillCols.length) {
     const g = skillCols[i].group || "";
@@ -225,7 +220,7 @@ function buildThead(skillCols){
     i = j;
   }
 
-  // แถวชื่อสกิล
+  // skill names row
   for (const col of skillCols){
     const th = document.createElement("th");
     th.textContent = col.label;
@@ -239,7 +234,7 @@ function buildTbody(){
   for (const name of state.names){
     const tr = document.createElement("tr");
 
-    // cell: name
+    // name cell
     const tdName = document.createElement("td");
     tdName.className = "name-cell";
     tdName.textContent = name;
@@ -248,9 +243,10 @@ function buildTbody(){
     const editable = (name === state.current);
     for (const col of state.skills){
       const skill = col.label;
+      const baseline = state.levels[name]?.[skill] || "";
       const currentVal = editable && state.dirty.has(skill)
         ? state.dirty.get(skill)
-        : (state.levels[name]?.[skill] || "");
+        : baseline;
 
       const td = document.createElement("td");
       td.className = "center";
@@ -266,7 +262,7 @@ function buildTbody(){
         }
         sel.addEventListener("change", ()=>{
           const v = sel.value;
-          if (v === (state.levels[name]?.[skill] || "")) {
+          if (v === baseline) {
             state.dirty.delete(skill);
             sel.classList.remove("dirty");
           } else {
@@ -300,32 +296,44 @@ $("resetBtn").addEventListener("click", ()=>{
   setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
 });
 
-$("saveBtn").addEventListener("click", ()=>{
-  if (!state.current){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
-  if (state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
-  const updates = [...state.dirty.entries()].map(([skill, level]) => ({ skill, level }));
-  saveViaIframe(state.current, updates);
-});
+/* ====== SAVE (วิธี B: u_skill[] / u_level[]) ====== */
+document.getElementById("saveBtn").addEventListener("click", saveViaIframeArray);
 
-/* --------- Save via hidden iframe (no CORS) --------- */
-function saveViaIframe(name, updates){
+function saveViaIframeArray(){
+  const selectedName = state.current;
+  if (!selectedName){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
+  if (state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
+
   const form   = document.getElementById("gasForm");
-  const input  = document.getElementById("payload");
   const iframe = document.getElementById("gasTarget");
 
-  form.action  = GAS_ENDPOINT;
-  input.value  = JSON.stringify({ name, updates });
+  form.action = GAS_ENDPOINT;
 
+  // ใส่ชื่อ
+  document.getElementById("f_name").value = selectedName;
+
+  // ลบอินพุตเก่า u_skill[] / u_level[]
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
+    .forEach(el => el.remove());
+
+  // เติมอินพุตใหม่ตาม dirty
+  for (const [skill, level] of state.dirty.entries()){
+    const a = document.createElement('input');
+    a.type='hidden'; a.name='u_skill[]'; a.value=skill; form.appendChild(a);
+    const b = document.createElement('input');
+    b.type='hidden'; b.name='u_level[]'; b.value=level; form.appendChild(b);
+  }
+
+  // ส่งฟอร์ม
   const onLoad = ()=>{
-    // merge back
-    const mp = state.levels[name] || (state.levels[name] = {});
-    for (const u of updates){ mp[u.skill] = u.level; }
+    const mp = state.levels[selectedName] || (state.levels[selectedName] = {});
+    for (const [skill, level] of state.dirty.entries()) mp[skill] = level;
     state.dirty.clear();
     buildTbody();
     setMessage("✅ บันทึกสำเร็จ");
-    iframe.removeEventListener("load", onLoad);
+    iframe.removeEventListener('load', onLoad);
   };
-  iframe.addEventListener("load", onLoad, { once: true });
+  iframe.addEventListener('load', onLoad, { once: true });
 
   setMessage("กำลังบันทึก...");
   form.submit();
@@ -333,7 +341,7 @@ function saveViaIframe(name, updates){
 
 /* ---------------- Boot ---------------- */
 loadCSV().catch(err=>{
-  setMessage("❌ โหลด CSV ไม่สำเร็จ: " + (err.message || err));
+  setMessage("❌ โหลดข้อมูลไม่สำเร็จ: " + (err.message || err));
 });
 </script>
 </body>
