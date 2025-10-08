@@ -1,10 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <base target="_top">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill Matrix (0/1/2)</title>
+  <title>Skill Matrix (0/1/2) — Read: Sheet CSV, Write: Apps Script</title>
   <style>
     :root { --radius: 14px; --pad: 14px; }
     html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", "Helvetica Neue", Arial; }
@@ -30,6 +30,7 @@
     .kpis .card { padding: 10px 12px; }
     .dirty-dot { width: 8px; height: 8px; border-radius: 999px; background: #ef4444; margin-left: 6px; display: inline-block; vertical-align: middle; }
     footer { padding: var(--pad); color: #6b7280; font-size: 12px; }
+    iframe { display:none; }
   </style>
 </head>
 <body>
@@ -69,19 +70,131 @@
 
   <main class="grid" id="skills"></main>
 
-  <footer><div class="muted">เสิร์ฟจาก Apps Script — ไม่มีปัญหา CORS</div></footer>
+  <footer>
+    <div class="muted">Read via published CSV (no CORS) • Write via Apps Script using hidden iframe (no CORS).</div>
+  </footer>
+
+  <!-- Hidden form + iframe for POST (avoid CORS) -->
+  <iframe id="gasTarget" name="gasTarget"></iframe>
+  <form id="gasForm" method="POST" target="gasTarget" style="display:none;">
+    <input type="hidden" name="payload" id="payload">
+  </form>
 
 <script>
+/** ======== CONFIG: set these ======== **/
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill"; 
+// ตัวอย่างรูปแบบ:
+// https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill
+// หรือใช้ Export CSV แบบ gid: https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0
+ // https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec
+
+const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzLtBCAYaxFN3VdyDY-yQwCsUTWgYPhEbNvSvJCSkxa_Oos449q70ltD5qCI2z5C6q8iQ/exec";
+/** =================================== **/
+
 const LEVELS = ["0","1","2"];
-let state = { names: [], skills: [], levels: {}, current: "", dirty: new Map() };
+
+let state = {
+  names: [],
+  skills: [],
+  levels: {},    // { name: { skill: "0"|"1"|"2"|"" } }
+  current: "",
+  dirty: new Map()
+};
 
 const $ = (id) => document.getElementById(id);
-const elSkills = $("skills"), elPerson = $("person"), elSearch = $("search"), elFilter = $("filterLevel");
-const elCount0 = $("count0"), elCount1 = $("count1"), elCount2 = $("count2"), elDirty = $("dirtyCount"), elMsg = $("msg");
+const elSkills = $("skills");
+const elPerson = $("person");
+const elSearch = $("search");
+const elFilter = $("filterLevel");
+const elCount0 = $("count0");
+const elCount1 = $("count1");
+const elCount2 = $("count2");
+const elDirty  = $("dirtyCount");
+const elMsg    = $("msg");
 
+function setMessage(t){ elMsg.textContent = t; }
 function htmlEscape(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
 function idFromSkill(skill){ return "id_" + btoa(unescape(encodeURIComponent(skill))).replace(/=/g,""); }
 
+/* ---- CSV parsing ---- */
+async function loadFromCSV(){
+  setMessage("กำลังโหลดข้อมูลจาก Google Sheet (CSV)...");
+  const resp = await fetch(CSV_URL, { method: 'GET' });
+  if (!resp.ok) throw new Error("อ่าน CSV ไม่สำเร็จ");
+  const csvText = await resp.text();
+  const rows = parseCSV(csvText);
+  if (!rows.length) throw new Error("CSV ว่าง");
+
+  // แถวแรกเป็น header
+  const headers = rows[0].map((x)=>x.replace(/\n/g,' ').replace(/\s+/g,' ').trim());
+  const nameCol = headers.findIndex(h => (h||'').toLowerCase() === 'name');
+  if (nameCol === -1) throw new Error("ไม่พบคอลัมน์ name ใน CSV");
+
+  // skill columns
+  const skillCols = [];
+  headers.forEach((h, idx)=>{
+    if (idx === nameCol) return;
+    if (h) skillCols.push({ idx, label: h });
+  });
+
+  const names  = [];
+  const levels = {};
+  for (let i=1; i<rows.length; i++){
+    const row = rows[i];
+    const name = (row[nameCol] || "").toString().trim();
+    if (!name) continue;
+    names.push(name);
+    const mp = {};
+    for (const s of skillCols){
+      const v = (row[s.idx] || "").toString().trim();
+      mp[s.label] = normalize012(v); // force 0/1/2/""
+    }
+    levels[name] = mp;
+  }
+
+  state.names = names;
+  state.skills = skillCols.map(s=>s.label);
+  state.levels = levels;
+  elPerson.innerHTML = names.map(n=>`<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
+  state.current = names[0] || "";
+  state.dirty.clear();
+  setMessage("พร้อมใช้งาน");
+  render();
+}
+
+function parseCSV(text){
+  // simple CSV parser (supports quoted fields)
+  const rows = [];
+  let i=0, cur="", row=[], inq=false;
+  while(i<text.length){
+    const ch = text[i];
+    if (inq){
+      if (ch === '"'){
+        if (text[i+1] === '"'){ cur += '"'; i+=2; continue; }
+        inq = false; i++; continue;
+      } else { cur += ch; i++; continue; }
+    } else {
+      if (ch === '"'){ inq=true; i++; continue; }
+      if (ch === ','){ row.push(cur); cur=""; i++; continue; }
+      if (ch === '\n'){ row.push(cur); rows.push(row); row=[]; cur=""; i++; continue; }
+      if (ch === '\r'){ i++; continue; }
+      cur += ch; i++;
+    }
+  }
+  row.push(cur); rows.push(row);
+  return rows;
+}
+
+function normalize012(v){
+  const s = String(v ?? "").trim().toLowerCase();
+  if (s === "0" || s === "1" || s === "2" || s === "") return s;
+  if (s === "not yet" || s === "ยังทำไม่ได้") return "0";
+  if (s === "can do"   || s === "ทำได้")       return "1";
+  if (s === "can teach"|| s === "สอนต่อได้")   return "2";
+  return "";
+}
+
+/* ---- UI render ---- */
 function skillCard(skill, level){
   const idBase = idFromSkill(skill);
   const isDirty = state.dirty.has(skill);
@@ -89,7 +202,7 @@ function skillCard(skill, level){
   <div class="card skill" data-skill="${htmlEscape(skill)}">
     <h3>${htmlEscape(skill)} ${isDirty?'<span class="dirty-dot" title="แก้ไขแล้วยังไม่บันทึก"></span>':''}</h3>
     <div class="levels" role="radiogroup" aria-label="${htmlEscape(skill)} level">
-      ${LEVELS.map((lv) => `
+      ${["0","1","2"].map((lv) => `
         <label class="level-pill" title="ระดับ ${lv}">
           <input type="radio" name="${idBase}" value="${lv}" ${level===lv?'checked':''}/>
           <span>${lv}</span>
@@ -105,7 +218,8 @@ function render(){
   const q = elSearch.value.trim().toLowerCase();
   const f = elFilter.value;
 
-  let html = "", counts = [0,0,0];
+  let html = "";
+  let counts = [0,0,0];
 
   for(const skill of state.skills){
     const lv = state.dirty.has(skill) ? state.dirty.get(skill) : (personLevels[skill] || "");
@@ -116,69 +230,77 @@ function render(){
   }
 
   elSkills.innerHTML = html || '<div class="muted">ไม่พบสกิลตามเงื่อนไข</div>';
-  elCount0.textContent = counts[0]; elCount1.textContent = counts[1]; elCount2.textContent = counts[2];
-  elDirty.textContent = state.dirty.size;
+  elCount0.textContent = counts[0];
+  elCount1.textContent = counts[1];
+  elCount2.textContent = counts[2];
+  elDirty.textContent  = state.dirty.size;
 }
 
+/* ---- Events ---- */
 function wireEvents(){
   elSkills.addEventListener("change", (e)=>{
     if(e.target && e.target.type === "radio"){
       const card = e.target.closest(".skill");
       const skill = card?.dataset?.skill;
-      const level = e.target.value;
+      const level = e.target.value; // "0"|"1"|"2"
       state.dirty.set(skill, level);
       render();
     }
   });
+
   elPerson.addEventListener("change", ()=>{
     state.current = elPerson.value;
     state.dirty.clear();
     render();
   });
+
   elSearch.addEventListener("input", render);
   elFilter.addEventListener("change", render);
-  $("resetBtn").addEventListener("click", ()=>{ state.dirty.clear(); setMessage("ล้างรายการแก้ไขแล้ว"); render(); });
-  $("saveBtn").addEventListener("click", saveChanges);
-}
 
-function loadData(){
-  setMessage("กำลังโหลด...");
-  google.script.run.withSuccessHandler((data)=>{
-    state.names = data.names || [];
-    state.skills = data.skills || [];
-    state.levels = data.levels || {};
-    $("person").innerHTML = state.names.map(n=>`<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
-    state.current = state.names[0] || "";
+  $("resetBtn").addEventListener("click", ()=>{
     state.dirty.clear();
-    setMessage("พร้อมใช้งาน");
+    setMessage("ล้างรายการแก้ไขแล้ว");
     render();
-  }).withFailureHandler(err=>{
-    setMessage("❌ " + (err && err.message ? err.message : err));
-  }).getData();
+  });
+
+  $("saveBtn").addEventListener("click", saveViaIframe);
 }
 
-function saveChanges(){
+/* ---- SAVE via hidden iframe (no CORS) ---- */
+function saveViaIframe(){
   if(!state.current){ setMessage("❌ ไม่มีพนักงาน"); return; }
   if(state.dirty.size === 0){ setMessage("ไม่มีรายการแก้ไข"); return; }
-  const updates = [...state.dirty.entries()].map(([skill, level])=>({ skill, level }));
 
-  setMessage("กำลังบันทึก...");
-  google.script.run.withSuccessHandler(res=>{
-    // merge back
+  const updates = [...state.dirty.entries()].map(([skill, level])=>({ skill, level }));
+  const payload = { name: state.current, updates };
+
+  const form = document.getElementById("gasForm");
+  const input = document.getElementById("payload");
+  form.action = GAS_ENDPOINT;           // set action dynamically
+  input.value = JSON.stringify(payload);
+
+  // Listen to iframe load -> assume success (ไม่อ่าน response)
+  const iframe = document.getElementById("gasTarget");
+  const onLoad = ()=>{
+    // merge saved values locally
     const lv = state.levels[state.current] || (state.levels[state.current] = {});
     for(const u of updates){ lv[u.skill] = u.level; }
     state.dirty.clear();
     render();
-    setMessage("✅ บันทึกสำเร็จ (" + res.updated + ")");
-  }).withFailureHandler(err=>{
-    setMessage("❌ " + (err && err.message ? err.message : err));
-  }).saveChanges(state.current, updates);
+    setMessage("✅ บันทึกสำเร็จ (ผ่าน Apps Script)");
+    iframe.removeEventListener('load', onLoad);
+  };
+  iframe.addEventListener('load', onLoad, { once: true });
+
+  setMessage("กำลังบันทึก...");
+  form.submit();
 }
 
-function setMessage(t){ elMsg.textContent = t; }
-
+/* ---- Boot ---- */
 wireEvents();
-loadData();
+loadFromCSV().catch(err=>{
+  setMessage("❌ โหลด CSV ไม่สำเร็จ: " + err.message);
+});
 </script>
 </body>
 </html>
