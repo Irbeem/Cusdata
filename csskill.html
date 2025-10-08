@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <base target="_top">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Skill Matrix (0/1/2)</title>
+  <style>
+    :root { --radius: 14px; --pad: 14px; }
+    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", "Helvetica Neue", Arial; }
+    header { position: sticky; top:0; background: white; border-bottom: 1px solid #e5e7eb; padding: 10px var(--pad); z-index: 10; }
+    h1 { font-size: 20px; margin: 0 0 8px 0; }
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: var(--radius); box-shadow: 0 1px 2px rgba(0,0,0,0.06); padding: var(--pad); }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: var(--pad); }
+    @media(min-width: 900px){ .grid { grid-template-columns: 1fr 1fr; } }
+    .skill { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .skill h3 { margin: 0; font-size: 15px; line-height: 1.35; }
+    .levels { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .level-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 999px; cursor: pointer; }
+    .level-pill input { accent-color: #111827; }
+    .muted { color: #6b7280; }
+    .controls { display: flex; gap: 8px; flex-wrap: wrap; }
+    input[type="search"], select { padding: 8px 10px; border: 1px solid #e5e7eb; border-radius: 10px; min-width: 160px; }
+    button { padding: 10px 14px; border-radius: 12px; border: 1px solid #111827; background: #111827; color: white; cursor: pointer; }
+    button.secondary { border-color: #e5e7eb; background: white; color: #111827; }
+    .status { font-size: 13px; }
+    .kpis { display: flex; gap: 12px; flex-wrap: wrap; }
+    .kpis .card { padding: 10px 12px; }
+    .dirty-dot { width: 8px; height: 8px; border-radius: 999px; background: #ef4444; margin-left: 6px; display: inline-block; vertical-align: middle; }
+    footer { padding: var(--pad); color: #6b7280; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Skill Matrix — Levels: 0 / 1 / 2</h1>
+    <div class="toolbar">
+      <div class="controls">
+        <label class="row">
+          <span class="muted">พนักงาน:</span>
+          <select id="person"></select>
+        </label>
+        <label class="row">
+          <span class="muted">ค้นหา:</span>
+          <input id="search" type="search" placeholder="พิมพ์ชื่อสกิล..." />
+        </label>
+        <label class="row">
+          <span class="muted">ตัวกรอง:</span>
+          <select id="filterLevel">
+            <option value="">ทั้งหมด</option>
+            <option value="0">0</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="justify-content:flex-end;">
+        <button id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
+        <button id="resetBtn" class="secondary">ยกเลิก</button>
+      </div>
+    </div>
+    <div class="kpis">
+      <div class="card status">สรุป: <span id="count0">0</span> x 0 • <span id="count1">0</span> x 1 • <span id="count2">0</span> x 2</div>
+      <div class="card status">อัปเดตรอเซฟ: <span id="dirtyCount">0</span></div>
+      <div id="msg" class="status"></div>
+    </div>
+  </header>
+
+  <main class="grid" id="skills"></main>
+
+  <footer><div class="muted">เสิร์ฟจาก Apps Script — ไม่มีปัญหา CORS</div></footer>
+
+<script>
+const LEVELS = ["0","1","2"];
+let state = { names: [], skills: [], levels: {}, current: "", dirty: new Map() };
+
+const $ = (id) => document.getElementById(id);
+const elSkills = $("skills"), elPerson = $("person"), elSearch = $("search"), elFilter = $("filterLevel");
+const elCount0 = $("count0"), elCount1 = $("count1"), elCount2 = $("count2"), elDirty = $("dirtyCount"), elMsg = $("msg");
+
+function htmlEscape(s){ return s.replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m])); }
+function idFromSkill(skill){ return "id_" + btoa(unescape(encodeURIComponent(skill))).replace(/=/g,""); }
+
+function skillCard(skill, level){
+  const idBase = idFromSkill(skill);
+  const isDirty = state.dirty.has(skill);
+  return `
+  <div class="card skill" data-skill="${htmlEscape(skill)}">
+    <h3>${htmlEscape(skill)} ${isDirty?'<span class="dirty-dot" title="แก้ไขแล้วยังไม่บันทึก"></span>':''}</h3>
+    <div class="levels" role="radiogroup" aria-label="${htmlEscape(skill)} level">
+      ${LEVELS.map((lv) => `
+        <label class="level-pill" title="ระดับ ${lv}">
+          <input type="radio" name="${idBase}" value="${lv}" ${level===lv?'checked':''}/>
+          <span>${lv}</span>
+        </label>
+      `).join("")}
+    </div>
+  </div>`;
+}
+
+function render(){
+  if(!state.current) return;
+  const personLevels = state.levels[state.current] || {};
+  const q = elSearch.value.trim().toLowerCase();
+  const f = elFilter.value;
+
+  let html = "", counts = [0,0,0];
+
+  for(const skill of state.skills){
+    const lv = state.dirty.has(skill) ? state.dirty.get(skill) : (personLevels[skill] || "");
+    if(q && !skill.toLowerCase().includes(q)) continue;
+    if(f && lv !== f) continue;
+    if(lv==="0") counts[0]++; else if(lv==="1") counts[1]++; else if(lv==="2") counts[2]++;
+    html += skillCard(skill, lv);
+  }
+
+  elSkills.innerHTML = html || '<div class="muted">ไม่พบสกิลตามเงื่อนไข</div>';
+  elCount0.textContent = counts[0]; elCount1.textContent = counts[1]; elCount2.textContent = counts[2];
+  elDirty.textContent = state.dirty.size;
+}
+
+function wireEvents(){
+  elSkills.addEventListener("change", (e)=>{
+    if(e.target && e.target.type === "radio"){
+      const card = e.target.closest(".skill");
+      const skill = card?.dataset?.skill;
+      const level = e.target.value;
+      state.dirty.set(skill, level);
+      render();
+    }
+  });
+  elPerson.addEventListener("change", ()=>{
+    state.current = elPerson.value;
+    state.dirty.clear();
+    render();
+  });
+  elSearch.addEventListener("input", render);
+  elFilter.addEventListener("change", render);
+  $("resetBtn").addEventListener("click", ()=>{ state.dirty.clear(); setMessage("ล้างรายการแก้ไขแล้ว"); render(); });
+  $("saveBtn").addEventListener("click", saveChanges);
+}
+
+function loadData(){
+  setMessage("กำลังโหลด...");
+  google.script.run.withSuccessHandler((data)=>{
+    state.names = data.names || [];
+    state.skills = data.skills || [];
+    state.levels = data.levels || {};
+    $("person").innerHTML = state.names.map(n=>`<option value="${htmlEscape(n)}">${htmlEscape(n)}</option>`).join("");
+    state.current = state.names[0] || "";
+    state.dirty.clear();
+    setMessage("พร้อมใช้งาน");
+    render();
+  }).withFailureHandler(err=>{
+    setMessage("❌ " + (err && err.message ? err.message : err));
+  }).getData();
+}
+
+function saveChanges(){
+  if(!state.current){ setMessage("❌ ไม่มีพนักงาน"); return; }
+  if(state.dirty.size === 0){ setMessage("ไม่มีรายการแก้ไข"); return; }
+  const updates = [...state.dirty.entries()].map(([skill, level])=>({ skill, level }));
+
+  setMessage("กำลังบันทึก...");
+  google.script.run.withSuccessHandler(res=>{
+    // merge back
+    const lv = state.levels[state.current] || (state.levels[state.current] = {});
+    for(const u of updates){ lv[u.skill] = u.level; }
+    state.dirty.clear();
+    render();
+    setMessage("✅ บันทึกสำเร็จ (" + res.updated + ")");
+  }).withFailureHandler(err=>{
+    setMessage("❌ " + (err && err.message ? err.message : err));
+  }).saveChanges(state.current, updates);
+}
+
+function setMessage(t){ elMsg.textContent = t; }
+
+wireEvents();
+loadData();
+</script>
+</body>
+</html>
