@@ -105,21 +105,35 @@ async function loadCSV(){
   const text = await r.text();
   const matrix = parseCSV(text);
 
-  // หาแถวที่มี "name"
+  // 1) หาแถวที่มีคำว่า "name" (แถวหัวสกิลที่แท้จริง)
   let skillHeaderRowIdx = -1, nameCol = -1;
   for (let i = 0; i < Math.min(15, matrix.length); i++) {
     const row = matrix[i];
-    const idx = row.findIndex(v => toStr(v).toLowerCase() === 'name');
+    const idx = row.findIndex(v => String(v ?? '').trim().toLowerCase() === 'name');
     if (idx !== -1) { skillHeaderRowIdx = i; nameCol = idx; break; }
   }
   if (skillHeaderRowIdx < 0) throw new Error('ไม่พบคอลัมน์ "name" ในส่วนหัว');
 
+  // 2) แถวบนคือหัวกลุ่ม (เผื่อ merge)
   const groupHeaderRowIdx = Math.max(0, skillHeaderRowIdx - 1);
-  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => toStr(x).replace(/\s+/g,' '));
-  const skillRow    = matrix[skillHeaderRowIdx].map(x => toStr(x).replace(/\s+/g,' '));
-  const dataRows    = matrix.slice(skillHeaderRowIdx + 1);
+  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
 
-  // forward-fill group header (รองรับ merge)
+  // 3) เอาแถวหัวสกิล
+  let skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
+
+  // 3.1) กันพลาด: ถ้าแถวหัวสกิล “เหมือนแถวกลุ่ม” (เช่น export เพี้ยน) ให้เลื่อนลง 1 แถว
+  const looksLikeGroup =
+    skillRow.some((v,i) => i !== nameCol && v) &&                       // มีคอลัมน์ไม่ว่าง
+    skillRow.every((v,i) => i === nameCol || v === groupRowRaw[i]);     // และค่าเท่ากับหัวกลุ่มทุกช่อง
+  if (looksLikeGroup && matrix[skillHeaderRowIdx + 1]) {
+    skillHeaderRowIdx += 1;
+    skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
+  }
+
+  // 4) ส่วนข้อมูล
+  const dataRows = matrix.slice(skillHeaderRowIdx + 1);
+
+  // 5) forward-fill group header
   const groupRow = [];
   let lastGroup = "";
   for (let c=0; c<groupRowRaw.length; c++){
@@ -128,7 +142,7 @@ async function loadCSV(){
     groupRow[c] = lastGroup;
   }
 
-  // รวมคอลัมน์สกิล (ข้าม name และหัวว่าง)
+  // 6) รวบรวมคอลัมน์สกิล (ข้าม name และหัวว่าง)
   const skillCols = [];
   for (let c=0; c<skillRow.length; c++){
     if (c === nameCol) continue;
@@ -137,23 +151,23 @@ async function loadCSV(){
     skillCols.push({ idx: c, label: s, group: groupRow[c] || '' });
   }
 
-  // names + levels
+  // 7) names + levels
   const names = [];
   const levels = {};
   for (const row of dataRows){
-    const nm = toStr(row[nameCol]);
+    const nm = String(row[nameCol] ?? '').trim();
     if (!nm) continue;
     names.push(nm);
     const mp = {};
     for (const col of skillCols){
       const raw = row[col.idx];
-      const v = (raw === undefined || raw === null) ? '' : toStr(raw);
+      const v = (raw === undefined || raw === null) ? '' : String(raw).trim();
       mp[col.label] = (v === '0' || v === '1' || v === '2') ? v : '';
     }
     levels[nm] = mp;
   }
 
-  // update state
+  // 8) อัปเดต state + เรนเดอร์
   state.nameCol = nameCol;
   state.names   = names;
   state.groups  = groupRow;
@@ -166,12 +180,13 @@ async function loadCSV(){
   buildThead(skillCols);
   buildTbody();
 
-  elPerson.innerHTML = names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
-  elPerson.value = state.current;
+  const options = names.map(n => `<option value="${n.replace(/&/g,"&amp;").replace(/</g,"&lt;")}">${n}</option>`).join("");
+  document.getElementById("person").innerHTML = options;
+  document.getElementById("person").value = state.current;
 
   setMessage("พร้อมใช้งาน");
 }
-
+  
 /* -------------- Basic CSV Parser (quoted) -------------- */
 function parseCSV(text){
   const rows = [];
