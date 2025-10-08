@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill Matrix (ตารางกลุ่ม/สกิล • 0/1/2)</title>
+  <title>Skill Matrix (ตารางกลุ่ม/สกิล • วิธี B)</title>
   <style>
     :root { --pad: 12px; --border: #e5e7eb; --sticky: #f9fafb; }
     html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", Arial; }
@@ -11,8 +11,8 @@
     h1 { font-size: 18px; margin: 0 0 8px 0; }
     .controls { display:flex; flex-wrap: wrap; gap:8px; align-items:center; }
     select, button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; }
-    button.primary { background:#111827; color:white; border-color:#111827; }
-    button.secondary { background:white; color:#111827; }
+    button.primary { background:#111827; color:white; border-color:#111827; cursor:pointer; }
+    button.secondary { background:white; color:#111827; cursor:pointer; }
     .status { font-size: 13px; color:#374151; margin-top:8px; }
     .wrap { padding: var(--pad); }
     .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
@@ -21,26 +21,27 @@
     th:first-child, td:first-child { border-left: 1px solid var(--border); }
     thead th { position: sticky; top: 0; background: var(--sticky); z-index: 2; }
     thead tr:nth-child(1) th { top: 0; }
-    thead tr:nth-child(2) th { top: 34px; } /* ความสูงเฮดเดอร์แถวแรกประมาณนี้ */
+    thead tr:nth-child(2) th { top: 34px; }
     tbody td:first-child, thead th:first-child { position: sticky; left: 0; background: var(--sticky); z-index: 1; }
     tbody tr:hover td { background: #fcfcfd; }
     .name-cell { font-weight: 600; }
-    .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
     .readonly { color:#6b7280; }
     .center { text-align: center; }
+    .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
     .small { font-size:12px; color:#6b7280; }
+    iframe { display:none; }
   </style>
 </head>
 <body>
   <header>
     <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
     <div class="controls">
-      <label>พนักงาน (เลือกเพื่อแก้ไข): 
+      <label>พนักงาน (เลือกเพื่อแก้ไข):
         <select id="person"></select>
       </label>
       <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
       <button id="resetBtn" class="secondary">ยกเลิก</button>
-      <span class="small">แก้ได้เฉพาะแถวของคนที่เลือก</span>
+      <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
     </div>
     <div id="msg" class="status"></div>
   </header>
@@ -57,74 +58,79 @@
     </div>
   </div>
 
-  <!-- Hidden form + iframe for POST to Apps Script (bypass CORS) -->
-  <iframe id="gasTarget" name="gasTarget" style="display:none;"></iframe>
-  <form id="gasForm" method="POST" target="gasTarget" style="display:none;">
-    <input type="hidden" name="payload" id="payload">
+  <!-- ==== แบบ B: ส่งหลายฟิลด์ผ่าน form + iframe ==== -->
+  <iframe id="gasTarget" name="gasTarget"></iframe>
+  <form id="gasForm" method="POST" target="gasTarget" action="">
+    <input type="hidden" name="name" id="f_name">
+    <!-- จะเติม <input name="u_skill[]"> และ <input name="u_level[]"> ด้วย JS ตอนกด Save -->
   </form>
 
 <script>
-/** ==================== CONFIG ==================== **/
+/* =========================== CONFIG =========================== */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill";
-/*
- ตัวอย่าง:
- https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/gviz/tq?tqx=out:csv&sheet=csskill
- หรือ
- https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0
-*/
+// Apps Script Web App URL (exec)
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzLtBCAYaxFN3VdyDY-yQwCsUTWgYPhEbNvSvJCSkxa_Oos449q70ltD5qCI2z5C6q8iQ/exec";
-/** ================================================= **/
+/* ============================================================= */
 
 const LEVELS = ["0","1","2"];
-
 let state = {
   nameCol: 0,
   names: [],
-  groups: [],   // จากแถวที่ 1 (index 0 ของ CSV)
-  skills: [],   // จากแถวที่ 2 (index 1 ของ CSV)
-  rows: [],     // rows ของพนักงาน (ตั้งแต่ index 2)
+  groups: [],   // group header (row 1) หลัง forward-fill
+  skills: [],   // [{idx, label, group}]
+  rows: [],     // ข้อมูล (แถว 3 เป็นต้นไป)
   levels: {},   // { name: { skillLabel: "0"|"1"|"2"|"" } }
   current: "",  // คนที่กำลังแก้ไข
-  dirty: new Map() // key: `${skill}`  value: "0"|"1"|"2"
+  dirty: new Map() // key: skillLabel -> "0"|"1"|"2"|"" (เฉพาะ current)
 };
 
 const $ = (id) => document.getElementById(id);
-const elPerson = $("person");
-const elMsg = $("msg");
+const elPerson   = $("person");
+const elMsg      = $("msg");
 const elGroupRow = $("groupRow");
 const elSkillRow = $("skillRow");
-const elTbody = $("tbody");
+const elTbody    = $("tbody");
 
 function setMessage(t){ elMsg.textContent = t; }
-
 function toStr(v){ return String(v ?? "").trim(); }
+function escapeHtml(s){ return s.replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
 function normalize012(v){
   const s = toStr(v).toLowerCase();
-  if (s === "0" || s === "1" || s === "2" || s === "") return s;
+  if (s === "" || s === "0" || s === "1" || s === "2") return s;
   if (s === "not yet" || s === "ยังทำไม่ได้") return "0";
   if (s === "can do"   || s === "ทำได้")       return "1";
   if (s === "can teach"|| s === "สอนต่อได้")   return "2";
   return "";
 }
 
-/* ---------- CSV loader + parse ---------- */
+/* ---------------- CSV Loader + Parse ---------------- */
 async function loadCSV(){
   setMessage("กำลังโหลด CSV จาก Google Sheet...");
   const r = await fetch(CSV_URL);
-  if(!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
+  if (!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
   const text = await r.text();
   const matrix = parseCSV(text);
-  if (matrix.length < 3) throw new Error("ต้องมีอย่างน้อย 3 แถว (กลุ่ม, สกิล, ข้อมูล)");
+  if (matrix.length < 3) throw new Error("ต้องมีอย่างน้อย 3 แถว (แถว1กลุ่ม, แถว2สกิล, แถว3ข้อมูล)");
 
-  const groupRow = matrix[0].map(x => toStr(x).replace(/\s+/g,' '));
-  const skillRow = matrix[1].map(x => toStr(x).replace(/\s+/g,' '));
-  const dataRows = matrix.slice(2);
+  // แถวดิบ
+  const groupRowRaw = matrix[0].map(x => toStr(x).replace(/\s+/g,' '));
+  const skillRow    = matrix[1].map(x => toStr(x).replace(/\s+/g,' '));
+  const dataRows    = matrix.slice(2);
 
-  // หา name column จาก skillRow
+  // forward-fill group header (รองรับ merge)
+  const groupRow = [];
+  let lastGroup = "";
+  for (let c=0; c<groupRowRaw.length; c++){
+    const g = toStr(groupRowRaw[c]);
+    if (g) lastGroup = g;
+    groupRow[c] = lastGroup;
+  }
+
+  // หา column "name" จากแถวสกิล (ถ้าไม่พบ ใช้คอลัมน์แรก)
   let nameCol = skillRow.findIndex(h => h.toLowerCase() === "name");
   if (nameCol === -1) nameCol = 0;
 
-  // สร้างโครงสร้าง skills (ยกเว้นคอลัมน์ name และหัวว่าง)
+  // รวมคอลัมน์สกิล (ข้าม name และหัวว่าง)
   const skillCols = [];
   for (let c=0; c<skillRow.length; c++){
     if (c === nameCol) continue;
@@ -148,12 +154,13 @@ async function loadCSV(){
     levels[nm] = mp;
   }
 
+  // update state
   state.nameCol = nameCol;
-  state.names = names;
-  state.groups = groupRow;
-  state.skills = skillCols;
-  state.rows = dataRows;
-  state.levels = levels;
+  state.names   = names;
+  state.groups  = groupRow;
+  state.skills  = skillCols;
+  state.rows    = dataRows;
+  state.levels  = levels;
   state.current = names[0] || "";
   state.dirty.clear();
 
@@ -166,7 +173,7 @@ async function loadCSV(){
   setMessage("พร้อมใช้งาน");
 }
 
-/* ---------- CSV parser (basic, supports quotes) ---------- */
+/* -------------- Basic CSV Parser (quoted) -------------- */
 function parseCSV(text){
   const rows = [];
   let i=0, cur="", row=[], inq=false;
@@ -189,35 +196,32 @@ function parseCSV(text){
   return rows;
 }
 
-/* ---------- Render table header ---------- */
+/* ---------------- Render THEAD (2 rows) ---------------- */
 function buildThead(skillCols){
-  // กลุ่ม: รวมคอลัมน์ที่มีกลุ่มเดียวกันติดกัน
-  elGroupRow.innerHTML = ""; 
+  elGroupRow.innerHTML = "";
   elSkillRow.innerHTML = "";
 
-  // คอลัมน์แรก = name (rowspan=2)
-  const thNameGroup = document.createElement("th");
-  thNameGroup.textContent = "name";
-  thNameGroup.rowSpan = 2;
-  elGroupRow.appendChild(thNameGroup);
+  // name column → rowspan=2
+  const thName = document.createElement("th");
+  thName.textContent = "name";
+  thName.rowSpan = 2;
+  elGroupRow.appendChild(thName);
 
-  // กลุ่ม
+  // groups with colspan
   let i = 0;
-  while(i < skillCols.length){
+  while (i < skillCols.length) {
     const g = skillCols[i].group || "";
     let span = 1;
-    let j = i+1;
-    while(j < skillCols.length && (skillCols[j].group||"") === g){ span++; j++; }
-
+    let j = i + 1;
+    while (j < skillCols.length && (skillCols[j].group || "") === g) { span++; j++; }
     const th = document.createElement("th");
-    th.textContent = g || "";
+    th.textContent = g;
     th.colSpan = span;
     elGroupRow.appendChild(th);
-
     i = j;
   }
 
-  // แถวชื่อสกิล
+  // skill names row
   for (const col of skillCols){
     const th = document.createElement("th");
     th.textContent = col.label;
@@ -225,23 +229,22 @@ function buildThead(skillCols){
   }
 }
 
-/* ---------- Render table body ---------- */
+/* ---------------- Render TBODY ---------------- */
 function buildTbody(){
   elTbody.innerHTML = "";
   for (const name of state.names){
     const tr = document.createElement("tr");
 
-    // cell: name
+    // name cell
     const tdName = document.createElement("td");
     tdName.className = "name-cell";
     tdName.textContent = name;
     tr.appendChild(tdName);
 
     const editable = (name === state.current);
-
     for (const col of state.skills){
       const skill = col.label;
-      const currentVal = state.dirty.has(skill) && editable
+      const currentVal = editable && state.dirty.has(skill)
         ? state.dirty.get(skill)
         : (state.levels[name]?.[skill] || "");
 
@@ -250,7 +253,7 @@ function buildTbody(){
 
       if (editable){
         const sel = document.createElement("select");
-        for (const lv of ["", "0","1","2"]){
+        for (const lv of ["", "0", "1", "2"]){
           const opt = document.createElement("option");
           opt.value = lv;
           opt.textContent = lv === "" ? "-" : lv;
@@ -270,17 +273,17 @@ function buildTbody(){
         if (state.dirty.has(skill)) sel.classList.add("dirty");
         td.appendChild(sel);
       } else {
-        td.className += " readonly";
+        td.classList.add("readonly");
         td.textContent = currentVal || "-";
       }
+
       tr.appendChild(td);
     }
-
     elTbody.appendChild(tr);
   }
 }
 
-/* ---------- Events ---------- */
+/* ---------------- Events ---------------- */
 elPerson.addEventListener("change", ()=>{
   state.current = elPerson.value;
   state.dirty.clear();
@@ -293,42 +296,52 @@ $("resetBtn").addEventListener("click", ()=>{
   setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
 });
 
-$("saveBtn").addEventListener("click", ()=>{
-  if(!state.current){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
-  if(state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
+/* ====== SAVE (วิธี B: u_skill[] / u_level[]) ====== */
+document.getElementById("saveBtn").addEventListener("click", saveViaIframeArray);
 
-  const updates = [...state.dirty.entries()].map(([skill, level]) => ({ skill, level }));
-  saveViaIframe(state.current, updates);
-});
+function saveViaIframeArray(){
+  const selectedName = state.current;
+  if (!selectedName){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
+  if (state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
 
-/* ---------- Save via hidden iframe (no CORS) ---------- */
-function saveViaIframe(name, updates){
-  const form = document.getElementById("gasForm");
-  const input = document.getElementById("payload");
+  const form   = document.getElementById("gasForm");
   const iframe = document.getElementById("gasTarget");
 
+  // ตั้ง action ทุกครั้ง เผื่อเปลี่ยน URL ภายหลัง
   form.action = GAS_ENDPOINT;
-  input.value = JSON.stringify({ name, updates });
 
+  // ใส่ชื่อ
+  document.getElementById("f_name").value = selectedName;
+
+  // ลบอินพุตเก่าที่ชื่อ u_skill[] / u_level[]
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
+    .forEach(el => el.remove());
+
+  // เติมอินพุตใหม่ตาม dirty
+  for (const [skill, level] of state.dirty.entries()){
+    const a = document.createElement('input');
+    a.type='hidden'; a.name='u_skill[]'; a.value=skill; form.appendChild(a);
+    const b = document.createElement('input');
+    b.type='hidden'; b.name='u_level[]'; b.value=level; form.appendChild(b);
+  }
+
+  // ส่งฟอร์ม
   const onLoad = ()=>{
-    // merge back
-    const mp = state.levels[name] || (state.levels[name] = {});
-    for (const u of updates){ mp[u.skill] = u.level; }
+    // merge กลับ และล้าง dirty
+    const mp = state.levels[selectedName] || (state.levels[selectedName] = {});
+    for (const [skill, level] of state.dirty.entries()) mp[skill] = level;
     state.dirty.clear();
     buildTbody();
     setMessage("✅ บันทึกสำเร็จ");
-    iframe.removeEventListener("load", onLoad);
+    iframe.removeEventListener('load', onLoad);
   };
-  iframe.addEventListener("load", onLoad, { once: true });
+  iframe.addEventListener('load', onLoad, { once: true });
 
   setMessage("กำลังบันทึก...");
   form.submit();
 }
 
-/* ---------- Utils ---------- */
-function escapeHtml(s){ return s.replace(/[&<>"']/g, (m)=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[m])); }
-
-/* ---------- Boot ---------- */
+/* ---------------- Boot ---------------- */
 loadCSV().catch(err=>{
   setMessage("❌ โหลด CSV ไม่สำเร็จ: " + (err.message || err));
 });
