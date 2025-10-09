@@ -60,24 +60,54 @@
     tbody tr:nth-child(even) td{background:#fcfcff}
     tbody tr:hover td{background:#f8faff}
     
-    /* ปุ่มวงกลมระดับ */
-/* พื้นฐาน */
+/* ===== 2) เพิ่มคอนทราสต์ปุ่มที่แก้ไม่ได้ (readonly) ===== */
+/* พื้นฐานปุ่ม */
     .lvbtn{
       display:inline-flex;align-items:center;justify-content:center;
       width:32px;height:32px;font-size:22px;
-      border:1px solid var(--brand-200);border-radius:10px;background:#fff;
+      border:1px solid var(--brand-200);
+      border-radius:10px;background:#4159c4;color:#fff;
     }
     
-    /* 0 = แสดง "-" ให้สีอ่อนลง */
-    .lvbtn[data-value="0"]{ color:#e5e7eb; }
-    /* 1 = ○ */
-    .lvbtn[data-value="1"]{ color:#ffffff; }
-    /* 2 = ● */
-    .lvbtn[data-value="2"]{ color:#ffffff; }
+    /* ค่าระดับ: ให้ 0 (แสดง "-") โทนเทาเข้มขึ้น อ่านง่าย */
+    .lvbtn[data-value="0"]{ color:#6b7280; background:#f8fafc; border-color:#e5e7eb; }
+    /* 1/2 ใช้พื้นหลังน้ำเงิน + สีขาวเหมือนเดิม */
+    .lvbtn[data-value="1"],.lvbtn[data-value="2"]{ background:#4159c4; color:#fff; }
     
-    /* สถานะอื่น ๆ */
-    .lvbtn.readonly{ background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
-    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-2px; }
+    /* ปุ่มของ “คนที่ไม่ได้เลือก” → ยังอ่านง่ายและเห็นกรอบชัด */
+    .lvbtn.readonly{
+      background:#eef2ff;              /* ฟ้าอ่อน อ่านง่ายกว่าเทาอ่อน */
+      color:#374151;                    /* ตัวหนังสือเทาเข้ม */
+      border-color:#c7d2fe;             /* ขอบชัดขึ้น */
+      cursor: default;
+      opacity: 1;                       /* ยกเลิกความซีด */
+    }
+    
+    /* ถ้าค่าเป็น 0 และ readonly → โทนอ่อนลงเล็กน้อยแต่ยังชัด */
+    .lvbtn.readonly[data-value="0"]{
+      background:#f3f4ff;              /* ฟ้าอมม่วงอ่อน */
+      color:#4b5563;
+      border-color:#dbe3ff;
+    }
+    
+    /* เส้นกรอบเวลามีการแก้ไข (dirty) ให้อยู่กลางสวยขึ้น */
+    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px; }
+    /* ===== 1) จัดกึ่งกลางในเซลล์ ===== */
+    td.center{
+      /* ใช้ flex ให้ตรงกลางทั้งแกน X,Y */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      /* กันธีมอื่นมาดันตำแหน่ง */
+      padding: 10px 12px;
+    }
+    
+    /* กันเผื่อปุ่มมี margin/inline behavior */
+    td.center .lvbtn{
+      display: inline-flex;
+      margin: 0;
+    } 
 
    
   </style>
