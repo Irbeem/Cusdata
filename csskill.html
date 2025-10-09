@@ -30,6 +30,15 @@
     .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
     .small { font-size:12px; color:#6b7280; }
     iframe { display:none; }
+    /* ปุ่มวงกลมระดับสกิล */
+    .lvbtn{
+      display:inline-flex; align-items:center; justify-content:center;
+      width:28px; height:28px; border:1px solid #d1d5db; border-radius:8px;
+      background:#fff; cursor:pointer; font-size:18px; line-height:1;
+      user-select:none;
+    }
+    .lvbtn.readonly{ background:#f9fafb; color:#9ca3af; cursor:default; }
+    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-2px; }
   </style>
 </head>
 <body>
@@ -268,55 +277,62 @@ function buildTbody(){
   for (const name of state.names){
     const tr = document.createElement("tr");
 
-    // name cell
+    // คอลัมน์ชื่อ
     const tdName = document.createElement("td");
     tdName.className = "name-cell";
     tdName.textContent = name;
     tr.appendChild(tdName);
 
     const editable = (name === state.current);
+
     for (const col of state.skills){
       const skill = col.label;
-      const baseline = state.levels[name]?.[skill] || "";
-      const currentVal = editable && state.dirty.has(skill)
+
+      // baseline จากชีต: ถ้าไม่มีให้ถือเป็น '0' (ไม่ใช่ '-')
+      const baseline = (state.levels[name]?.[skill] ?? '0');
+      const current  = editable && state.dirty.has(skill)
         ? state.dirty.get(skill)
         : baseline;
 
       const td = document.createElement("td");
       td.className = "center";
 
-      if (editable){
-        const sel = document.createElement("select");
-        for (const lv of ["", "0", "1", "2"]){
-          const opt = document.createElement("option");
-          opt.value = lv;
-          opt.textContent = lv === "" ? "-" : lv;
-          if (lv === currentVal) opt.selected = true;
-          sel.appendChild(opt);
-        }
-        sel.addEventListener("change", ()=>{
-          const v = sel.value;
-          if (v === baseline) {
+      // ปุ่มวงกลม
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "lvbtn";
+      btn.textContent = symbolForLevel(current);
+      btn.dataset.skill = skill;
+      btn.dataset.value = current;
+
+      if (!editable){
+        btn.classList.add("readonly");
+      } else {
+        if (current !== baseline) btn.classList.add("dirty");
+
+        btn.addEventListener("click", ()=>{
+          const oldVal = btn.dataset.value;
+          const newVal = nextLevel(oldVal);
+          btn.dataset.value = newVal;
+          btn.textContent = symbolForLevel(newVal);
+
+          if (newVal === baseline){
             state.dirty.delete(skill);
-            sel.classList.remove("dirty");
+            btn.classList.remove("dirty");
           } else {
-            state.dirty.set(skill, v);
-            sel.classList.add("dirty");
+            state.dirty.set(skill, newVal);
+            btn.classList.add("dirty");
           }
         });
-        if (state.dirty.has(skill)) sel.classList.add("dirty");
-        td.appendChild(sel);
-      } else {
-        td.classList.add("readonly");
-        td.textContent = currentVal || "-";
       }
 
+      td.appendChild(btn);
       tr.appendChild(td);
     }
+
     elTbody.appendChild(tr);
   }
 }
-
 /* ---------------- Events ---------------- */
 elPerson.addEventListener("change", ()=>{
   state.current = elPerson.value;
@@ -457,6 +473,8 @@ function deleteName(){
   setMessage("กำลังลบชื่อ...");
   form.submit();
 }  
+function symbolForLevel(lv){ return lv === '2' ? '●' : (lv === '1' ? '○' : '0'); }
+function nextLevel(lv){ return lv === '0' ? '1' : (lv === '1' ? '2' : '0'); }
 </script>
 </body>
 </html>
