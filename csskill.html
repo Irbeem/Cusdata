@@ -52,7 +52,7 @@
   <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
   <button id="resetBtn" class="secondary">ยกเลิก</button>
   <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
-
+  <br>
   <!-- 🔵 เพิ่มปุ่ม/ช่องจัดการรายชื่อ -->
   <input id="newName" placeholder="ชื่อพนักงาน" style="margin-left:8px; min-width:180px;" />
   <button id="btnAdd" class="secondary" title="เพิ่มชื่อใหม่">➕ เพิ่มชื่อ</button>
@@ -393,25 +393,32 @@ function addName(){
   const newName = (input.value || "").trim();
   if (!newName){ alert("กรุณากรอกชื่อพนักงาน"); return; }
 
-  // ส่งไป GAS ผ่าน iframe
   const form   = document.getElementById("gasForm");
   const iframe = document.getElementById("gasTarget");
   form.action = GAS_ENDPOINT;
 
+  // ตั้ง action + payload
   document.getElementById("f_action").value   = "addName";
   document.getElementById("f_new_name").value = newName;
 
+  // ปิดปุ่มกันคลิกซ้ำ
+  const btnAdd = document.getElementById("btnAdd");
+  const btnDel = document.getElementById("btnDel");
+  btnAdd.disabled = true; btnDel.disabled = true;
+
   const cleanup = () => {
-    // เคลียร์ฟิลด์ action เพื่อไม่ให้ไปรบกวนการ save สกิลครั้งต่อไป
-    document.getElementById("f_action").value = "";
+    document.getElementById("f_action").value   = "";
     document.getElementById("f_new_name").value = "";
+    // ✅ ล้างช่อง input หลังทำงานเสร็จ
+    input.value = "";
+    btnAdd.disabled = false; btnDel.disabled = false;
   };
 
   iframe.onload = () => {
     iframe.onload = null;
     cleanup();
     setMessage("✅ เพิ่มชื่อสำเร็จ: " + newName);
-    // โหลดข้อมูลใหม่ + เลือกชื่อที่เพิ่งเพิ่ม
+    // รีโหลด + เลือกชื่อที่เพิ่งเพิ่ม
     loadCSV().then(()=> {
       const sel = document.getElementById("person");
       if ([...sel.options].some(o => o.value === newName)) {
@@ -427,8 +434,7 @@ function addName(){
 }
 
 function deleteName(){
-  // ใช้ชื่อจาก select หากไม่ได้กรอกในช่อง
-  const input = document.getElementById("newName");
+  const input  = document.getElementById("newName");
   const target = (input.value || document.getElementById("person").value || "").trim();
   if (!target){ alert("ไม่พบชื่อที่จะลบ"); return; }
   if (!confirm(`ยืนยันลบชื่อ "${target}" ออกจากชีต?`)) return;
@@ -437,19 +443,33 @@ function deleteName(){
   const iframe = document.getElementById("gasTarget");
   form.action = GAS_ENDPOINT;
 
+  // ล้าง field ที่ไม่เกี่ยว จะได้ไม่ไปอัปเดตสกิล
+  document.getElementById("f_name").value = "";
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
+    .forEach(el => el.remove());
+
+  // ตั้ง action + payload
   document.getElementById("f_action").value   = "deleteName";
   document.getElementById("f_new_name").value = target;
 
+  // ปิดปุ่มกันคลิกซ้ำ
+  const btnAdd = document.getElementById("btnAdd");
+  const btnDel = document.getElementById("btnDel");
+  btnAdd.disabled = true; btnDel.disabled = true;
+
   const cleanup = () => {
-    document.getElementById("f_action").value = "";
+    document.getElementById("f_action").value   = "";
     document.getElementById("f_new_name").value = "";
+    // ✅ ล้างช่อง input หลังทำงานเสร็จ
+    input.value = "";
+    btnAdd.disabled = false; btnDel.disabled = false;
   };
 
   iframe.onload = () => {
     iframe.onload = null;
     cleanup();
     setMessage("✅ ลบชื่อสำเร็จ: " + target);
-    // โหลดใหม่ และถ้า current ถูกลบ ให้เลือกชื่อแรก
+    // รีโหลด + ถ้า current ถูกลบให้เลือกชื่อแรก
     loadCSV().then(()=> {
       const sel = document.getElementById("person");
       if (![...sel.options].some(o => o.value === state.current)) {
@@ -462,7 +482,7 @@ function deleteName(){
 
   setMessage("กำลังลบชื่อ...");
   form.submit();
-}  
+}
 
 function symbolForLevel(lv){
   // แสดง 0 เป็น "-" (visual only)
