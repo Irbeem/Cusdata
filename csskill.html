@@ -603,6 +603,22 @@ buildThead = function(...args){
   requestAnimationFrame(updateStickyHeaderOffset);
   return res;
 };
+
+function updateStickyHeaderOffset(){
+  const r1 = document.querySelector('#groupRow');   // แถวหัวแถวแรก
+  const h  = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
+  document.documentElement.style.setProperty('--h1', h + 'px');
+}
+window.addEventListener('load', updateStickyHeaderOffset);
+window.addEventListener('resize', updateStickyHeaderOffset);
+
+// ถ้าคุณมี buildThead() ให้เรียกหลังเรนเดอร์เสร็จ
+const _buildThead = buildThead;
+buildThead = function(...args){
+  const res = _buildThead.apply(this, args);
+  requestAnimationFrame(updateStickyHeaderOffset);
+  return res;
+};
 </script>
 </body>
 </html>
