@@ -44,20 +44,20 @@
 <body>
   <header>
     <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
-    
-    <div class="controls">
-  <label>พนักงาน (เลือกเพื่อแก้ไข):
-    <select id="person"></select>
-  </label>
-  <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
-  <button id="resetBtn" class="secondary">ยกเลิก</button>
-  <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
-  </br>
+  <div class="controls">
+    <label>พนักงาน (เลือกเพื่อแก้ไข):
+      <select id="person"></select>
+    </label>
+    <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
+    <button id="resetBtn" class="secondary">ยกเลิก</button>
+    <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
+  </div>
+  <div>
   <!-- 🔵 เพิ่มปุ่ม/ช่องจัดการรายชื่อ -->
-  <input id="newName" placeholder="ชื่อพนักงาน" style="margin-left:8px; min-width:180px;" />
-  <button id="btnAdd" class="secondary" title="เพิ่มชื่อใหม่">➕ เพิ่มชื่อ</button>
-  <button id="btnDel" class="secondary" title="ลบชื่อที่เลือก">🗑 ลบชื่อ</button>
-</div>
+    <input id="newName" placeholder="ชื่อพนักงาน" style="margin-left:8px; min-width:180px;" />
+    <button id="btnAdd" class="secondary" title="เพิ่มชื่อใหม่">➕ เพิ่มชื่อ</button>
+    <button id="btnDel" class="secondary" title="ลบชื่อที่เลือก">🗑 ลบชื่อ</button>
+  </div>
   </header>
   <form id="gasForm" method="POST" target="gasTarget" action="">
   <input type="hidden" name="name" id="f_name">
