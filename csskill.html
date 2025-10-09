@@ -39,6 +39,50 @@
     }
     .lvbtn.readonly{ background:#f9fafb; color:#9ca3af; cursor:default; }
     .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-2px; }
+    /* กล่องสกรอลล์ของตาราง */
+    .table-wrap{
+      max-height: calc(100vh - 180px); /* ปรับตาม layout ของคุณ */
+      overflow: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    }
+    
+    /* ห้ามใช้ transform/backdrop-filter กับบรรพบุรุษ ไม่งั้น sticky จะพัง */
+    .table-wrap, .table-wrap *{
+      transform: none !important;
+      filter: none !important;
+      backdrop-filter: none !important;
+    }
+    
+    /* หัวตาราง sticky (รองรับหัว 2 แถว) */
+    thead th{
+      position: sticky;
+      background: #f9fafb; /* สีพื้นของหัวเวลา sticky */
+      z-index: 2;
+    }
+    
+    /* แถวหัวแถวที่ 1 ติดบนสุด */
+    thead tr:first-child th{
+      top: 0;
+      z-index: 3; /* สูงกว่าแถว 2 */
+    }
+    
+    /* แถวหัวแถวที่ 2 ให้เลื่อนตามความสูงแถว 1 */
+    :root{ --h1: 34px; }              /* fallback ถ้า JS ยังไม่คำนวณ */
+    thead tr:nth-child(2) th{
+      top: var(--h1);
+    }
+    
+    /* ล็อกคอลัมน์ชื่อ (คอลัมน์แรก) */
+    thead th:first-child,
+    tbody td:first-child{
+      position: sticky;
+      left: 0;
+      z-index: 4;         /* สูงกว่าหัวอื่น ๆ */
+      background: #f9fafb;
+      font-weight: 600;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -491,6 +535,24 @@ function symbolForLevel(lv){
 function nextLevel(lv){
   return lv === '0' ? '1' : (lv === '1' ? '2' : '0');
 }
+
+function updateStickyHeaderOffset(){
+  const r1 = document.querySelector('#groupRow'); // แถวหัวแถวแรก
+  // ถ้า #groupRow ยังไม่มี (เพิ่งโหลด) ให้ลองนัดใหม่
+  const h = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
+  document.documentElement.style.setProperty('--h1', h + 'px');
+}
+// เรียกตอนโหลด / รีไซส์ / เรนเดอร์ใหม่
+window.addEventListener('load', updateStickyHeaderOffset);
+window.addEventListener('resize', updateStickyHeaderOffset);
+
+// ถ้าคุณมีฟังก์ชัน buildThead/buildTbody ให้เรียกหลัง render เสร็จ:
+const _buildThead = buildThead;
+buildThead = function(...args){
+  const res = _buildThead.apply(this, args);
+  requestAnimationFrame(updateStickyHeaderOffset);
+  return res;
+};
 </script>
 </body>
 </html>
