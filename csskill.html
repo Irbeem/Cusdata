@@ -61,10 +61,23 @@
     tbody tr:hover td{background:#f8faff}
     
     /* ปุ่มวงกลมระดับ */
-    .lvbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:22px;border:1px solid var(--brand-200);border-radius:10px;background:#4159c4}
-    .lvbtn.readonly{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb}
-    .lvbtn.dirty{outline:2px solid #f59e0b;outline-offset:-2px}
-
+/* พื้นฐาน */
+    .lvbtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      width:32px;height:32px;font-size:22px;
+      border:1px solid var(--brand-200);border-radius:10px;background:#4159c4;
+    }
+    
+    /* 0 = แสดง "-" ให้สีอ่อนลง */
+    .lvbtn[data-value="0"]{ color:#e5e7eb; }
+    /* 1 = ○ */
+    .lvbtn[data-value="1"]{ color:#ffffff; }
+    /* 2 = ● */
+    .lvbtn[data-value="2"]{ color:#ffffff; }
+    
+    /* สถานะอื่น ๆ */
+    .lvbtn.readonly{ background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
+    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-2px; }
 
    
   </style>
