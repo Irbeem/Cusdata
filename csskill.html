@@ -133,6 +133,162 @@ tbody td:first-child{
   font-weight: 600;
   white-space: nowrap;
 }
+/* ===== THEME ===== */
+:root{
+  --bg: #ffffff;
+  --card: #ffffff;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+
+  /* แพเลตหลัก */
+  --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
+  --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
+
+  --green-500:#10b981;
+  --amber-500:#f59e0b;
+  --rose-500:#f43f5e;
+
+  --header-grad: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+}
+
+/* ===== Header bar / toolbar ===== */
+header{
+  background: var(--header-grad);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
+}
+
+.controls select,
+.controls input{
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+.controls select:focus,
+.controls input:focus{
+  outline: none;
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent);
+}
+
+/* ===== Buttons ===== */
+button{
+  border-radius: 10px;
+  padding: 10px 14px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
+}
+button:active{ transform: translateY(1px); }
+
+button.primary{
+  background: var(--brand-500);
+  border-color: var(--brand-500);
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(79,70,229,.25);
+}
+button.primary:hover{ background: var(--brand-600); }
+
+button.secondary{
+  background: #fff;
+  color: var(--brand-600);
+  border-color: var(--brand-200);
+}
+button.secondary:hover{
+  background: var(--brand-50);
+  border-color: var(--brand-400);
+}
+
+/* ปุ่ม เพิ่ม / ลบ แนะนำสีเฉพาะ */
+#btnAdd.secondary{
+  color: var(--green-500);
+  border-color: color-mix(in srgb, var(--green-500) 35%, #ffffff);
+}
+#btnAdd.secondary:hover{
+  background: color-mix(in srgb, var(--green-500) 12%, #ffffff);
+  border-color: var(--green-500);
+}
+#btnDel.secondary{
+  color: var(--rose-500);
+  border-color: color-mix(in srgb, var(--rose-500) 35%, #ffffff);
+}
+#btnDel.secondary:hover{
+  background: color-mix(in srgb, var(--rose-500) 10%, #ffffff);
+  border-color: var(--rose-500);
+}
+
+/* ===== Table wrapper ===== */
+.table-wrap{
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, .05);
+}
+
+/* ===== Table ===== */
+table{ border-spacing:0; width:max-content; min-width:100%; }
+th, td{
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  background: #fff;
+}
+
+/* หัวแถว 1 (กลุ่ม) */
+#groupRow th{
+  background: color-mix(in srgb, var(--brand-50) 65%, #ffffff);
+  color:#111827;
+  font-weight: 700;
+  letter-spacing:.2px;
+  border-bottom: 2px solid var(--brand-200);
+}
+
+/* หัวแถว 2 (สกิล) */
+#skillRow th{
+  background:#fff;
+  font-weight: 700;
+  color:#0f172a;
+}
+
+/* คอลัมน์ชื่อ (sticky ด้านซ้าย) */
+thead th:first-child,
+tbody td:first-child{
+  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
+  font-weight: 700;
+  color:#0f172a;
+}
+
+/* ไฮไลต์ row hover + คาดเส้นสลับสี */
+tbody tr:nth-child(even) td{ background:#fcfcff; }
+tbody tr:hover td{ background:#f8faff; }
+
+/* ===== Level buttons (วงกลม 0/1/2) ===== */
+.lvbtn{
+  width: 32px; height: 32px; font-size: 18px;
+  border-radius: 10px;
+  border: 1px solid var(--brand-200);
+  background: #fff;
+  color:#111827;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04);
+}
+.lvbtn:hover{ box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-400) 15%, transparent); }
+.lvbtn.readonly{ background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
+
+/* แสดงสถานะที่แก้ไข (dirty) */
+.lvbtn.dirty{
+  border-color: var(--amber-500);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--amber-500) 25%, transparent);
+}
+
+/* ===== Sticky z-index (คง behavior เดิม) ===== */
+thead tr:first-child th{ top:0; z-index:40; }
+thead tr:nth-child(2) th{ top: var(--h1); z-index:39; }
+thead th:first-child{ left:0; z-index:41; }
+tbody td:first-child{ left:0; z-index:20; }
+    #groupRow th{ background: linear-gradient(180deg, var(--brand-50) 0%, #fff 90%); }
+    
   </style>
 </head>
 <body>
