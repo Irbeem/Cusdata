@@ -83,6 +83,56 @@
       font-weight: 600;
       white-space: nowrap;
     }
+    /* กล่องสกรอลล์ */
+.table-wrap{
+  max-height: calc(100vh - 180px);
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+/* ห้าม transform/filter บรรพบุรุษ sticky */
+.table-wrap, .table-wrap *{
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* === Sticky header (2 แถว) === */
+:root{ --h1: 34px; }           /* JS จะอัปเดตให้อัตโนมัติ */
+
+thead th{
+  position: sticky;
+  background:#fff;             /* ให้ทึบเพื่อบังของที่เลื่อนใต้หัว */
+}
+
+/* แถวหัวแถวที่ 1 */
+thead tr:first-child th{
+  top: 0;
+  z-index: 40;                 /* สูงกว่าคอลัมน์ name */
+}
+
+/* แถวหัวแถวที่ 2 */
+thead tr:nth-child(2) th{
+  top: var(--h1);
+  z-index: 39;
+}
+
+/* มุมซ้ายบน (หัวคอลัมน์ name) ให้สูงสุด */
+thead th:first-child{
+  left: 0;
+  z-index: 41;
+}
+
+/* === Sticky คอลัมน์แรก (name) === */
+tbody td:first-child{
+  position: sticky;
+  left: 0;
+  background:#f9fafb;
+  z-index: 20;                 /* ต่ำกว่าหัวตาราง -> หัวบังได้เวลาสกรอลล์ขึ้น */
+  font-weight: 600;
+  white-space: nowrap;
+}
   </style>
 </head>
 <body>
