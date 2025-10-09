@@ -44,8 +44,27 @@
       <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
     </div>
     <div id="msg" class="status"></div>
-  </header>
+    <div class="controls">
+  <label>พนักงาน (เลือกเพื่อแก้ไข):
+    <select id="person"></select>
+  </label>
+  <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
+  <button id="resetBtn" class="secondary">ยกเลิก</button>
+  <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
 
+  <!-- 🔵 เพิ่มปุ่ม/ช่องจัดการรายชื่อ -->
+  <input id="newName" placeholder="ชื่อพนักงาน" style="margin-left:8px; min-width:180px;" />
+  <button id="btnAdd" class="secondary" title="เพิ่มชื่อใหม่">➕ เพิ่มชื่อ</button>
+  <button id="btnDel" class="secondary" title="ลบชื่อที่เลือก">🗑 ลบชื่อ</button>
+</div>
+  </header>
+  <form id="gasForm" method="POST" target="gasTarget" action="">
+  <input type="hidden" name="name" id="f_name">
+  <!-- 🔵 เพิ่มสองตัวนี้ -->
+  <input type="hidden" name="action"   id="f_action">
+  <input type="hidden" name="new_name" id="f_new_name">
+  <!-- ช่อง u_skill[] / u_level[] จะถูกเติมตอนกด Save -->
+  </form>
   <div class="wrap">
     <div class="table-wrap">
       <table id="skillTable" aria-label="Skill matrix table">
@@ -358,6 +377,86 @@ function saveViaIframeArray(){
 loadCSV().catch(err=>{
   setMessage("❌ โหลดข้อมูลไม่สำเร็จ: " + (err.message || err));
 });
+
+// ===== ปุ่มเพิ่ม/ลบชื่อ =====
+document.getElementById("btnAdd").addEventListener("click", addName);
+document.getElementById("btnDel").addEventListener("click", deleteName);
+
+function addName(){
+  const input = document.getElementById("newName");
+  const newName = (input.value || "").trim();
+  if (!newName){ alert("กรุณากรอกชื่อพนักงาน"); return; }
+
+  // ส่งไป GAS ผ่าน iframe
+  const form   = document.getElementById("gasForm");
+  const iframe = document.getElementById("gasTarget");
+  form.action = GAS_ENDPOINT;
+
+  document.getElementById("f_action").value   = "addName";
+  document.getElementById("f_new_name").value = newName;
+
+  const cleanup = () => {
+    // เคลียร์ฟิลด์ action เพื่อไม่ให้ไปรบกวนการ save สกิลครั้งต่อไป
+    document.getElementById("f_action").value = "";
+    document.getElementById("f_new_name").value = "";
+  };
+
+  iframe.onload = () => {
+    iframe.onload = null;
+    cleanup();
+    setMessage("✅ เพิ่มชื่อสำเร็จ: " + newName);
+    // โหลดข้อมูลใหม่ + เลือกชื่อที่เพิ่งเพิ่ม
+    loadCSV().then(()=> {
+      const sel = document.getElementById("person");
+      if ([...sel.options].some(o => o.value === newName)) {
+        sel.value = newName;
+        state.current = newName;
+        buildTbody();
+      }
+    });
+  };
+
+  setMessage("กำลังเพิ่มชื่อ...");
+  form.submit();
+}
+
+function deleteName(){
+  // ใช้ชื่อจาก select หากไม่ได้กรอกในช่อง
+  const input = document.getElementById("newName");
+  const target = (input.value || document.getElementById("person").value || "").trim();
+  if (!target){ alert("ไม่พบชื่อที่จะลบ"); return; }
+  if (!confirm(`ยืนยันลบชื่อ "${target}" ออกจากชีต?`)) return;
+
+  const form   = document.getElementById("gasForm");
+  const iframe = document.getElementById("gasTarget");
+  form.action = GAS_ENDPOINT;
+
+  document.getElementById("f_action").value   = "deleteName";
+  document.getElementById("f_new_name").value = target;
+
+  const cleanup = () => {
+    document.getElementById("f_action").value = "";
+    document.getElementById("f_new_name").value = "";
+  };
+
+  iframe.onload = () => {
+    iframe.onload = null;
+    cleanup();
+    setMessage("✅ ลบชื่อสำเร็จ: " + target);
+    // โหลดใหม่ และถ้า current ถูกลบ ให้เลือกชื่อแรก
+    loadCSV().then(()=> {
+      const sel = document.getElementById("person");
+      if (![...sel.options].some(o => o.value === state.current)) {
+        state.current = sel.options[0]?.value || "";
+        sel.value = state.current;
+        buildTbody();
+      }
+    });
+  };
+
+  setMessage("กำลังลบชื่อ...");
+  form.submit();
+}  
 </script>
 </body>
 </html>
