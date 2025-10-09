@@ -368,46 +368,65 @@ function buildThead(skillCols){
 /* ---------------- Render TBODY ---------------- */
 function buildTbody(){
   elTbody.innerHTML = "";
+
   for (const name of state.names){
     const tr = document.createElement("tr");
 
     // ✅ ไฮไลต์ทั้งแถวถ้าเป็นคนที่เลือก
     if (name === state.current) tr.classList.add("is-selected");
 
-    // คอลัมน์ชื่อ
+    // ----- คอลัมน์ชื่อ -----
     const tdName = document.createElement("td");
     tdName.className = "name-cell";
     tdName.textContent = name;
     tr.appendChild(tdName);
 
-    const editable = (name === state.current);
+    const editable = (name === state.current); // แก้ได้เฉพาะแถวนี้
 
+    // ----- คอลัมน์สกิล -----
     for (const col of state.skills){
-      const skill = col.label;
-      const baseline = (state.levels[name]?.[skill] ?? '0') || '0';
-      const current  = (name === state.current && state.dirty.has(skill))
-        ? state.dirty.get(skill)
-        : baseline;
+      const skill    = col.label;
+      const baseline = (state.levels[name]?.[skill] ?? '0') || '0';  // ค่าเดิมในชีต ('',null -> '0')
+      const current  = (editable && state.dirty.has(skill))
+        ? state.dirty.get(skill)        // มีการแก้ค้างไว้
+        : baseline;                     // ยังไม่แก้ ใช้ค่าเดิม
 
       const td = document.createElement("td");
       td.className = "center";
 
-      // ใช้ wrapper .cell ตามที่ทำไปก่อนหน้า
+      // wrapper กัน layout พัง และใช้สำหรับจัดกึ่งกลาง
       const wrap = document.createElement("div");
       wrap.className = "cell";
 
+      // ปุ่มระดับ
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "lvbtn";
-      btn.textContent = symbolForLevel(current);
       btn.dataset.skill = skill;
-      btn.dataset.value = current;
+      btn.dataset.value = current;              // เก็บค่าไว้ใน data
+      btn.textContent = symbolForLevel(current); // แสดง ○ ● -
 
       if (!editable){
         btn.classList.add("readonly");
       } else {
+        // ถ้ามีการแก้ไขให้โชว์กรอบ
         if (current !== baseline) btn.classList.add("dirty");
-        btn.addEventListener("click", ()=>{ /* … logic เดิม … */ });
+
+        // ✅ ผูกคลิกให้หมุนค่า 0→1→2→0 แล้วอัปเดต state.dirty
+        btn.addEventListener("click", () => {
+          const oldVal = btn.dataset.value;
+          const newVal = nextLevel(oldVal);       // วน 0/1/2
+          btn.dataset.value = newVal;
+          btn.textContent   = symbolForLevel(newVal);
+
+          if (newVal === baseline){
+            state.dirty.delete(skill);
+            btn.classList.remove("dirty");
+          } else {
+            state.dirty.set(skill, newVal);
+            btn.classList.add("dirty");
+          }
+        });
       }
 
       wrap.appendChild(btn);
