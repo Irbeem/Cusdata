@@ -93,11 +93,25 @@
     /* เส้นกรอบเวลามีการแก้ไข (dirty) ให้อยู่กลางสวยขึ้น */
     .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px; }
     /* ===== 1) จัดกึ่งกลางในเซลล์ ===== */
-    /* จัดปุ่มให้อยู่กึ่งกลางโดยไม่ทำลาย layout ของตาราง */
+    /* อย่าตั้ง display ให้ <td> เด็ดขาด */
     td.center{
-      display: grid;          /* ✅ เสถียรกว่า flex สำหรับ table cell */
-      place-items: center;    /* จัดกลางทั้งแนวตั้ง/แนวนอน */
-      text-align: center;
+      text-align: center;        /* จัดแนวนอน */
+      vertical-align: middle;    /* จัดแนวตั้ง */
+      padding: 10px 12px;
+    }
+    
+    /* ตัวที่ใช้จัดกึ่งกลางจริง ๆ อยู่ข้างในเซลล์ */
+    td.center .cell{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;               /* กินทั้งความกว้างของเซลล์ */
+    }
+    
+    /* กัน margin/inline พิเศษของปุ่ม */
+    td.center .lvbtn{
+      display: inline-flex;
+      margin: 0;
     }
        
   </style>
@@ -345,6 +359,11 @@ function buildTbody(){
         : baseline;
       const td = document.createElement("td");
       td.className = "center";
+      
+      const wrap = document.createElement("div");
+      wrap.className = "cell";     // << wrapper สำหรับ flex
+      
+
 
       // ปุ่มวงกลม
       const btn = document.createElement("button");
@@ -374,8 +393,9 @@ function buildTbody(){
           }
         });
       }
-
-      td.appendChild(btn);
+      wrap.appendChild(btn);
+      td.appendChild(wrap);
+      //td.appendChild(btn);
       tr.appendChild(td);
     }
 
