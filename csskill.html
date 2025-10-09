@@ -44,15 +44,7 @@
 <body>
   <header>
     <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
-    <div class="controls">
-      <label>พนักงาน (เลือกเพื่อแก้ไข):
-        <select id="person"></select>
-      </label>
-      <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
-      <button id="resetBtn" class="secondary">ยกเลิก</button>
-      <span class="small">แก้ไขได้เฉพาะแถวของคนที่เลือก</span>
-    </div>
-    <div id="msg" class="status"></div>
+    
     <div class="controls">
   <label>พนักงาน (เลือกเพื่อแก้ไข):
     <select id="person"></select>
@@ -73,6 +65,7 @@
   <input type="hidden" name="action"   id="f_action">
   <input type="hidden" name="new_name" id="f_new_name">
   <!-- ช่อง u_skill[] / u_level[] จะถูกเติมตอนกด Save -->
+  <div id="msg" class="status"></div>
   </form>
   <div class="wrap">
     <div class="table-wrap">
