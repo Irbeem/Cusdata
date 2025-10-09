@@ -65,18 +65,7 @@
     .lvbtn.readonly{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb}
     .lvbtn.dirty{outline:2px solid #f59e0b;outline-offset:-2px}
 
-    /* จัดกึ่งกลางทั้งแนวตั้ง-แนวนอนให้เซลล์ที่มีปุ่ม */
-    td.center{
-      display: grid;            /* หรือใช้ flex ก็ได้ */
-      place-items: center;      /* ศูนย์กลาง x,y */
-      text-align: center;       /* เผื่อมีตัวอื่นในเซลล์ */
-    }
-    
-    /* กันเผื่อบางธีมตั้ง display ของปุ่มเป็น block */
-    td.center .lvbtn{
-      display: inline-flex;
-      margin: 0;                /* ไม่ให้มี margin ดัน */
-    }
+
    
   </style>
 </head>
