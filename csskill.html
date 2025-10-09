@@ -280,13 +280,10 @@ function buildTbody(){
 
     for (const col of state.skills){
       const skill = col.label;
-
-      // baseline จากชีต: ถ้าไม่มีให้ถือเป็น '0' (ไม่ใช่ '-')
-      const baseline = (state.levels[name]?.[skill] ?? '0');
-      const current  = editable && state.dirty.has(skill)
+      const baseline = (state.levels[name]?.[skill] ?? '0') || '0'; // '' -> '0'
+      const current  = (name === state.current && state.dirty.has(skill))
         ? state.dirty.get(skill)
         : baseline;
-
       const td = document.createElement("td");
       td.className = "center";
 
@@ -466,8 +463,14 @@ function deleteName(){
   setMessage("กำลังลบชื่อ...");
   form.submit();
 }  
-function symbolForLevel(lv){ return lv === '2' ? '●' : (lv === '1' ? '○' : '0'); }
-function nextLevel(lv){ return lv === '0' ? '1' : (lv === '1' ? '2' : '0'); }
+
+function symbolForLevel(lv){
+  // แสดง 0 เป็น "-" (visual only)
+  return lv === '2' ? '●' : (lv === '1' ? '○' : '-');
+}
+function nextLevel(lv){
+  return lv === '0' ? '1' : (lv === '1' ? '2' : '0');
+}
 </script>
 </body>
 </html>
