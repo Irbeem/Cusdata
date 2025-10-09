@@ -93,21 +93,18 @@
     /* เส้นกรอบเวลามีการแก้ไข (dirty) ให้อยู่กลางสวยขึ้น */
     .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px; }
     /* ===== 1) จัดกึ่งกลางในเซลล์ ===== */
+    /* จัดปุ่มให้อยู่กึ่งกลางโดยไม่ทำลาย layout ของตาราง */
     td.center{
-      /* ใช้ flex ให้ตรงกลางทั้งแกน X,Y */
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: grid;          /* ✅ เสถียรกว่า flex สำหรับ table cell */
+      place-items: center;    /* จัดกลางทั้งแนวตั้ง/แนวนอน */
       text-align: center;
-      /* กันธีมอื่นมาดันตำแหน่ง */
-      padding: 10px 12px;
     }
     
-    /* กันเผื่อปุ่มมี margin/inline behavior */
+    /* เผื่อธีมอื่นมี margin มากับปุ่ม */
     td.center .lvbtn{
       display: inline-flex;
       margin: 0;
-    } 
+    }
 
    
   </style>
