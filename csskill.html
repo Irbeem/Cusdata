@@ -9,6 +9,8 @@
       --h1: 34px;                 /* ระยะหัวแถวแรก (อัปเดตด้วย JS) */
       --border:#e5e7eb;
       --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
+      --row-select-bg: #eef2ff;   /* พื้นหลังทั้งแถว */
+      --row-select-left: #6366f1; /* เส้นแถบซ้ายเล็ก ๆ */
     }
     
     html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
@@ -113,7 +115,30 @@
       display: inline-flex;
       margin: 0;
     }
-       
+    /* ทั้งแถวของพนักงานที่ถูกเลือก */
+    tr.is-selected td{
+      background: var(--row-select-bg) !important;
+      position: relative;
+      transition: background .15s ease;
+    }
+    
+    /* ให้คอลัมน์แรก (sticky) กลมกลืน */
+    tr.is-selected td:first-child{
+      background: linear-gradient(90deg, #eaf0ff 0%, var(--row-select-bg) 100%) !important;
+      font-weight: 700;
+    }
+    
+    /* แถบสีบาง ๆ ที่ขอบซ้าย เพื่อดูเด่นขึ้น */
+    tr.is-selected td:first-child::before{
+      content: "";
+      position: absolute; inset: 0 auto 0 0;
+      width: 4px; background: var(--row-select-left);
+      border-top-left-radius: 6px; border-bottom-left-radius: 6px;
+    }
+    
+    /* hover ซ้อน: ถ้าเป็นแถวที่เลือก ให้คงสีเลือกไว้ */
+    tbody tr:hover td{ background:#f8faff; }
+    tbody tr.is-selected:hover td{ background: var(--row-select-bg); }
   </style>
 </head>
 <body>
@@ -156,7 +181,7 @@
   </div>
 
   <!-- ส่งข้อมูลไป Apps Script ผ่าน iframe (เลี่ยง CORS) -->
-  <iframe id="gasTarget" name="gasTarget"></iframe>
+  
 
 
 <script>
