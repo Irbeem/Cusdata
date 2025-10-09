@@ -743,24 +743,6 @@ function nextLevel(lv){
 }
 
 function updateStickyHeaderOffset(){
-  const r1 = document.querySelector('#groupRow'); // แถวหัวแถวแรก
-  // ถ้า #groupRow ยังไม่มี (เพิ่งโหลด) ให้ลองนัดใหม่
-  const h = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
-  document.documentElement.style.setProperty('--h1', h + 'px');
-}
-// เรียกตอนโหลด / รีไซส์ / เรนเดอร์ใหม่
-window.addEventListener('load', updateStickyHeaderOffset);
-window.addEventListener('resize', updateStickyHeaderOffset);
-
-// ถ้าคุณมีฟังก์ชัน buildThead/buildTbody ให้เรียกหลัง render เสร็จ:
-const _buildThead = buildThead;
-buildThead = function(...args){
-  const res = _buildThead.apply(this, args);
-  requestAnimationFrame(updateStickyHeaderOffset);
-  return res;
-};
-
-function updateStickyHeaderOffset(){
   const r1 = document.querySelector('#groupRow');   // แถวหัวแถวแรก
   const h  = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
   document.documentElement.style.setProperty('--h1', h + 'px');
