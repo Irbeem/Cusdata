@@ -61,7 +61,7 @@
     tbody tr:hover td{background:#f8faff}
     
     /* ปุ่มวงกลมระดับ */
-    .lvbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:18px;border:1px solid var(--brand-200);border-radius:10px;background:#fff}
+    .lvbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:22px;border:1px solid var(--brand-200);border-radius:10px;background:#fff}
     .lvbtn.readonly{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb}
     .lvbtn.dirty{outline:2px solid #f59e0b;outline-offset:-2px}
    
@@ -80,9 +80,10 @@
   </div>
   <div>
   <!-- 🔵 เพิ่มปุ่ม/ช่องจัดการรายชื่อ -->
-    <input id="newName" placeholder="ชื่อพนักงาน" style="margin-left:8px; min-width:180px;" />
-    <button id="btnAdd" class="secondary" title="เพิ่มชื่อใหม่">➕ เพิ่มชื่อ</button>
-    <button id="btnDel" class="secondary" title="ลบชื่อที่เลือก">🗑 ลบชื่อ</button>
+    <label>เพิ่ม/ลบพนักงาน :
+    <input id="newName" placeholder="Name" style="margin-left:8px; min-width:180px;" />
+    <button id="btnAdd" class="secondary" title="Add new">➕ Add</button>
+    <button id="btnDel" class="secondary" title="Delete">🗑 Del</button>
   </div>
   </header>
   <form id="gasForm" method="POST" target="gasTarget" action="">
