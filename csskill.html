@@ -5,290 +5,66 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
   <style>
-    :root { --pad: 12px; --border: #e5e7eb; --sticky: #f9fafb; }
-    html, body { margin:0; padding:0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Thai", "Noto Sans", Arial; color:#111827; background:#fff; }
-    header { padding: var(--pad); border-bottom: 1px solid var(--border); background: white; position: sticky; top:0; z-index: 3; }
-    h1 { font-size: 16px; margin: 0 0 8px 0; }
-    .controls { display:flex; flex-wrap: wrap; gap:8px; align-items:center; }
-    select, button { padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background:#fff; }
-    button.primary { background:#111827; color:white; border-color:#111827; cursor:pointer; }
-    button.secondary { background:white; color:#111827; cursor:pointer; }
-    .status { font-size: 13px; color:#374151; margin-top:8px; }
-    .wrap { padding: var(--pad); }
-    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
-    table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; }
-    th, td { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 6px 8px; background: white; white-space: nowrap; }
-    th:first-child, td:first-child { border-left: 1px solid var(--border); }
-    thead th { position: sticky; top: 0; background: var(--sticky); z-index: 2; }
-    thead tr:nth-child(1) th { top: 0; }
-    thead tr:nth-child(2) th { top: 34px; }
-    tbody td:first-child, thead th:first-child { position: sticky; left: 0; background: var(--sticky); z-index: 1; }
-    tbody tr:hover td { background: #fcfcfd; }
-    .name-cell { font-weight: 600; background:#fafafa; }
-    .readonly { color:#6b7280; }
-    .center { text-align: center; }
-    .dirty { outline: 2px solid #f59e0b; outline-offset: -2px; }
-    .small { font-size:12px; color:#6b7280; }
-    iframe { display:none; }
-    /* ปุ่มวงกลมระดับสกิล */
-    .lvbtn{
-      display:inline-flex; align-items:center; justify-content:center;
-      width:28px; height:28px; border:1px solid #d1d5db; border-radius:8px;
-      background:#fff; cursor:pointer; font-size:18px; line-height:1;
-      user-select:none;
+    :root{
+      --h1: 34px;                 /* ระยะหัวแถวแรก (อัปเดตด้วย JS) */
+      --border:#e5e7eb;
+      --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
     }
-    .lvbtn.readonly{ background:#f9fafb; color:#9ca3af; cursor:default; }
-    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-2px; }
-    /* กล่องสกรอลล์ของตาราง */
+    
+    html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
+    
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50;
+      background:linear-gradient(180deg,#f9fafb 0%,#fff 100%);
+      border-bottom:1px solid var(--border); padding:12px;
+      box-shadow:0 4px 14px rgba(15,23,42,.06);
+    }
+    h1{margin:0 0 8px 0;font-size:16px}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .controls select,.controls input{border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:#fff}
+    button{border-radius:10px;padding:10px 14px;border:1px solid transparent;font-weight:600;cursor:pointer}
+    button.primary{background:var(--brand-500);color:#fff}
+    button.primary:hover{background:var(--brand-600)}
+    button.secondary{background:#fff;border:1px solid var(--brand-200);color:#1f2937}
+    .status{font-size:13px;color:#374151;margin-top:8px}
+    
+    .wrap{padding:12px}
     .table-wrap{
-      max-height: calc(100vh - 180px); /* ปรับตาม layout ของคุณ */
-      overflow: auto;
-      border: 1px solid #e5e7eb;
-      border-radius: 12px;
+      max-height:calc(100vh - 180px);
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:#fff;
+      box-shadow:0 12px 24px rgba(15,23,42,.05);
     }
     
-    /* ห้ามใช้ transform/backdrop-filter กับบรรพบุรุษ ไม่งั้น sticky จะพัง */
-    .table-wrap, .table-wrap *{
-      transform: none !important;
-      filter: none !important;
-      backdrop-filter: none !important;
-    }
+    /* Table */
+    table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+    th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
+    th:first-child,td:first-child{border-left:1px solid var(--border)}
     
-    /* หัวตาราง sticky (รองรับหัว 2 แถว) */
-    thead th{
-      position: sticky;
-      background: #f9fafb; /* สีพื้นของหัวเวลา sticky */
-      z-index: 2;
-    }
+    /* Sticky header 2 ชั้น */
+    thead th{position:sticky;background:#fff}
+    thead tr:first-child th{top:0;z-index:40}          /* แถวกลุ่ม */
+    thead tr:nth-child(2) th{top:var(--h1);z-index:39} /* แถวชื่อสกิล */
+    thead th:first-child{left:0;z-index:41}            /* มุมซ้ายบน */
     
-    /* แถวหัวแถวที่ 1 ติดบนสุด */
-    thead tr:first-child th{
-      top: 0;
-      z-index: 3; /* สูงกว่าแถว 2 */
-    }
+    /* Sticky ชื่อ (คอลัมน์แรก) อยู่ใต้หัว */
+    tbody td:first-child{position:sticky;left:0;background:#f8fafc;z-index:20;font-weight:700}
     
-    /* แถวหัวแถวที่ 2 ให้เลื่อนตามความสูงแถว 1 */
-    :root{ --h1: 34px; }              /* fallback ถ้า JS ยังไม่คำนวณ */
-    thead tr:nth-child(2) th{
-      top: var(--h1);
-    }
+    /* กลุ่ม (หัวแถวแรก) ให้ดูต่างนิด */
+    #groupRow th{background:linear-gradient(180deg,var(--brand-50) 0%,#fff 95%);border-bottom:2px solid var(--brand-200)}
     
-    /* ล็อกคอลัมน์ชื่อ (คอลัมน์แรก) */
-    thead th:first-child,
-    tbody td:first-child{
-      position: sticky;
-      left: 0;
-      z-index: 4;         /* สูงกว่าหัวอื่น ๆ */
-      background: #f9fafb;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    /* กล่องสกรอลล์ */
-.table-wrap{
-  max-height: calc(100vh - 180px);
-  overflow: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-}
-
-/* ห้าม transform/filter บรรพบุรุษ sticky */
-.table-wrap, .table-wrap *{
-  transform: none !important;
-  filter: none !important;
-  backdrop-filter: none !important;
-}
-
-/* === Sticky header (2 แถว) === */
-:root{ --h1: 34px; }           /* JS จะอัปเดตให้อัตโนมัติ */
-
-thead th{
-  position: sticky;
-  background:#fff;             /* ให้ทึบเพื่อบังของที่เลื่อนใต้หัว */
-}
-
-/* แถวหัวแถวที่ 1 */
-thead tr:first-child th{
-  top: 0;
-  z-index: 40;                 /* สูงกว่าคอลัมน์ name */
-}
-
-/* แถวหัวแถวที่ 2 */
-thead tr:nth-child(2) th{
-  top: var(--h1);
-  z-index: 39;
-}
-
-/* มุมซ้ายบน (หัวคอลัมน์ name) ให้สูงสุด */
-thead th:first-child{
-  left: 0;
-  z-index: 41;
-}
-
-/* === Sticky คอลัมน์แรก (name) === */
-tbody td:first-child{
-  position: sticky;
-  left: 0;
-  background:#f9fafb;
-  z-index: 20;                 /* ต่ำกว่าหัวตาราง -> หัวบังได้เวลาสกรอลล์ขึ้น */
-  font-weight: 600;
-  white-space: nowrap;
-}
-/* ===== THEME ===== */
-:root{
-  --bg: #ffffff;
-  --card: #ffffff;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-
-  /* แพเลตหลัก */
-  --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
-  --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
-
-  --green-500:#10b981;
-  --amber-500:#f59e0b;
-  --rose-500:#f43f5e;
-
-  --header-grad: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
-}
-
-/* ===== Header bar / toolbar ===== */
-header{
-  background: var(--header-grad);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 14px rgba(15, 23, 42, .06);
-}
-
-.controls select,
-.controls input{
-  border: 1px solid var(--border);
-  background: #fff;
-  border-radius: 10px;
-  padding: 8px 12px;
-  transition: box-shadow .15s ease, border-color .15s ease;
-}
-.controls select:focus,
-.controls input:focus{
-  outline: none;
-  border-color: var(--brand-400);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent);
-}
-
-/* ===== Buttons ===== */
-button{
-  border-radius: 10px;
-  padding: 10px 14px;
-  border: 1px solid transparent;
-  font-weight: 600;
-  transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
-}
-button:active{ transform: translateY(1px); }
-
-button.primary{
-  background: var(--brand-500);
-  border-color: var(--brand-500);
-  color: #fff;
-  box-shadow: 0 6px 14px rgba(79,70,229,.25);
-}
-button.primary:hover{ background: var(--brand-600); }
-
-button.secondary{
-  background: #fff;
-  color: var(--brand-600);
-  border-color: var(--brand-200);
-}
-button.secondary:hover{
-  background: var(--brand-50);
-  border-color: var(--brand-400);
-}
-
-/* ปุ่ม เพิ่ม / ลบ แนะนำสีเฉพาะ */
-#btnAdd.secondary{
-  color: var(--green-500);
-  border-color: color-mix(in srgb, var(--green-500) 35%, #ffffff);
-}
-#btnAdd.secondary:hover{
-  background: color-mix(in srgb, var(--green-500) 12%, #ffffff);
-  border-color: var(--green-500);
-}
-#btnDel.secondary{
-  color: var(--rose-500);
-  border-color: color-mix(in srgb, var(--rose-500) 35%, #ffffff);
-}
-#btnDel.secondary:hover{
-  background: color-mix(in srgb, var(--rose-500) 10%, #ffffff);
-  border-color: var(--rose-500);
-}
-
-/* ===== Table wrapper ===== */
-.table-wrap{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, .05);
-}
-
-/* ===== Table ===== */
-table{ border-spacing:0; width:max-content; min-width:100%; }
-th, td{
-  border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
-  background: #fff;
-}
-
-/* หัวแถว 1 (กลุ่ม) */
-#groupRow th{
-  background: color-mix(in srgb, var(--brand-50) 65%, #ffffff);
-  color:#111827;
-  font-weight: 700;
-  letter-spacing:.2px;
-  border-bottom: 2px solid var(--brand-200);
-}
-
-/* หัวแถว 2 (สกิล) */
-#skillRow th{
-  background:#fff;
-  font-weight: 700;
-  color:#0f172a;
-}
-
-/* คอลัมน์ชื่อ (sticky ด้านซ้าย) */
-thead th:first-child,
-tbody td:first-child{
-  background: linear-gradient(90deg, #f8fafc 0%, #ffffff 100%);
-  font-weight: 700;
-  color:#0f172a;
-}
-
-/* ไฮไลต์ row hover + คาดเส้นสลับสี */
-tbody tr:nth-child(even) td{ background:#fcfcff; }
-tbody tr:hover td{ background:#f8faff; }
-
-/* ===== Level buttons (วงกลม 0/1/2) ===== */
-.lvbtn{
-  width: 32px; height: 32px; font-size: 18px;
-  border-radius: 10px;
-  border: 1px solid var(--brand-200);
-  background: #fff;
-  color:#111827;
-  box-shadow: 0 1px 0 rgba(0,0,0,.04);
-}
-.lvbtn:hover{ box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand-400) 15%, transparent); }
-.lvbtn.readonly{ background:#f3f4f6; color:#9ca3af; border-color:#e5e7eb; }
-
-/* แสดงสถานะที่แก้ไข (dirty) */
-.lvbtn.dirty{
-  border-color: var(--amber-500);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--amber-500) 25%, transparent);
-}
-
-/* ===== Sticky z-index (คง behavior เดิม) ===== */
-thead tr:first-child th{ top:0; z-index:40; }
-thead tr:nth-child(2) th{ top: var(--h1); z-index:39; }
-thead th:first-child{ left:0; z-index:41; }
-tbody td:first-child{ left:0; z-index:20; }
-    #groupRow th{ background: linear-gradient(180deg, var(--brand-50) 0%, #fff 90%); }
+    /* Row hover + สลับสีอ่อน */
+    tbody tr:nth-child(even) td{background:#fcfcff}
+    tbody tr:hover td{background:#f8faff}
     
+    /* ปุ่มวงกลมระดับ */
+    .lvbtn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;font-size:18px;border:1px solid var(--brand-200);border-radius:10px;background:#fff}
+    .lvbtn.readonly{background:#f3f4f6;color:#9ca3af;border-color:#e5e7eb}
+    .lvbtn.dirty{outline:2px solid #f59e0b;outline-offset:-2px}
+   
   </style>
 </head>
 <body>
@@ -331,10 +107,7 @@ tbody td:first-child{ left:0; z-index:20; }
 
   <!-- ส่งข้อมูลไป Apps Script ผ่าน iframe (เลี่ยง CORS) -->
   <iframe id="gasTarget" name="gasTarget"></iframe>
-  <form id="gasForm" method="POST" target="gasTarget" action="">
-    <input type="hidden" name="name" id="f_name">
-    <!-- จะเติม <input name="u_skill[]"> และ <input name="u_level[]"> ด้วย JS ตอนกด Save -->
-  </form>
+
 
 <script>
 /* =========================== CONFIG =========================== */
