@@ -1,486 +1,463 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
-  <style>
-    :root{
-      --h1: 34px;                   /* ความสูงหัวแถวแรก (อัปเดตด้วย JS) */
-      --firstW: 220px;              /* ความกว้างคอลัมน์ name (อัปเดตด้วย JS) */
-      --border:#e5e7eb;
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
 
-      /* แพเลต */
-      --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
-      --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
+<style>
+/* ================= THEME / LAYOUT ================ */
+:root{
+  /* ==== กำหนดความกว้างคงที่ให้ 2 คอลัมน์ซ้าย (กันเด้ง/ทับ) ==== */
+  --nameW: 200px;     /* ปรับได้ */
+  --branchW: 120px;   /* ปรับได้ */
 
-      --row-select-bg:#FFE6D6;      /* สีไฮไลต์ทั้งแถวผู้ที่เลือก */
-      --row-hover:#f6f8ff;
-      --cell-green:#dff7ea;         /* พื้นหลังสกิลค่า 1 */
-      --cell-blue:#dfe8ff;          /* พื้นหลังสกิลค่า 2 */
-    }
+  --h1: 34px;         /* ระยะหัวแถวแรก (อัปเดตด้วย JS) */
+  --border:#e5e7eb;
+  --muted:#6b7280;
+  --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
+  --row-select-bg:#F6C8B6;      /* สีแถวที่เลือก */
+  --row-select-left:#6366f1;    /* แถบซ้ายเล็ก ๆ */
+  --row-hover:#f0f4ff;
+  --header-grad: linear-gradient(180deg,#6366f1 0%, #4f46e5 80%, #4338ca 100%);
+}
+html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
 
-    html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
+/* ================= HEADER BAR ================= */
+header{
+  position:sticky; top:0; z-index:50;
+  background:#fff;
+  border-bottom:1px solid var(--border);
+}
+header .bar{padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+h1{margin:0 0 6px 0; font-size:16px; font-weight:700}
+.controls select,.controls input{
+  border:1px solid var(--border); border-radius:10px; padding:8px 12px; background:#fff
+}
+button{border-radius:10px; padding:10px 14px; border:1px solid transparent; font-weight:600; cursor:pointer}
+button.primary{background:var(--brand-500); color:#fff}
+button.primary:hover{background:var(--brand-600)}
+button.secondary{background:#fff; border:1px solid var(--brand-200); color:#1f2937}
+.status{font-size:13px; color:#374151; padding: 0 12px 10px}
 
-    /* Header / Toolbar */
-    header{
-      position:sticky; top:0; z-index:50;
-      background:linear-gradient(180deg,#f9fafb 0%,#fff 100%);
-      border-bottom:1px solid var(--border); padding:12px;
-      box-shadow:0 4px 14px rgba(15,23,42,.06);
-    }
-    h1{margin:0 0 8px 0;font-size:16px}
-    .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-    .controls select,.controls input{
-      border:1px solid var(--border);border-radius:10px;padding:8px 12px;background:#fff;
-      transition: box-shadow .15s ease, border-color .15s ease;
-    }
-    .controls select:focus,.controls input:focus{
-      outline:none;border-color:var(--brand-400);
-      box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent);
-    }
-    button{border-radius:10px;padding:10px 14px;border:1px solid transparent;font-weight:600;cursor:pointer}
-    button.primary{background:var(--brand-500);color:#fff}
-    button.primary:hover{background:var(--brand-600)}
-    button.secondary{background:#fff;border:1px solid var(--brand-200);color:#1f2937}
-    .status{font-size:13px;color:#374151;margin-top:8px}
+/* =============== TABLE WRAP ==================== */
+.wrap{padding:12px}
+.table-wrap{
+  max-height:calc(100vh - 200px);
+  overflow:auto;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 10px 24px rgba(15,23,42,.06);
+}
+table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
+th:first-child,td:first-child{border-left:1px solid var(--border)}
+thead th{position:sticky;background:#fff}
+thead tr:first-child th{top:0; z-index:40}
+thead tr:nth-child(2) th{top:var(--h1); z-index:39}
 
-    .wrap{padding:12px}
-    .table-wrap{
-      max-height:calc(100vh - 200px);
-      overflow:auto;
-      border:1px solid var(--border);
-      border-radius:12px;
-      background:#fff;
-      box-shadow:0 12px 24px rgba(15,23,42,.05);
-    }
+/* ==== Sticky มุมซ้าย: คอลัมน์ name / branch ==== */
+thead th.name-th{
+  left:0; z-index:42;
+  width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
+  color:#fff; background:var(--header-grad);
+  border-bottom:2px solid #c7d2fe;
+}
+thead th.branch-th{
+  left:var(--nameW); z-index:41;
+  width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
+  color:#fff; background:var(--header-grad);
+  border-bottom:2px solid #c7d2fe;
+}
+tbody td.name-td{
+  position:sticky; left:0; z-index:20;
+  width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
+  background:#f8fafc; font-weight:700;
+}
+tbody td.branch-td{
+  position:sticky; left:var(--nameW); z-index:19;
+  width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
+  background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
+}
 
-    /* Table */
-    table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
-    th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
-    th:first-child,td:first-child{border-left:1px solid var(--border)}
+/* ==== กลุ่ม (หัวแถวแรก) ==== */
+#groupRow th{
+  background:var(--header-grad);
+  color:#fff;
+  border-bottom:2px solid #c7d2fe;
+  text-shadow:0 1px 0 rgba(0,0,0,.15);
+}
 
-    /* Sticky header (สองชั้น) */
-    thead th{position:sticky;background:#fff}
-    thead tr:first-child th{top:0;z-index:40}          /* แถวกลุ่ม */
-    thead tr:nth-child(2) th{top:var(--h1);z-index:39} /* แถวชื่อสกิล */
+/* ==== หัวชื่อสกิล ==== */
+#skillRow th{ font-weight:700; background:#fafbff }
 
-    /* name & branch อยู่บนสุดเสมอ (rowspan=2) และ sticky ด้านซ้าย */
-    thead th.name-th{left:0;z-index:42}
-    thead th.branch-th{left:var(--firstW);z-index:41}
+/* ==== Hover/Selected ==== */
+tbody tr:nth-child(even) td{ background:#fcfcff }
+tbody tr:hover td{ background:var(--row-hover) }
+tr.is-selected td{
+  background: var(--row-select-bg) !important; position:relative;
+}
+tr.is-selected td.name-td{
+  background: linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important;
+}
+tr.is-selected td.name-td::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left);
+  border-top-left-radius:6px; border-bottom-left-radius:6px;
+}
 
-    /* เซลข้อมูลฝั่งซ้าย sticky ตามหัว */
-    tbody td.name-td{
-      position:sticky; left:0;
-      background:#f8fafc; z-index:20; font-weight:700;
-    }
-    tbody td.branch-td{
-      position:sticky; left:var(--firstW);
-      background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
-      z-index:19;
-    }
+/* ==== ปุ่มสกิล 0/1/2 ==== */
+td.center{ text-align:center; vertical-align:middle }
+td.center .cell{ display:flex; align-items:center; justify-content:center; width:100% }
+.lvbtn{
+  display:inline-flex; align-items:center; justify-content:center;
+  width:32px; height:32px; font-size:20px; border-radius:10px; margin:0;
+  border:1px solid var(--brand-200); background:#fff; color:#111827;
+  box-shadow:0 1px 0 rgba(0,0,0,.04);
+}
+.lvbtn[data-value="0"]{ background:#f8fafc; color:#6b7280; border-color:#e5e7eb } /* - */
+.lvbtn[data-value="1"]{ background:#10b98122; color:#047857; border-color:#34d399 } /* ○ → เขียวอ่อน */
+.lvbtn[data-value="2"]{ background:#3b82f622; color:#1d4ed8; border-color:#93c5fd } /* ● → น้ำเงินอ่อน */
+.lvbtn.readonly{ background:#eef2ff; color:#374151; border-color:#c7d2fe }
+.lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px }
 
-    /* กลุ่ม (หัวแถวแรก) */
-    #groupRow th{
-      background:linear-gradient(180deg,var(--brand-50) 0%,#fff 95%);
-      border-bottom:2px solid var(--brand-200);
-      font-weight:700;
-    }
-
-    /* สลับสี/hover */
-    tbody tr:nth-child(even) td{background:#fcfcff}
-    tbody tr:hover td{background:var(--row-hover)}
-
-    /* แถวที่เลือก (ทั้งบรรทัด) */
-    tr.is-selected td{
-      background: var(--row-select-bg) !important;
-      position: relative;
-      transition: background .15s ease;
-    }
-    tr.is-selected td.name-td{
-      background: linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important;
-    }
-    tr.is-selected:hover td{ background: var(--row-select-bg); }
-
-    /* ปุ่มระดับ (0/1/2) */
-    td.center{ text-align:center; vertical-align:middle }
-    .lvbtn{
-      display:inline-flex;align-items:center;justify-content:center;
-      width:32px;height:32px;font-size:22px;border-radius:10px;
-      border:1px solid var(--brand-200); background:#4159c4; color:#fff;
-    }
-    .lvbtn[data-value="0"]{ color:#6b7280; background:#f8fafc; border-color:#e5e7eb; }
-    .lvbtn[data-value="1"]{ background:#4159c4; color:#fff; }
-    .lvbtn[data-value="2"]{ background:#2234a0; color:#fff; }
-    .lvbtn.readonly{
-      background:#eef2ff; color:#374151; border-color:#c7d2fe; cursor:default; opacity:1;
-    }
-    .lvbtn.readonly[data-value="0"]{ background:#f3f4ff; color:#4b5563; border-color:#dbe3ff; }
-    .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px; }
-
-    /* สีพื้นเซลล์ตามระดับ (ช่วยมองทั้งตารางง่ายขึ้น) */
-    td[data-lv="1"]{ background: var(--cell-green) }
-    td[data-lv="2"]{ background: var(--cell-blue) }
-  </style>
+/* ===== เลเบลเล็ก ===== */
+.small{ font-size:12px; color:#6b7280; margin-left:12px }
+</style>
 </head>
 <body>
-  <header>
+
+<header>
+  <div class="bar" style="border-bottom:1px solid var(--border)">
     <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
-
-    <!-- แถบตัวกรอง -->
-    <div class="controls">
-      <label>Branch:
-        <select id="branchFilter">
-          <option value="__ALL__">All branches</option>
-        </select>
-      </label>
-
-      <label>พนักงาน (เลือกเพื่อแก้ไข):
-        <select id="person"></select>
-      </label>
-
-      <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
-      <button id="resetBtn" class="secondary">ยกเลิก</button>
-    </div>
-
-    <!-- เพิ่ม/ลบพนักงาน -->
-    <div class="controls" style="margin-top:6px">
-      <input id="newName" placeholder="Name (เพิ่ม/ลบ)" style="min-width:180px" />
-      <input id="newBranch" list="branchList" placeholder="Branch (เช่น BKK, CBI)" style="min-width:160px" />
-      <datalist id="branchList"></datalist>
-      <button id="btnAdd" class="secondary" title="Add new">➕ Add</button>
-      <button id="btnDel" class="secondary" title="Delete">🗑 Delete</button>
-    </div>
-
-    <div class="small" style="margin-top:6px">
-      Skill: '-' = No , '○' = Can do , '●'  = Can teach
-    </div>
-  </header>
-
-  <!-- iframe + form สำหรับ Apps Script -->
-  <iframe id="gasTarget" name="gasTarget" style="display:none"></iframe>
-  <form id="gasForm" method="POST" target="gasTarget" action="">
-    <input type="hidden" name="name" id="f_name">
-    <input type="hidden" name="action"   id="f_action">
-    <input type="hidden" name="new_name" id="f_new_name">
-    <input type="hidden" name="new_branch" id="f_new_branch">
-    <input type="hidden" name="del_branch" id="f_del_branch">
-  </form>
-
-  <div class="wrap">
-    <div id="msg" class="status"></div>
-    <div class="table-wrap">
-      <table id="skillTable" aria-label="Skill matrix table">
-        <thead>
-          <tr id="groupRow"></tr>
-          <tr id="skillRow"></tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
-    </div>
   </div>
 
+  <div class="bar controls">
+    <label>Branch:
+      <select id="branchFilter"></select>
+    </label>
+
+    <label>พนักงาน (เลือกเพื่อแก้ไข):
+      <select id="person"></select>
+    </label>
+
+    <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
+    <button id="resetBtn" class="secondary">ยกเลิก</button>
+
+    <span class="small">Skill: '-' = No, '○' = Can do, '●' = Can teach</span>
+  </div>
+
+  <div class="bar controls" style="border-top:1px solid var(--border)">
+    <input id="newName" placeholder="Name (เพิ่ม/ลบ)" style="min-width:160px" />
+    <input id="newBranch" placeholder="Branch (เช่น BKK, CBI)" style="min-width:140px" />
+    <button id="btnAdd" class="secondary">➕ Add</button>
+    <button id="btnDel" class="secondary">🗑 Delete</button>
+  </div>
+
+  <div id="msg" class="status"></div>
+</header>
+
+<div class="wrap">
+  <div class="table-wrap">
+    <table id="skillTable" aria-label="Skill matrix table">
+      <thead>
+        <tr id="groupRow"></tr>
+        <tr id="skillRow"></tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ====== Hidden form for Apps Script ====== -->
+<iframe id="gasTarget" name="gasTarget" style="display:none"></iframe>
+<form id="gasForm" method="POST" target="gasTarget" action="">
+  <input type="hidden" name="name" id="f_name">
+  <input type="hidden" name="branch" id="f_branch">
+  <input type="hidden" name="action" id="f_action">
+  <input type="hidden" name="new_name" id="f_new_name">
+  <input type="hidden" name="new_branch" id="f_new_branch">
+</form>
+
 <script>
-/* =========================== CONFIG =========================== */
+/* ===================== CONFIG ===================== */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0";
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
-/* ============================================================= */
 
+/* ===================== STATE ====================== */
 let state = {
-  nameCol: 0,
-  branchCol: null,
-  names: [],
-  branches: [],           // รายการ branch ทั้งหมด (unique)
-  groups: [],
-  skills: [],
-  rows: [],
-  levels: {},
-  rowByName: {},
-  current: "",
-  dirty: new Map(),
-  branchFilter: "__ALL__"
+  nameCol: -1,
+  branchCol: -1,
+  names: [],              // รายชื่อทั้งหมด (ตามลำดับในชีต)
+  branches: [],           // รายชื่อสาขาที่พบ (unique)
+  groups: [],             // group header (fill-forward)
+  skills: [],             // [{idx, label, group}]
+  rows: [],               // raw rows (after header)
+  levels: {},             // levels[name][skillLabel] = '0'|'1'|'2'|''
+  current: "",            // ชื่อที่กำลังแก้ไข
+  dirty: new Map(),       // map(skillLabel -> '0'|'1'|'2')
+  filterBranch: "All"     // ฟิลเตอร์ branch ที่เลือก
 };
 
+/* ================== HELPERS ================== */
 const $ = (id) => document.getElementById(id);
-const elPerson      = $("person");
-const elMsg         = $("msg");
-const elGroupRow    = $("groupRow");
-const elSkillRow    = $("skillRow");
-const elTbody       = $("tbody");
-const elBranchFlt   = $("branchFilter");
-const elBranchList  = $("branchList");
+const elBranchFilter = $("branchFilter");
+const elPerson   = $("person");
+const elMsg      = $("msg");
+const elGroupRow = $("groupRow");
+const elSkillRow = $("skillRow");
+const elTbody    = $("tbody");
 
+/* UI utils */
 function setMessage(t){ elMsg.textContent = t; }
-function toStr(v){ return String(v ?? "").trim(); }
+function symbolForLevel(lv){ return lv === '2' ? '●' : (lv === '1' ? '○' : '-'); }
+function nextLevel(lv){ return lv === '0' ? '1' : (lv === '1' ? '2' : '0'); }
 
-/* ---------------- CSV Loader + Parse ---------------- */
-async function loadCSV(){
-  setMessage("กำลังโหลดข้อมูลจาก Google Sheet...");
-  const r = await fetch(CSV_URL, { cache: "no-store" });
-  if (!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
-  const text = await r.text();
-  const matrix = parseCSV(text);
-
-  // 1) หาแถวหัว "name"
-  let skillHeaderRowIdx = -1, nameCol = -1;
-  for (let i = 0; i < Math.min(15, matrix.length); i++) {
-    const row = matrix[i];
-    const idx = row.findIndex(v => String(v ?? '').trim().toLowerCase() === 'name');
-    if (idx !== -1) { skillHeaderRowIdx = i; nameCol = idx; break; }
-  }
-  if (skillHeaderRowIdx < 0) throw new Error('ไม่พบคอลัมน์ "name" ในส่วนหัว');
-
-  // branch = ถัดจาก name
-  const branchCol = nameCol + 1;
-  state.nameCol = nameCol;
-  state.branchCol = branchCol;
-
-  // 2) แถวบนคือหัวกลุ่ม
-  const groupHeaderRowIdx = Math.max(0, skillHeaderRowIdx - 1);
-  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
-
-  // 3) เอาแถวหัวสกิล (กันพลาด)
-  let skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
-  const looksLikeGroup =
-    skillRow.some((v,i) => i !== nameCol && v) &&
-    skillRow.every((v,i) => i === nameCol || v === groupRowRaw[i]);
-  if (looksLikeGroup && matrix[skillHeaderRowIdx + 1]) {
-    skillHeaderRowIdx += 1;
-    skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? '').replace(/\s+/g,' ').trim());
-  }
-
-  // 4) ข้อมูล
-  const dataRows = matrix.slice(skillHeaderRowIdx + 1);
-
-  // 5) forward-fill group header
-  const groupRow = [];
-  let lastGroup = "";
-  for (let c=0; c<groupRowRaw.length; c++){
-    const g = groupRowRaw[c];
-    if (g) lastGroup = g;
-    groupRow[c] = lastGroup;
-  }
-
-  // 6) คอลัมน์สกิล (ข้าม name/branch)
-  const skillCols = [];
-  for (let c=0; c<skillRow.length; c++){
-    if (c === nameCol || c === branchCol) continue;
-    const s = skillRow[c];
-    if (!s) continue;
-    skillCols.push({ idx: c, label: s, group: groupRow[c] || '' });
-  }
-
-  // 7) names + levels + rowByName + branches
-  const names = [];
-  const levels = {};
-  const rowByName = {};
-  const branchSet = new Set();
-
-  for (const row of dataRows){
-    const nm = String(row[nameCol] ?? '').trim();
-    if (!nm) continue;
-    names.push(nm);
-    rowByName[nm] = row;
-
-    const br = String(row[branchCol] ?? '').trim();
-    if (br) branchSet.add(br);
-
-    const mp = {};
-    for (const col of skillCols){
-      const raw = row[col.idx];
-      const v = (raw === undefined || raw === null) ? '' : String(raw).trim();
-      mp[col.label] = (v === '0' || v === '1' || v === '2') ? v : '';
-    }
-    levels[nm] = mp;
-  }
-
-  state.names      = names;
-  state.groups     = groupRow;
-  state.skills     = skillCols;
-  state.rows       = dataRows;
-  state.levels     = levels;
-  state.rowByName  = rowByName;
-  state.branches   = Array.from(branchSet).sort((a,b)=>a.localeCompare(b));
-  if (!state.current || !names.includes(state.current)) state.current = names[0] || "";
-  state.dirty.clear();
-
-  // สร้างหัว/ตัว
-  buildThead(skillCols);
-  buildPersonSelector();        // รายชื่อคน (ตาม filter)
-  buildBranchFilter();          // ดรอปดาวน์ branch
-  buildBranchDatalist();        // datalist ใช้ตอนเพิ่ม/ลบ
-  buildTbody();
-
-  // อัปเดต sticky offset/width
-  requestAnimationFrame(()=>{
-    updateStickyHeaderOffset();
-    updateFirstColWidth();
-  });
-
-  setMessage("พร้อมใช้งาน");
-}
-
-function buildPersonSelector(){
-  const filtered = filteredNames();
-  elPerson.innerHTML = filtered.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
-  // ถ้า current อยู่นอก filter ให้เปลี่ยนเป็นอันแรก
-  if (!filtered.includes(state.current)){
-    state.current = filtered[0] || "";
-  }
-  elPerson.value = state.current;
-}
-
-function buildBranchFilter(){
-  const cur = state.branchFilter;
-  const opts = ['__ALL__', ...state.branches];
-  elBranchFlt.innerHTML = opts.map(v =>
-    `<option value="${escapeHtml(v)}">${v==='__ALL__'?'All branches':escapeHtml(v)}</option>`
-  ).join("");
-  elBranchFlt.value = cur;
-}
-
-function buildBranchDatalist(){
-  elBranchList.innerHTML = state.branches.map(br => `<option value="${escapeHtml(br)}">`).join("");
-}
-
-/* -------------- Basic CSV Parser (quoted) -------------- */
+/* ================= CSV PARSER ================= */
 function parseCSV(text){
-  const rows = [];
-  let i=0, cur="", row=[], inq=false;
+  const rows=[]; let i=0, cur="", row=[], inq=false;
   while(i<text.length){
-    const ch = text[i];
-    if (inq){
-      if (ch === '"'){
-        if (text[i+1] === '"'){ cur += '"'; i+=2; continue; }
-        inq = false; i++; continue;
-      } else { cur += ch; i++; continue; }
-    } else {
-      if (ch === '"'){ inq=true; i++; continue; }
-      if (ch === ','){ row.push(cur); cur=""; i++; continue; }
-      if (ch === '\n'){ row.push(cur); rows.push(row); row=[]; cur=""; i++; continue; }
-      if (ch === '\r'){ i++; continue; }
-      cur += ch; i++;
+    const ch=text[i];
+    if(inq){
+      if(ch==='\"'){
+        if(text[i+1]==='\"'){cur+='\"'; i+=2; continue;}
+        inq=false; i++; continue;
+      }else{ cur+=ch; i++; continue; }
+    }else{
+      if(ch==='\"'){inq=true; i++; continue;}
+      if(ch===','){row.push(cur); cur=""; i++; continue;}
+      if(ch==='\n'){row.push(cur); rows.push(row); row=[]; cur=""; i++; continue;}
+      if(ch==='\r'){i++; continue;}
+      cur+=ch; i++;
     }
   }
   row.push(cur); rows.push(row);
   return rows;
 }
 
-/* ---------------- Render THEAD (2 rows) ---------------- */
-function buildThead(skillCols){
+/* ================ LOAD & BUILD ================= */
+async function loadCSV(){
+  setMessage("กำลังโหลดข้อมูล...");
+  const r = await fetch(CSV_URL, { cache:"no-store" });
+  if(!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
+  const text = await r.text();
+  const matrix = parseCSV(text);
+
+  // หาแถวหัวสกิล (ที่มี 'name')
+  let skillHeaderRowIdx = -1, nameCol = -1;
+  for(let i=0; i<Math.min(20, matrix.length); i++){
+    const row = matrix[i];
+    const idx = row.findIndex(v => String(v ?? "").trim().toLowerCase() === "name");
+    if(idx !== -1){ skillHeaderRowIdx = i; nameCol = idx; break; }
+  }
+  if(skillHeaderRowIdx < 0) throw new Error("ไม่พบคอลัมน์ 'name'");
+
+  // แถวหัวกลุ่มอยู่เหนือขึ้นไป 1 แถว
+  const groupHeaderRowIdx = Math.max(0, skillHeaderRowIdx - 1);
+  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
+  let skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
+
+  // กัน export เพี้ยน
+  const looksLikeGroup = skillRow.some((v,i)=>i!==nameCol && v) &&
+                         skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
+  if(looksLikeGroup && matrix[skillHeaderRowIdx+1]){
+    skillHeaderRowIdx += 1;
+    skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
+  }
+
+  // หา col Branch (รองรับ "branch"/"brance")
+  const branchCol = skillRow.findIndex(v => v.toLowerCase()==="branch" || v.toLowerCase()==="brance");
+
+  // forward-fill กลุ่ม
+  const groupRow = [];
+  let lastGroup="";
+  for(let c=0; c<groupRowRaw.length; c++){
+    const g = groupRowRaw[c];
+    if(g) lastGroup=g;
+    groupRow[c] = lastGroup;
+  }
+
+  // สร้าง skillCols (ข้าม name/branch/ช่องว่าง)
+  const skillCols = [];
+  for(let c=0; c<skillRow.length; c++){
+    if(c===nameCol || c===branchCol) continue;
+    const s = skillRow[c];
+    if(!s) continue;
+    skillCols.push({ idx:c, label:s, group:groupRow[c] || "" });
+  }
+
+  // ส่วนข้อมูล
+  const dataRows = matrix.slice(skillHeaderRowIdx+1);
+  const names=[], branchesSet=new Set(), levels={};
+  for(const row of dataRows){
+    const nm = String(row[nameCol] ?? "").trim();
+    if(!nm) continue;
+    const br = branchCol>=0 ? String(row[branchCol] ?? "").trim() : "";
+    names.push(nm);
+    if(br) branchesSet.add(br);
+
+    const mp={};
+    for(const col of skillCols){
+      const raw = row[col.idx];
+      const v = (raw===undefined || raw===null) ? '' : String(raw).trim();
+      mp[col.label] = (v==='0' || v==='1' || v==='2') ? v : '';
+    }
+    levels[nm] = { _branch: br, ...mp };
+  }
+
+  // เติม All branches ในฟิลเตอร์
+  const branches = ["All", ...[...branchesSet].sort((a,b)=>a.localeCompare(b))];
+
+  // อัปเดต state
+  state.nameCol   = nameCol;
+  state.branchCol = branchCol;
+  state.groups  = groupRow;
+  state.skills  = skillCols;
+  state.rows    = dataRows;
+  state.names   = names;
+  state.branches= branches;
+  state.levels  = levels;
+
+  // ตั้งค่าเริ่มต้น
+  if(!state.current || !names.includes(state.current)) state.current = names[0] || "";
+  if(!branches.includes(state.filterBranch)) state.filterBranch="All";
+
+  buildThead();
+  buildPeopleDropdown();
+  buildBranchFilter();
+  buildTbody();
+
+  setMessage("พร้อมใช้งาน");
+}
+
+/* =============== RENDER THEAD ================= */
+function buildThead(){
   elGroupRow.innerHTML = "";
   elSkillRow.innerHTML = "";
 
-  // name
+  // th: name + branch (rowspan 2)
   const thName = document.createElement("th");
+  thName.className = "name-th";
   thName.textContent = "name";
   thName.rowSpan = 2;
-  thName.className = "name-th";
   elGroupRow.appendChild(thName);
 
-  // branch
   const thBranch = document.createElement("th");
+  thBranch.className = "branch-th";
   thBranch.textContent = "branch";
   thBranch.rowSpan = 2;
-  thBranch.className = "branch-th";
   elGroupRow.appendChild(thBranch);
 
-  // group headers
-  let i = 0;
-  while (i < skillCols.length) {
-    const g = skillCols[i].group || "";
-    let span = 1;
-    let j = i + 1;
-    while (j < skillCols.length && (skillCols[j].group || "") === g) { span++; j++; }
+  // groups with colspan
+  let i=0, sc=state.skills;
+  while(i<sc.length){
+    const g = sc[i].group || "";
+    let span=1, j=i+1;
+    while(j<sc.length && (sc[j].group||"")===g){ span++; j++; }
     const th = document.createElement("th");
-    th.textContent = g;
+    th.textContent = g || "";
     th.colSpan = span;
     elGroupRow.appendChild(th);
-    i = j;
+    i=j;
   }
 
-  // skill headers
-  for (const col of skillCols){
+  // skill names row
+  for(const col of state.skills){
     const th = document.createElement("th");
     th.textContent = col.label;
     elSkillRow.appendChild(th);
   }
+
+  // อัปเดต offset แถวบนสุด → ให้หัวบรรทัดสกิลซ้อนถูก
+  requestAnimationFrame(()=>{
+    const r1 = document.querySelector('#groupRow');
+    const h  = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
+    document.documentElement.style.setProperty('--h1', h + 'px');
+  });
 }
 
-/* ---------------- Render TBODY ---------------- */
-function filteredNames(){
-  const f = state.branchFilter;
-  if (f === "__ALL__") return state.names.slice();
-  return state.names.filter(n => {
-    const row = state.rowByName[n];
-    const br  = row ? String(row[state.branchCol]||'').trim() : '';
-    return br === f;
-  });
+/* ============== RENDER FILTERS ================= */
+function buildPeopleDropdown(){
+  const namesForFilter = getFilteredNames();
+  elPerson.innerHTML = namesForFilter.map(n => `<option value="${n}">${n}</option>`).join("");
+  if(namesForFilter.length){
+    if(!namesForFilter.includes(state.current)) state.current = namesForFilter[0];
+    elPerson.value = state.current;
+  }
+}
+function buildBranchFilter(){
+  elBranchFilter.innerHTML = state.branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+  elBranchFilter.value = state.filterBranch;
+}
+
+/* =============== BODY RENDER =================== */
+function getFilteredNames(){
+  if(state.filterBranch==="All") return state.names.slice();
+  return state.names.filter(n => (state.levels[n]?._branch || "") === state.filterBranch);
 }
 
 function buildTbody(){
   elTbody.innerHTML = "";
-  const list = filteredNames();
+  const names = getFilteredNames();
 
-  for (const name of list){
+  for(const name of names){
     const tr = document.createElement("tr");
-    if (name === state.current) tr.classList.add("is-selected");
+    if(name===state.current) tr.classList.add("is-selected");
 
-    // name
+    // name cell
     const tdName = document.createElement("td");
     tdName.className = "name-td";
     tdName.textContent = name;
     tr.appendChild(tdName);
 
-    // branch
+    // branch cell
     const tdBranch = document.createElement("td");
     tdBranch.className = "branch-td";
-    const row = state.rowByName[name];
-    tdBranch.textContent = row ? String(row[state.branchCol] || '').trim() : '';
+    tdBranch.textContent = state.levels[name]?._branch || "";
     tr.appendChild(tdBranch);
 
-    const editable = (name === state.current);
+    const editable = (name===state.current);
 
     // skills
-    for (const col of state.skills){
-      const skill    = col.label;
+    for(const col of state.skills){
+      const skill = col.label;
       const baseline = (state.levels[name]?.[skill] ?? '0') || '0';
-      const current  = (editable && state.dirty.has(skill))
-        ? state.dirty.get(skill)
-        : baseline;
+      const current  = (editable && state.dirty.has(skill)) ? state.dirty.get(skill) : baseline;
 
       const td = document.createElement("td");
       td.className = "center";
-      td.setAttribute("data-lv", current);
+      const wrap = document.createElement("div");
+      wrap.className = "cell";
 
       const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "lvbtn";
+      btn.type="button";
+      btn.className="lvbtn";
       btn.dataset.skill = skill;
       btn.dataset.value = current;
       btn.textContent = symbolForLevel(current);
 
-      if (!editable){
+      if(!editable){
         btn.classList.add("readonly");
-      } else {
-        if (current !== baseline) btn.classList.add("dirty");
-        btn.addEventListener("click", () => {
-          const oldVal = btn.dataset.value;
-          const newVal = nextLevel(oldVal);
-          btn.dataset.value = newVal;
-          btn.textContent   = symbolForLevel(newVal);
-          td.setAttribute("data-lv", newVal);
+      }else{
+        if(current!==baseline) btn.classList.add("dirty");
+        btn.addEventListener("click", ()=>{
+          const oldV = btn.dataset.value;
+          const newV = nextLevel(oldV);
+          btn.dataset.value = newV;
+          btn.textContent = symbolForLevel(newV);
 
-          if (newVal === baseline){
+          if(newV===baseline){
             state.dirty.delete(skill);
             btn.classList.remove("dirty");
-          } else {
-            state.dirty.set(skill, newVal);
+          }else{
+            state.dirty.set(skill, newV);
             btn.classList.add("dirty");
           }
         });
       }
-      td.appendChild(btn);
+
+      wrap.appendChild(btn);
+      td.appendChild(wrap);
       tr.appendChild(td);
     }
 
@@ -488,123 +465,94 @@ function buildTbody(){
   }
 }
 
-/* ---------------- Utilities ---------------- */
-function symbolForLevel(lv){ return lv === '2' ? '●' : (lv === '1' ? '○' : '-'); }
-function nextLevel(lv){ return lv === '0' ? '1' : (lv === '1' ? '2' : '0'); }
-function updateStickyHeaderOffset(){
-  const r1 = document.querySelector('#groupRow');
-  const h  = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
-  document.documentElement.style.setProperty('--h1', h + 'px');
-}
-function updateFirstColWidth(){
-  const thName = document.querySelector('thead th.name-th');
-  const w = thName ? thName.getBoundingClientRect().width : 220;
-  document.documentElement.style.setProperty('--firstW', w + 'px');
-}
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m])); }
-
-/* ---------------- Events ---------------- */
-window.addEventListener('resize', ()=>{
-  updateStickyHeaderOffset();
-  updateFirstColWidth();
-});
-
+/* ================== EVENTS ==================== */
 elPerson.addEventListener("change", ()=>{
   state.current = elPerson.value;
   state.dirty.clear();
   buildTbody();
-  requestAnimationFrame(updateFirstColWidth);
 });
-
-elBranchFlt.addEventListener("change", ()=>{
-  state.branchFilter = elBranchFlt.value;
-  buildPersonSelector();
-  buildTbody();
-});
-
 $("resetBtn").addEventListener("click", ()=>{
   state.dirty.clear();
   buildTbody();
   setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
 });
 
-/* ====== SAVE (ส่งเฉพาะที่แก้) ====== */
-$("saveBtn").addEventListener("click", ()=>{
-  const selectedName = state.current;
-  if (!selectedName){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
-  if (state.dirty.size === 0){ setMessage("ไม่มีการแก้ไข"); return; }
+elBranchFilter.addEventListener("change", ()=>{
+  state.filterBranch = elBranchFilter.value || "All";
+  buildPeopleDropdown();
+  state.dirty.clear();
+  buildTbody();
+});
 
-  const form   = $("gasForm");
-  const iframe = $("gasTarget");
+/* =============== SAVE via iframe =============== */
+$("saveBtn").addEventListener("click", ()=>{
+  const selected = state.current;
+  if(!selected){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
+  if(state.dirty.size===0){ setMessage("ไม่มีการแก้ไข"); return; }
+
+  const form = $("gasForm"); const iframe=$("gasTarget");
   form.action = GAS_ENDPOINT;
 
-  $("f_name").value = selectedName;
+  // set name/branch
+  $("f_name").value   = selected;
+  $("f_branch").value = state.levels[selected]?._branch || "";
 
-  // ล้าง input เก่า
-  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
-    .forEach(el => el.remove());
-
-  for (const [skill, level] of state.dirty.entries()){
-    const a = document.createElement('input');
-    a.type='hidden'; a.name='u_skill[]'; a.value=skill; form.appendChild(a);
-    const b = document.createElement('input');
-    b.type='hidden'; b.name='u_level[]'; b.value=level; form.appendChild(b);
+  // ลบของเก่าแล้วเติมใหม่
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
+  for(const [skill, level] of state.dirty.entries()){
+    const a=document.createElement("input"); a.type="hidden"; a.name="u_skill[]"; a.value=skill; form.appendChild(a);
+    const b=document.createElement("input"); b.type="hidden"; b.name="u_level[]"; b.value=level; form.appendChild(b);
   }
 
   const onLoad = ()=>{
-    const mp = state.levels[selectedName] || (state.levels[selectedName] = {});
-    for (const [skill, level] of state.dirty.entries()) mp[skill] = level;
+    // sync กลับ
+    const mp = state.levels[selected] || (state.levels[selected]={});
+    for(const [skill, level] of state.dirty.entries()) mp[skill]=level;
     state.dirty.clear();
     buildTbody();
     setMessage("✅ บันทึกสำเร็จ");
-    iframe.removeEventListener('load', onLoad);
+    iframe.removeEventListener("load", onLoad);
   };
-  iframe.addEventListener('load', onLoad, { once: true });
+  iframe.addEventListener("load", onLoad, { once:true });
 
   setMessage("กำลังบันทึก...");
   form.submit();
 });
 
-/* ===== ปุ่มเพิ่ม/ลบชื่อ (ระบุ Branch) ===== */
+/* ===== Add / Delete name (with branch) ===== */
 $("btnAdd").addEventListener("click", ()=>{
-  const inputName = $("newName");
-  const inputBr   = $("newBranch");
-  const newName   = (inputName.value || "").trim();
-  const newBranch = (inputBr.value || "").trim();
-  if (!newName){ alert("กรุณากรอกชื่อพนักงาน"); return; }
-  if (!newBranch){ alert("กรุณากรอก Branch"); return; }
-
-  const form   = $("gasForm");
-  const iframe = $("gasTarget");
+  const nm = ($("newName").value || "").trim();
+  const br = ($("newBranch").value || "").trim();
+  if(!nm){ alert("กรุณากรอกชื่อพนักงาน"); return; }
+  const form=$("gasForm"), iframe=$("gasTarget");
   form.action = GAS_ENDPOINT;
 
-  $("f_action").value     = "addName";
-  $("f_new_name").value   = newName;
-  $("f_new_branch").value = newBranch;
+  $("f_action").value = "addName";
+  $("f_new_name").value = nm;
+  $("f_new_branch").value = br;   // ส่ง branch ไปด้วย
 
-  const cleanup = () => {
-    $("f_action").value = "";
-    $("f_new_name").value = "";
-    $("f_new_branch").value = "";
-    // คงค่าในช่องไว้ก็ได้ แต่ขอล้าง name ให้พิมพ์ต่อ
-    inputName.value = "";
+  const cleanup=()=>{
+    $("f_action").value="";
+    $("f_new_name").value="";
+    $("f_new_branch").value="";
+    $("newName").value="";
+    $("newBranch").value="";
   };
 
-  iframe.onload = () => {
-    iframe.onload = null;
+  iframe.onload=()=>{
+    iframe.onload=null;
     cleanup();
-    setMessage(`✅ เพิ่มชื่อสำเร็จ: ${newName} (${newBranch})`);
-    // รีโหลด + เลือก branch filter ตามที่เพิ่ม จะเห็นชัด ๆ
-    loadCSV().then(()=> {
-      state.branchFilter = newBranch;
-      elBranchFlt.value  = newBranch;
-      buildPersonSelector();
-      if ([...elPerson.options].some(o => o.value === newName)) {
-        elPerson.value = newName;
-        state.current  = newName;
+    setMessage("✅ เพิ่มชื่อสำเร็จ");
+    loadCSV().then(()=>{
+      // เลือกแถวที่เพิ่ม
+      if(state.names.includes(nm)){
+        state.current = nm;
+        elPerson.value = nm;
+        // ฟิลเตอร์ไป branch ที่เพิ่ม (ถ้าระบุ)
+        if(br && state.branches.includes(br)) { state.filterBranch = br; elBranchFilter.value = br; }
+        buildPeopleDropdown();
+        buildTbody();
       }
-      buildTbody();
-      requestAnimationFrame(updateFirstColWidth);
     });
   };
 
@@ -613,40 +561,32 @@ $("btnAdd").addEventListener("click", ()=>{
 });
 
 $("btnDel").addEventListener("click", ()=>{
-  const inputName = $("newName");
-  const inputBr   = $("newBranch");
-  const target    = (inputName.value || elPerson.value || "").trim();
-  const br        = (inputBr.value || "").trim(); // ไม่บังคับ แต่ถ้าระบุช่วยลดชนกันชื่อซ้ำ
+  const nm = ($("newName").value || elPerson.value || "").trim();
+  if(!nm){ alert("ไม่พบชื่อที่จะลบ"); return; }
+  if(!confirm(`ยืนยันลบชื่อ "${nm}" ?`)) return;
 
-  if (!target){ alert("ไม่พบชื่อที่จะลบ"); return; }
-  if (!confirm(`ยืนยันลบชื่อ "${target}"${br?` (branch ${br})`:``} ออกจากชีต?`)) return;
-
-  const form   = $("gasForm");
-  const iframe = $("gasTarget");
+  const form=$("gasForm"), iframe=$("gasTarget");
   form.action = GAS_ENDPOINT;
 
-  $("f_name").value = ""; // กันไปอัปเดตสกิล
-  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el => el.remove());
+  // ไม่ให้ส่ง u_skill[] ติดไป
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
+  $("f_name").value="";
+  $("f_action").value="deleteName";
+  $("f_new_name").value = nm;
 
-  $("f_action").value     = "deleteName";
-  $("f_new_name").value   = target;
-  $("f_del_branch").value = br;
-
-  const cleanup = () => {
-    $("f_action").value = "";
-    $("f_new_name").value = "";
-    $("f_del_branch").value = "";
-    inputName.value = "";
+  const cleanup=()=>{
+    $("f_action").value="";
+    $("f_new_name").value="";
+    $("newName").value="";
   };
 
-  iframe.onload = () => {
-    iframe.onload = null;
+  iframe.onload=()=>{
+    iframe.onload=null;
     cleanup();
-    setMessage(`✅ ลบชื่อสำเร็จ: ${target}${br?` (${br})`:``}`);
-    loadCSV().then(()=> {
-      buildPersonSelector();
+    setMessage("✅ ลบชื่อสำเร็จ");
+    loadCSV().then(()=>{
+      buildPeopleDropdown();
       buildTbody();
-      requestAnimationFrame(updateFirstColWidth);
     });
   };
 
@@ -654,10 +594,9 @@ $("btnDel").addEventListener("click", ()=>{
   form.submit();
 });
 
-/* ---------------- Boot ---------------- */
-loadCSV().catch(err=>{
-  setMessage("❌ โหลดข้อมูลไม่สำเร็จ: " + (err.message || err));
-});
+/* =================== BOOT ====================== */
+loadCSV().catch(err=> setMessage("❌ โหลดข้อมูลไม่สำเร็จ: "+(err.message||err)));
 </script>
+
 </body>
 </html>
