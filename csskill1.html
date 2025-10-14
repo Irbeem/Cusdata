@@ -10,7 +10,7 @@
   --nameW: 200px;
   --branchW: 120px;
 
-  --h1: 34px;
+  --h1: 34px; /* ระยะห่างหัวแถวแรก -> จะอัปเดตด้วย JS */
   --border:#e5e7eb;
   --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
   --row-select-bg:#F6C8B6;
@@ -18,9 +18,14 @@
   --row-hover:#f0f4ff;
   --header-grad: linear-gradient(180deg,#6366f1 0%, #4f46e5 80%, #4338ca 100%);
 }
-html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
 
-/* Header */
+html,body{
+  margin:0;padding:0;
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;
+  color:#111827;background:#fff
+}
+
+/* Header / Toolbar */
 header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--border)}
 header .bar{padding:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
 h1{margin:0 0 6px 0; font-size:16px; font-weight:700}
@@ -31,40 +36,48 @@ button.primary:hover{background:var(--brand-600)}
 button.secondary{background:#fff; border:1px solid var(--brand-200); color:#1f2937}
 .status{font-size:13px; color:#374151; padding:0 12px 10px}
 
-/* Table */
+/* Table container */
 .wrap{padding:12px}
-.table-wrap{max-height:calc(100vh - 200px); overflow:auto; border:1px solid var(--border); border-radius:12px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,.06)}
+.table-wrap{
+  max-height:calc(100vh - 200px);
+  overflow:auto; border:1px solid var(--border); border-radius:12px;
+  background:#fff; box-shadow:0 10px 24px rgba(15,23,42,.06)
+}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
 th:first-child,td:first-child{border-left:1px solid var(--border)}
+
+/* Sticky header (2 ชั้น) */
 thead th{position:sticky;background:#fff; z-index:10}
 thead tr:first-child th{top:0}
 thead tr:nth-child(2) th{top:var(--h1)}
 
-/* Sticky ซ้าย 2 คอลัมน์ */
+/* --- Sticky ซ้าย: หัวตาราง --- */
 thead th.name-th{
-  left:0; z-index:120 !important;
+  position:sticky; left:0; z-index:120 !important;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
 thead th.branch-th{
-  left:var(--nameW); z-index:119 !important;
+  position:sticky; left:calc(var(--nameW) + 1px); z-index:119 !important;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
+
+/* กลุ่ม / ชื่อสกิล */
 #groupRow th{ background:var(--header-grad); color:#fff; border-bottom:2px solid #c7d2fe; text-shadow:0 1px 0 rgba(0,0,0,.15); z-index:15 }
 #skillRow th{ font-weight:700; background:#fafbff; z-index:14 }
 
-/* sticky body cells */
+/* --- Sticky ซ้าย: ตัวตาราง (body) --- */
 tbody td.name-td{
   position:sticky; left:0; z-index:80;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   background:#f8fafc; font-weight:700;
 }
 tbody td.branch-td{
-  position:sticky; left:var(--nameW); z-index:79;
+  position:sticky; left:calc(var(--nameW) + 1px); z-index:79;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
   box-shadow: inset -1px 0 0 var(--border); /* เส้นแบ่งขวาให้เด่น */
@@ -73,9 +86,21 @@ tbody td.branch-td{
 /* Hover/Selected */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
-tr.is-selected td{ background:var(--row-select-bg) !important}
-tr.is-selected td.name-td{ background:linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important }
-tr.is-selected td.name-td::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left); border-top-left-radius:6px; border-bottom-left-radius:6px}
+
+/* อย่า override position ของเซลล์ sticky! */
+tr.is-selected td{
+  background: var(--row-select-bg) !important;
+}
+/* ให้สองคอลัมน์ซ้ายยัง sticky และอยู่บนสุดเมื่อถูกเลือก */
+tr.is-selected td.name-td{ position:sticky; left:0; z-index:90; }
+tr.is-selected td.branch-td{ position:sticky; left:calc(var(--nameW) + 1px); z-index:89; }
+
+/* แถบซ้ายของชื่อแถวที่เลือก */
+tr.is-selected td.name-td::before{
+  content:""; position:absolute; inset:0 auto 0 0;
+  width:4px; background:var(--row-select-left);
+  border-top-left-radius:6px; border-bottom-left-radius:6px;
+}
 
 /* ปุ่มสกิล 0/1/2 */
 td.center{ text-align:center; vertical-align:middle }
@@ -209,9 +234,9 @@ async function loadCSV(){
 
   // group header อยู่บน 1 แถว
   const grpIdx=Math.max(0,hdrIdx-1);
-  const rawGroupRow = matrix[grpIdx];                              // ดิบ
+  const rawGroupRow = matrix[grpIdx];
   const cleanGroupRow = rawGroupRow.map(x => String(x??"").replace(/\s+/g,' ').trim());
-  const rawSkillRow = matrix[hdrIdx];                              // ดิบ
+  const rawSkillRow = matrix[hdrIdx];
   let cleanSkillRow = rawSkillRow.map(x => String(x??"").replace(/\s+/g,' ').trim());
 
   // กันเพี้ยน
@@ -240,21 +265,21 @@ async function loadCSV(){
     if(total>0 && score/total > 0.6) branchCol=guessCol;
   }
 
-  // forward-fill group (จาก rawGroupRow แต่ใช้ค่าที่สะอาดแสดงผล)
-  const groupRowDisplay=[];             // สำหรับโชว์
+  // forward-fill group (สำหรับโชว์)
+  const groupRowDisplay=[];
   let last="";
   for(let c=0;c<cleanGroupRow.length;c++){
     const g=cleanGroupRow[c]; if(g) last=g; groupRowDisplay[c]=last;
   }
 
-  // ===== รวบรวมคอลัมน์สกิล: เก็บทั้ง label (โชว์) + raw (คีย์จริงในชีต) =====
+  // ===== เก็บคอลัมน์สกิล: label (โชว์) + raw (คีย์จริงในชีต) =====
   const skillCols=[];
   for(let c=0;c<cleanSkillRow.length;c++){
     if(c===nameCol || c===branchCol) continue;
-    const label = cleanSkillRow[c];       // แสดงผล
-    const raw   = String(rawSkillRow[c] ?? "");  // คีย์จริง (ไม่แตะต้อง)
+    const label = cleanSkillRow[c];
+    const raw   = String(rawSkillRow[c] ?? "");
     if(!label) continue;
-    skillCols.push({ idx:c, label, raw, group: (groupRowDisplay[c]||"") });
+    skillCols.push({ idx:c, label, raw, group:(groupRowDisplay[c]||"") });
   }
 
   const dataRows=matrix.slice(hdrIdx+1);
@@ -271,7 +296,6 @@ async function loadCSV(){
     for(const col of skillCols){
       const rawVal = row[col.idx];
       const v = (rawVal==null ? '' : String(rawVal).trim());
-      // ใช้ raw เป็น key เพื่อให้ตรงกับหัวคอลัมน์ในชีต 100%
       mp[col.raw] = (v==='0'||v==='1'||v==='2') ? v : '';
     }
     levels[nm]=mp;
@@ -281,6 +305,7 @@ async function loadCSV(){
   state.groups=groupRowDisplay; state.skills=skillCols;
   state.rows=dataRows; state.names=names; state.levels=levels;
   state.branches=["All",...([...branchSet].sort((a,b)=>a.localeCompare(b)))];
+
   if(!state.current || !names.includes(state.current)) state.current=names[0]||"";
   if(!state.branches.includes(state.filterBranch)) state.filterBranch="All";
 
@@ -326,6 +351,7 @@ function buildThead(){
     elSkillRow.appendChild(th);
   }
 
+  // อัปเดต offset แถวหัวบน
   requestAnimationFrame(()=>{
     const r1=document.querySelector('#groupRow');
     const h=(r1&&r1.offsetHeight)?r1.offsetHeight:34;
@@ -426,18 +452,15 @@ $("saveBtn").addEventListener("click", ()=>{
 
   const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
 
-  // 🔧 สำคัญ: ล้าง action เผื่อค้างมาจาก Add/Delete
+  // ล้าง action เผื่อค้างมาจาก Add/Delete
   $("f_action").value = "";
 
-  // ใส่ชื่อ (Apps Script คาดว่า name)
+  // ใส่ชื่อ + สาขาปัจจุบัน (เผื่อ GAS ใช้)
   $("f_name").value = selected;
-
-  // (ถ้า Apps Script ไม่ได้ใช้ branch ตอนอัปเดต จะส่งหรือไม่ส่งก็ได้)
   $("f_branch").value = state.levels[selected]?._branch || "";
 
   // ลบอินพุตเก่า u_skill[] / u_level[]
-  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
-    .forEach(el => el.remove());
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el => el.remove());
 
   // เติมเฉพาะที่แก้ไข (ใช้ raw key)
   for (const [skillKey, level] of state.dirty.entries()){
