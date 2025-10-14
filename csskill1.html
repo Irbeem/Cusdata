@@ -13,8 +13,10 @@
   --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
   --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
 
-  --green-50:#ecfdf5; --green-100:#d1fae5; --green-500:#10b981;
-  --blue-50:#eff6ff;  --blue-100:#dbeafe;  --blue-600:#2563eb;
+  --green-50:#ecfdf5; --green-100:#d1fae5; --green-500:#10b981; --green-700:#047857;
+  --blue-50:#eff6ff;  --blue-100:#dbeafe;  --blue-600:#2563eb; --blue-900:#1e3a8a;
+
+  --gray-50:#f8fafc;  --gray-100:#f1f5f9;  --gray-300:#cbd5e1; --gray-500:#64748b;
 
   --header-grad: linear-gradient(180deg,#f8fafc 0%, #ffffff 100%);
 
@@ -101,25 +103,34 @@ tbody tr.current-row td{ background:#fff7d6 }          /* แถวที่เ�
 /* center content in cells */
 td.center{ text-align:center; vertical-align:middle }
 
-/* level buttons */
+/* ===== level buttons (สีตามค่า) ===== */
 .lvbtn{
   display:inline-flex;align-items:center;justify-content:center;
   width:36px;height:36px;font-size:22px;border-radius:10px;
-  border:1px solid var(--brand-200); background:#4159c4; color:#ffffff;
+  border:1px solid var(--gray-300); background:#fff; color:#111827;
   box-shadow: 0 1px 0 rgba(0,0,0,.04);
 }
-.lvbtn.readonly{ background:#f3f4f6; color:#6b7280; border-color:#e5e7eb }
+.lvbtn:focus{ outline:none; box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent) }
+
+/* 0 = ขีด (เทา) */
+.lvbtn.val0{ background:var(--gray-50); color:var(--gray-500); border-color:var(--gray-300) }
+/* 1 = วงกลมขาว (เขียว) */
+.lvbtn.val1{ background:var(--green-100); color:var(--green-700); border-color:#86efac }
+/* 2 = วงกลมดำ (น้ำเงิน) */
+.lvbtn.val2{ background:var(--blue-100); color:var(--blue-900); border-color:#93c5fd }
+
+/* read only: ลดความเด่นลงเล็กน้อย แต่ยังเห็นสี */
+.lvbtn.readonly{ filter:saturate(.85) brightness(.98); opacity:.9; cursor:default }
+
+/* ทำเครื่องหมายเมื่อแก้ไข */
 .lvbtn.dirty{
-  border-color:#f59e0b;
   box-shadow:0 0 0 4px color-mix(in srgb,#f59e0b 25%, transparent)
 }
-.lvbtn:focus{ outline:none }
 
-/* skill cell color by value */
+/* สีพื้นหลังเซลล์ตามค่า (เหมือนเดิม) */
 td.skill.level1{ background: var(--green-50) }  /* ○ */
 td.skill.level2{ background: var(--blue-50) }   /* ● */
 
-/* message area bottom spacing */
 iframe{display:none}
 .small{font-size:12px;color:var(--muted)}
 </style>
@@ -245,7 +256,6 @@ async function loadCSV(){
   // หา branch/brance
   const rowHead = matrix[skillHeaderRowIdx].map(toStr);
   let branchCol = rowHead.findIndex(v => ['branch','brance'].includes(v.toLowerCase()));
-  // ถ้าไม่เจอ ให้ลองคอลัมน์ถัดจาก name
   if(branchCol === -1 && rowHead[nameCol+1]) branchCol = nameCol+1;
 
   // group row คือแถวก่อนหน้า
@@ -254,7 +264,6 @@ async function loadCSV(){
 
   // skill header row
   let skillRow = matrix[skillHeaderRowIdx].map(x => toStr(x).replace(/\s+/g,' ').trim());
-  // กัน export เพี้ยน (ถ้ามันซ้ำ group) -> เลื่อนลง 1
   const looksLikeGroup =
     skillRow.some((v,i)=>i!==nameCol && v) &&
     skillRow.every((v,i)=>i===nameCol || v === groupRaw[i]);
@@ -272,7 +281,7 @@ async function loadCSV(){
     groupRow[c] = lastG;
   }
 
-  // คอลัมน์สกิล = non-empty และ index > max(name,branch)
+  // คอลัมน์สกิล
   const startIdx = Math.max(nameCol, branchCol) + 1;
   const skillCols=[];
   for(let c=startIdx;c<skillRow.length;c++){
@@ -364,6 +373,14 @@ function buildThead(){
   requestAnimationFrame(updateStickyHeaderMetrics);
 }
 
+/* helper: ปรับ class สีปุ่มตามค่า */
+function setBtnValueClass(btn, val){
+  btn.classList.remove('val0','val1','val2');
+  if(val==='0') btn.classList.add('val0');
+  else if(val==='1') btn.classList.add('val1');
+  else if(val==='2') btn.classList.add('val2');
+}
+
 /* ------------- Render TBODY ------------- */
 function buildTbody(){
   elTbody.innerHTML='';
@@ -406,6 +423,7 @@ function buildTbody(){
       btn.textContent = symbolForLevel(current);
       btn.dataset.skill=skill;
       btn.dataset.value=current;
+      setBtnValueClass(btn, current);
 
       if(!editable){
         btn.classList.add('readonly');
@@ -416,6 +434,7 @@ function buildTbody(){
           const newVal = nextLevel(oldVal);
           btn.dataset.value=newVal;
           btn.textContent=symbolForLevel(newVal);
+          setBtnValueClass(btn, newVal);
 
           // อัปเดตสีพื้นหลังเซลล์
           td.classList.toggle('level1', newVal==='1');
@@ -457,8 +476,8 @@ function updateStickyHeaderMetrics(){
 window.addEventListener('resize', updateStickyHeaderMetrics);
 
 /* ------------- Events ------------- */
-elPerson.addEventListener('change', ()=>{
-  state.current = elPerson.value;
+$("person").addEventListener('change', ()=>{
+  state.current = $("person").value;
   state.dirty.clear();
   buildTbody();
 });
