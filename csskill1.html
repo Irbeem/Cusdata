@@ -8,22 +8,39 @@
   /* ===== Theme & Base ===== */
   :root{
     --border:#e5e7eb; --sticky:#f9fafb;
+    /* Brand palette */
     --brand-25:#f5f7ff; --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
-    --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
+    --brand-300:#a5b4fc; --brand-400:#818cf8; --brand-500:#6366f1; --brand-600:#4f46e5; --brand-700:#4338ca;
     --green:#16a34a; --blue:#2563eb; --amber:#f59e0b;
-    --row-current-overlay: rgba(59,130,246,.14);  /* selected name row overlay (blue-ish) */
-    --row-hover-overlay:   rgba(2,132,199,.12);  /* hover overlay (cyan-ish) */
+
+    /* Row overlays */
+    --row-current-overlay: rgba(59,130,246,.14);
+    --row-hover-overlay:   rgba(2,132,199,.12);
   }
-  html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
-  header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg,#f9fafb 0%,#ffffff 100%);border-bottom:1px solid var(--border);box-shadow:0 4px 14px rgba(15,23,42,.06);padding:12px}
+  html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#0f172a;background:#fff}
+  header{
+    position:sticky;top:0;z-index:50;
+    background:linear-gradient(180deg,#f9fafb 0%,#ffffff 100%);
+    border-bottom:1px solid var(--border);
+    box-shadow:0 4px 14px rgba(15,23,42,.06);
+    padding:12px
+  }
   h1{margin:0 0 8px 0;font-size:16px}
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-  .controls select,.controls input{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px}
-  .controls select:focus,.controls input:focus{outline:none;border-color:var(--brand-400);box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent)}
-  button{border-radius:10px;padding:10px 14px;border:1px solid transparent;font-weight:600;transition:transform .05s ease,box-shadow .15s ease;background:#fff}
+  .controls select,.controls input{
+    border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px
+  }
+  .controls select:focus,.controls input:focus{
+    outline:none;border-color:var(--brand-400);
+    box-shadow:0 0 0 4px color-mix(in srgb, var(--brand-400) 20%, transparent)
+  }
+  button{
+    border-radius:10px;padding:10px 14px;border:1px solid transparent;font-weight:600;
+    transition:transform .05s ease,box-shadow .15s ease,background .15s ease
+  }
   button:active{transform:translateY(1px)}
-  .primary{background:var(--brand-500);border-color:var(--brand-500);color:#fff;box-shadow:0 6px 14px rgba(79,70,229,.25)}
-  .primary:hover{background:var(--brand-600)}
+  .primary{background:var(--brand-600);border-color:var(--brand-600);color:#fff;box-shadow:0 6px 14px rgba(79,70,229,.25)}
+  .primary:hover{background:var(--brand-700)}
   .secondary{background:#fff;color:var(--brand-600);border-color:var(--brand-200)}
   .secondary:hover{background:var(--brand-50);border-color:var(--brand-400)}
   #btnAdd.secondary{color:var(--green);border-color:color-mix(in srgb, var(--green) 35%, #ffffff)}
@@ -34,7 +51,10 @@
 
   /* ===== Table wrapper ===== */
   .wrap{padding:12px}
-  .table-wrap{max-height:calc(100vh - 180px);overflow:auto;border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 24px rgba(15,23,42,.05)}
+  .table-wrap{
+    max-height:calc(100vh - 180px);overflow:auto;border:1px solid var(--border);
+    border-radius:14px;box-shadow:0 12px 24px rgba(15,23,42,.05)
+  }
   .table-wrap, .table-wrap *{transform:none !important;filter:none !important;backdrop-filter:none !important}
 
   table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
@@ -43,51 +63,75 @@
   .center{text-align:center}
 
   /* ===== Sticky (2 header rows + 2 left cols) ===== */
-  :root{ --h1: 36px; } /* header-1 height variable (updated by JS) */
+  :root{ --h1: 40px; } /* JS will set actual height */
   thead th{position:sticky;background:#fff}
   thead tr:first-child th{top:0;z-index:40}
   thead tr:nth-child(2) th{top:var(--h1);z-index:39}
-  /* left sticky columns */
-  thead th.sticky-1, tbody td.sticky-1{position:sticky;left:0;z-index:41;background:linear-gradient(90deg,#f8fafc 0%,#fff 100%);font-weight:700}
-  thead th.sticky-2, tbody td.sticky-2{position:sticky;left:200px;z-index:40;background:linear-gradient(90deg,#f8fafc 0%,#fff 100%);font-weight:700}
-  .col-name{width:200px}
-  .col-branch{width:120px}
 
-  /* ===== Vivid Header colors ===== */
+  /* left sticky columns */
+  thead th.sticky-1, tbody td.sticky-1{
+    position:sticky;left:0;z-index:41;
+    background:linear-gradient(180deg,#eef2ff 0%, #ffffff 100%);
+    font-weight:800;color:#111827
+  }
+  thead th.sticky-2, tbody td.sticky-2{
+    position:sticky;left:200px;z-index:40;
+    background:linear-gradient(180deg,#eef2ff 0%, #ffffff 100%);
+    font-weight:800;color:#111827
+  }
+  .col-name{width:200px}
+  .col-branch{width:140px}
+
+  /* ===== NEW: Stronger, colorful headers ===== */
+  /* Row 1 (Group): deep gradient with white text for contrast */
   #groupRow th{
-    background:linear-gradient(180deg,var(--brand-100) 0%, #ffffff 80%);
-    color:#0f172a;font-weight:800;border-bottom:2px solid var(--brand-200);
-    box-shadow:inset 0 -2px 0 var(--brand-200);
+    background:
+      linear-gradient(135deg, var(--brand-700) 0%, var(--brand-600) 55%, var(--brand-500) 100%);
+    color:#fff;
+    text-shadow:0 1px 0 rgba(0,0,0,.18);
+    font-weight:900; letter-spacing:.2px;
+    border-bottom:2px solid rgba(255,255,255,.35);
+    box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
   }
+  /* name/branch cells of header keep same palette but stronger contrast */
+  thead th.sticky-1, thead th.sticky-2{
+    background:
+      linear-gradient(135deg, var(--brand-600) 0%, var(--brand-500) 100%);
+    color:#fff; text-shadow:0 1px 0 rgba(0,0,0,.2);
+  }
+
+  /* Row 2 (Skill labels): soft band with pill underline */
   #skillRow th{
-    background:var(--brand-25);
-    color:#0f172a;font-weight:800;border-bottom:2px solid var(--brand-100);
+    background:
+      linear-gradient(180deg, #ffffff 0%, var(--brand-25) 100%);
+    color:#0f172a; font-weight:800;
+    border-bottom:2px solid var(--brand-100);
+    position:relative;
   }
-  /* header chips for the two sticky headers */
-  thead th.sticky-1, thead th.sticky-2{background:linear-gradient(180deg,#f3f4ff 0%, #ffffff 90%)}
+  #skillRow th::after{
+    content:""; position:absolute; left:12px; right:12px; bottom:6px; height:4px;
+    background:linear-gradient(90deg, var(--brand-300), var(--brand-400));
+    border-radius:999px; opacity:.35;
+  }
 
   /* ===== Level cell backgrounds ===== */
   td.lv-0{background:#ffffff}
   td.lv-1{background:#e9f8ef}  /* light green */
   td.lv-2{background:#e9efff}  /* light blue  */
 
-  /* ===== Selected name row (stronger & clear) ===== */
+  /* ===== Selected name row (clear & strong) ===== */
   tr.is-current td{
-    /* big inset shadow overlay so it doesn't overwrite per-level background */
     box-shadow: inset 0 0 0 9999px var(--row-current-overlay);
   }
-  /* make the first sticky name cell even clearer */
   tr.is-current td.sticky-1{
     color:#0f172a;
-    box-shadow: inset 4px 0 0 var(--brand-500), inset 0 0 0 9999px var(--row-current-overlay);
+    box-shadow: inset 6px 0 0 var(--brand-600), inset 0 0 0 9999px var(--row-current-overlay);
   }
 
-  /* ===== Hover row — clearer overlay, but keep level color below ===== */
+  /* ===== Hover row (clearer overlay) ===== */
   tbody tr:hover td{
     box-shadow: inset 0 0 0 9999px var(--row-hover-overlay);
   }
-
-  /* Keep level tint visible but allow hover/selected overlays to show */
   tbody tr:hover td.lv-1{ background:#dff3e8 }
   tbody tr:hover td.lv-2{ background:#e0e7ff }
 
@@ -97,7 +141,7 @@
     font-size:20px;border:1px solid #e5e7eb;border-radius:10px;background:#f3f4f6;color:#1f2937;
     transition:background .12s ease,border-color .12s ease,color .12s ease;user-select:none;cursor:pointer
   }
-  .lvbtn.readonly{cursor:default;opacity:.9}
+  .lvbtn.readonly{cursor:default;opacity:.95}
   .lvbtn.dirty{box-shadow:0 0 0 4px color-mix(in srgb, var(--amber) 25%, transparent)}
   .lvbtn.lv-0{background:#f3f4f6;color:#374151;border-color:#e5e7eb} /* 0 */
   .lvbtn.lv-1{background:var(--green);color:#fff;border-color:var(--green)}  /* 1 */
@@ -315,7 +359,7 @@ function buildThead(skillCols){
   requestAnimationFrame(updateStickyHeaderOffset);
 }
 function updateStickyHeaderOffset(){
-  const r1=document.querySelector('#groupRow'); const h=(r1 && r1.offsetHeight)?r1.offsetHeight:36;
+  const r1=document.querySelector('#groupRow'); const h=(r1 && r1.offsetHeight)?r1.offsetHeight:40;
   document.documentElement.style.setProperty('--h1', h+'px');
 }
 
