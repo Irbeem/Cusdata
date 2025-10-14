@@ -4,109 +4,79 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
-
 <style>
-/* ================= THEME / LAYOUT ================ */
 :root{
-  /* ==== กำหนดความกว้างคงที่ให้ 2 คอลัมน์ซ้าย (กันเด้ง/ทับ) ==== */
-  --nameW: 200px;     /* ปรับได้ */
-  --branchW: 120px;   /* ปรับได้ */
+  /* ความกว้างคงที่ของ 2 คอลัมน์ซ้าย */
+  --nameW: 200px;
+  --branchW: 120px;
 
-  --h1: 34px;         /* ระยะหัวแถวแรก (อัปเดตด้วย JS) */
+  --h1: 34px;
   --border:#e5e7eb;
-  --muted:#6b7280;
   --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
-  --row-select-bg:#F6C8B6;      /* สีแถวที่เลือก */
-  --row-select-left:#6366f1;    /* แถบซ้ายเล็ก ๆ */
+  --row-select-bg:#F6C8B6;
+  --row-select-left:#6366f1;
   --row-hover:#f0f4ff;
   --header-grad: linear-gradient(180deg,#6366f1 0%, #4f46e5 80%, #4338ca 100%);
 }
 html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
 
-/* ================= HEADER BAR ================= */
-header{
-  position:sticky; top:0; z-index:50;
-  background:#fff;
-  border-bottom:1px solid var(--border);
-}
-header .bar{padding:12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+/* Header */
+header{position:sticky; top:0; z-index:1000; background:#fff; border-bottom:1px solid var(--border)}
+header .bar{padding:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center}
 h1{margin:0 0 6px 0; font-size:16px; font-weight:700}
-.controls select,.controls input{
-  border:1px solid var(--border); border-radius:10px; padding:8px 12px; background:#fff
-}
+.controls select,.controls input{border:1px solid var(--border); border-radius:10px; padding:8px 12px; background:#fff}
 button{border-radius:10px; padding:10px 14px; border:1px solid transparent; font-weight:600; cursor:pointer}
 button.primary{background:var(--brand-500); color:#fff}
 button.primary:hover{background:var(--brand-600)}
 button.secondary{background:#fff; border:1px solid var(--brand-200); color:#1f2937}
-.status{font-size:13px; color:#374151; padding: 0 12px 10px}
+.status{font-size:13px; color:#374151; padding:0 12px 10px}
 
-/* =============== TABLE WRAP ==================== */
+/* Table */
 .wrap{padding:12px}
-.table-wrap{
-  max-height:calc(100vh - 200px);
-  overflow:auto;
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:#fff;
-  box-shadow:0 10px 24px rgba(15,23,42,.06);
-}
+.table-wrap{max-height:calc(100vh - 200px); overflow:auto; border:1px solid var(--border); border-radius:12px; background:#fff; box-shadow:0 10px 24px rgba(15,23,42,.06)}
 table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
 th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
 th:first-child,td:first-child{border-left:1px solid var(--border)}
-thead th{position:sticky;background:#fff}
-thead tr:first-child th{top:0; z-index:40}
-thead tr:nth-child(2) th{top:var(--h1); z-index:39}
+thead th{position:sticky;background:#fff; z-index:10}
+thead tr:first-child th{top:0}
+thead tr:nth-child(2) th{top:var(--h1)}
 
-/* ==== Sticky มุมซ้าย: คอลัมน์ name / branch ==== */
+/* Sticky ซ้าย 2 คอลัมน์ */
 thead th.name-th{
-  left:0; z-index:42;
+  left:0; z-index:120 !important;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
 thead th.branch-th{
-  left:var(--nameW); z-index:41;
+  left:var(--nameW); z-index:119 !important;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
+#groupRow th{ background:var(--header-grad); color:#fff; border-bottom:2px solid #c7d2fe; text-shadow:0 1px 0 rgba(0,0,0,.15); z-index:15 }
+#skillRow th{ font-weight:700; background:#fafbff; z-index:14 }
+
 tbody td.name-td{
-  position:sticky; left:0; z-index:20;
+  position:sticky; left:0; z-index:80;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   background:#f8fafc; font-weight:700;
 }
 tbody td.branch-td{
-  position:sticky; left:var(--nameW); z-index:19;
+  position:sticky; left:var(--nameW); z-index:79;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
+  box-shadow: inset -1px 0 0 var(--border); /* เส้นแบ่งขวาให้เด่น */
 }
 
-/* ==== กลุ่ม (หัวแถวแรก) ==== */
-#groupRow th{
-  background:var(--header-grad);
-  color:#fff;
-  border-bottom:2px solid #c7d2fe;
-  text-shadow:0 1px 0 rgba(0,0,0,.15);
-}
-
-/* ==== หัวชื่อสกิล ==== */
-#skillRow th{ font-weight:700; background:#fafbff }
-
-/* ==== Hover/Selected ==== */
+/* Hover/Selected */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
-tr.is-selected td{
-  background: var(--row-select-bg) !important; position:relative;
-}
-tr.is-selected td.name-td{
-  background: linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important;
-}
-tr.is-selected td.name-td::before{
-  content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left);
-  border-top-left-radius:6px; border-bottom-left-radius:6px;
-}
+tr.is-selected td{ background:var(--row-select-bg) !important; position:relative }
+tr.is-selected td.name-td{ background:linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important }
+tr.is-selected td.name-td::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left); border-top-left-radius:6px; border-bottom-left-radius:6px}
 
-/* ==== ปุ่มสกิล 0/1/2 ==== */
+/* ปุ่มสกิล 0/1/2 */
 td.center{ text-align:center; vertical-align:middle }
 td.center .cell{ display:flex; align-items:center; justify-content:center; width:100% }
 .lvbtn{
@@ -115,13 +85,11 @@ td.center .cell{ display:flex; align-items:center; justify-content:center; width
   border:1px solid var(--brand-200); background:#fff; color:#111827;
   box-shadow:0 1px 0 rgba(0,0,0,.04);
 }
-.lvbtn[data-value="0"]{ background:#f8fafc; color:#6b7280; border-color:#e5e7eb } /* - */
-.lvbtn[data-value="1"]{ background:#10b98122; color:#047857; border-color:#34d399 } /* ○ → เขียวอ่อน */
-.lvbtn[data-value="2"]{ background:#3b82f622; color:#1d4ed8; border-color:#93c5fd } /* ● → น้ำเงินอ่อน */
+.lvbtn[data-value="0"]{ background:#f8fafc; color:#6b7280; border-color:#e5e7eb }
+.lvbtn[data-value="1"]{ background:#10b98122; color:#047857; border-color:#34d399 }
+.lvbtn[data-value="2"]{ background:#3b82f622; color:#1d4ed8; border-color:#93c5fd }
 .lvbtn.readonly{ background:#eef2ff; color:#374151; border-color:#c7d2fe }
 .lvbtn.dirty{ outline:2px solid #f59e0b; outline-offset:-3px }
-
-/* ===== เลเบลเล็ก ===== */
 .small{ font-size:12px; color:#6b7280; margin-left:12px }
 </style>
 </head>
@@ -131,29 +99,23 @@ td.center .cell{ display:flex; align-items:center; justify-content:center; width
   <div class="bar" style="border-bottom:1px solid var(--border)">
     <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
   </div>
-
   <div class="bar controls">
     <label>Branch:
       <select id="branchFilter"></select>
     </label>
-
     <label>พนักงาน (เลือกเพื่อแก้ไข):
       <select id="person"></select>
     </label>
-
     <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
     <button id="resetBtn" class="secondary">ยกเลิก</button>
-
     <span class="small">Skill: '-' = No, '○' = Can do, '●' = Can teach</span>
   </div>
-
   <div class="bar controls" style="border-top:1px solid var(--border)">
     <input id="newName" placeholder="Name (เพิ่ม/ลบ)" style="min-width:160px" />
     <input id="newBranch" placeholder="Branch (เช่น BKK, CBI)" style="min-width:140px" />
     <button id="btnAdd" class="secondary">➕ Add</button>
     <button id="btnDel" class="secondary">🗑 Delete</button>
   </div>
-
   <div id="msg" class="status"></div>
 </header>
 
@@ -169,7 +131,6 @@ td.center .cell{ display:flex; align-items:center; justify-content:center; width
   </div>
 </div>
 
-<!-- ====== Hidden form for Apps Script ====== -->
 <iframe id="gasTarget" name="gasTarget" style="display:none"></iframe>
 <form id="gasForm" method="POST" target="gasTarget" action="">
   <input type="hidden" name="name" id="f_name">
@@ -180,26 +141,20 @@ td.center .cell{ display:flex; align-items:center; justify-content:center; width
 </form>
 
 <script>
-/* ===================== CONFIG ===================== */
+/* ===== CONFIG ===== */
 const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0";
 const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
 
-/* ===================== STATE ====================== */
+/* ===== STATE ===== */
 let state = {
-  nameCol: -1,
-  branchCol: -1,
-  names: [],              // รายชื่อทั้งหมด (ตามลำดับในชีต)
-  branches: [],           // รายชื่อสาขาที่พบ (unique)
-  groups: [],             // group header (fill-forward)
-  skills: [],             // [{idx, label, group}]
-  rows: [],               // raw rows (after header)
-  levels: {},             // levels[name][skillLabel] = '0'|'1'|'2'|''
-  current: "",            // ชื่อที่กำลังแก้ไข
-  dirty: new Map(),       // map(skillLabel -> '0'|'1'|'2')
-  filterBranch: "All"     // ฟิลเตอร์ branch ที่เลือก
+  nameCol: -1, branchCol: -1,
+  names: [], branches: [],
+  groups: [], skills: [], rows: [],
+  levels: {}, current: "", dirty: new Map(),
+  filterBranch: "All"
 };
 
-/* ================== HELPERS ================== */
+/* ===== HELPERS ===== */
 const $ = (id) => document.getElementById(id);
 const elBranchFilter = $("branchFilter");
 const elPerson   = $("person");
@@ -208,12 +163,10 @@ const elGroupRow = $("groupRow");
 const elSkillRow = $("skillRow");
 const elTbody    = $("tbody");
 
-/* UI utils */
 function setMessage(t){ elMsg.textContent = t; }
-function symbolForLevel(lv){ return lv === '2' ? '●' : (lv === '1' ? '○' : '-'); }
-function nextLevel(lv){ return lv === '0' ? '1' : (lv === '1' ? '2' : '0'); }
+function symbolForLevel(lv){ return lv==='2'?'●':(lv==='1'?'○':'-'); }
+function nextLevel(lv){ return lv==='0'?'1':(lv==='1'?'2':'0'); }
 
-/* ================= CSV PARSER ================= */
 function parseCSV(text){
   const rows=[]; let i=0, cur="", row=[], inq=false;
   while(i<text.length){
@@ -235,368 +188,276 @@ function parseCSV(text){
   return rows;
 }
 
-/* ================ LOAD & BUILD ================= */
+/* ===== LOAD ===== */
 async function loadCSV(){
   setMessage("กำลังโหลดข้อมูล...");
-  const r = await fetch(CSV_URL, { cache:"no-store" });
+  const r = await fetch(CSV_URL,{cache:"no-store"});
   if(!r.ok) throw new Error("โหลด CSV ไม่สำเร็จ");
-  const text = await r.text();
-  const matrix = parseCSV(text);
+  const text=await r.text();
+  const matrix=parseCSV(text);
 
-  // หาแถวหัวสกิล (ที่มี 'name')
-  let skillHeaderRowIdx = -1, nameCol = -1;
-  for(let i=0; i<Math.min(20, matrix.length); i++){
-    const row = matrix[i];
-    const idx = row.findIndex(v => String(v ?? "").trim().toLowerCase() === "name");
-    if(idx !== -1){ skillHeaderRowIdx = i; nameCol = idx; break; }
+  // หา header ที่มี "name"
+  let hdrIdx=-1, nameCol=-1;
+  for(let i=0;i<Math.min(20,matrix.length);i++){
+    const row=matrix[i];
+    const idx=row.findIndex(v=>String(v??"").trim().toLowerCase()==="name");
+    if(idx!==-1){ hdrIdx=i; nameCol=idx; break; }
   }
-  if(skillHeaderRowIdx < 0) throw new Error("ไม่พบคอลัมน์ 'name'");
+  if(hdrIdx<0) throw new Error("ไม่พบคอลัมน์ name");
 
-  // แถวหัวกลุ่มอยู่เหนือขึ้นไป 1 แถว
-  const groupHeaderRowIdx = Math.max(0, skillHeaderRowIdx - 1);
-  const groupRowRaw = matrix[groupHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
-  let skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
+  // group header อยู่บน 1 แถว
+  const grpIdx=Math.max(0,hdrIdx-1);
+  const groupRowRaw=matrix[grpIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
+  let skillRow=matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
 
-  // กัน export เพี้ยน
-  const looksLikeGroup = skillRow.some((v,i)=>i!==nameCol && v) &&
-                         skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
-  if(looksLikeGroup && matrix[skillHeaderRowIdx+1]){
-    skillHeaderRowIdx += 1;
-    skillRow = matrix[skillHeaderRowIdx].map(x => String(x ?? "").replace(/\s+/g,' ').trim());
-  }
-
-  // หา col Branch (รองรับ "branch"/"brance")
-  const branchCol = skillRow.findIndex(v => v.toLowerCase()==="branch" || v.toLowerCase()==="brance");
-
-  // forward-fill กลุ่ม
-  const groupRow = [];
-  let lastGroup="";
-  for(let c=0; c<groupRowRaw.length; c++){
-    const g = groupRowRaw[c];
-    if(g) lastGroup=g;
-    groupRow[c] = lastGroup;
+  // กันเพี้ยน
+  const looksLikeGroup=skillRow.some((v,i)=>i!==nameCol && v) &&
+                        skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
+  if(looksLikeGroup && matrix[hdrIdx+1]){
+    hdrIdx+=1;
+    skillRow=matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
   }
 
-  // สร้าง skillCols (ข้าม name/branch/ช่องว่าง)
-  const skillCols = [];
-  for(let c=0; c<skillRow.length; c++){
-    if(c===nameCol || c===branchCol) continue;
-    const s = skillRow[c];
-    if(!s) continue;
-    skillCols.push({ idx:c, label:s, group:groupRow[c] || "" });
-  }
+  // หา branchCol (ทนทาน)
+  let branchCol = skillRow.findIndex(v=>{
+    const t=String(v??"").trim().toLowerCase();
+    return t==="branch" || t==="brance" || t==="department";
+  });
 
-  // ส่วนข้อมูล
-  const dataRows = matrix.slice(skillHeaderRowIdx+1);
-  const names=[], branchesSet=new Set(), levels={};
-  for(const row of dataRows){
-    const nm = String(row[nameCol] ?? "").trim();
-    if(!nm) continue;
-    const br = branchCol>=0 ? String(row[branchCol] ?? "").trim() : "";
-    names.push(nm);
-    if(br) branchesSet.add(br);
-
-    const mp={};
-    for(const col of skillCols){
-      const raw = row[col.idx];
-      const v = (raw===undefined || raw===null) ? '' : String(raw).trim();
-      mp[col.label] = (v==='0' || v==='1' || v==='2') ? v : '';
+  // ถ้ายังไม่พบ ลองเดา: คอลัมน์ถัดจาก name ถ้าข้อมูลซ้ำจำพวก BKK/CBI เยอะ
+  if(branchCol<0){
+    const guessCol = nameCol+1;
+    const dataRows = matrix.slice(hdrIdx+1);
+    let score=0, total=0;
+    for(const r of dataRows){
+      const val=String(r[guessCol]??"").trim();
+      if(val) total++;
+      if(/^[A-Za-z]{2,4}$/.test(val)) score++;
     }
-    levels[nm] = { _branch: br, ...mp };
+    if(total>0 && score/total > 0.6) branchCol=guessCol; // เดา
   }
 
-  // เติม All branches ในฟิลเตอร์
-  const branches = ["All", ...[...branchesSet].sort((a,b)=>a.localeCompare(b))];
+  // forward-fill group
+  const groupRow=[];
+  let last="";
+  for(let c=0;c<groupRowRaw.length;c++){
+    const g=groupRowRaw[c]; if(g) last=g; groupRow[c]=last;
+  }
 
-  // อัปเดต state
-  state.nameCol   = nameCol;
-  state.branchCol = branchCol;
-  state.groups  = groupRow;
-  state.skills  = skillCols;
-  state.rows    = dataRows;
-  state.names   = names;
-  state.branches= branches;
-  state.levels  = levels;
+  // รวบรวมคอลัมน์สกิล
+  const skillCols=[];
+  for(let c=0;c<skillRow.length;c++){
+    if(c===nameCol || c===branchCol) continue;
+    const s=skillRow[c]; if(!s) continue;
+    skillCols.push({idx:c,label:s,group:groupRow[c]||""});
+  }
 
-  // ตั้งค่าเริ่มต้น
-  if(!state.current || !names.includes(state.current)) state.current = names[0] || "";
-  if(!branches.includes(state.filterBranch)) state.filterBranch="All";
+  const dataRows=matrix.slice(hdrIdx+1);
+  const names=[], branchSet=new Set(), levels={};
+  for(const row of dataRows){
+    const nm=String(row[nameCol]??"").trim();
+    if(!nm) continue;
+    const br = branchCol>=0 ? String(row[branchCol]??"").trim() : "";
+    names.push(nm);
+    if(br) branchSet.add(br);
+    const mp={_branch:br};
+    for(const col of skillCols){
+      const raw=row[col.idx];
+      const v=(raw===undefined||raw===null)?'':String(raw).trim();
+      mp[col.label]=(v==='0'||v==='1'||v==='2')?v:'';
+    }
+    levels[nm]=mp;
+  }
+
+  state.nameCol=nameCol; state.branchCol=branchCol;
+  state.groups=groupRow; state.skills=skillCols;
+  state.rows=dataRows; state.names=names; state.levels=levels;
+  state.branches=["All",...([...branchSet].sort((a,b)=>a.localeCompare(b)))];
+  if(!state.current || !names.includes(state.current)) state.current=names[0]||"";
+  if(!state.branches.includes(state.filterBranch)) state.filterBranch="All";
 
   buildThead();
-  buildPeopleDropdown();
   buildBranchFilter();
+  buildPeopleDropdown();
   buildTbody();
-
   setMessage("พร้อมใช้งาน");
 }
 
-/* =============== RENDER THEAD ================= */
+/* ===== RENDER THEAD ===== */
 function buildThead(){
-  elGroupRow.innerHTML = "";
-  elSkillRow.innerHTML = "";
+  elGroupRow.innerHTML="";
+  elSkillRow.innerHTML="";
 
-  // th: name + branch (rowspan 2)
-  const thName = document.createElement("th");
-  thName.className = "name-th";
-  thName.textContent = "name";
-  thName.rowSpan = 2;
+  const thName=document.createElement("th");
+  thName.className="name-th";
+  thName.textContent="name";
+  thName.rowSpan=2;
   elGroupRow.appendChild(thName);
 
-  const thBranch = document.createElement("th");
-  thBranch.className = "branch-th";
-  thBranch.textContent = "branch";
-  thBranch.rowSpan = 2;
+  const thBranch=document.createElement("th");
+  thBranch.className="branch-th";
+  thBranch.textContent="branch";
+  thBranch.rowSpan=2;
   elGroupRow.appendChild(thBranch);
 
-  // groups with colspan
+  // groups
   let i=0, sc=state.skills;
   while(i<sc.length){
-    const g = sc[i].group || "";
-    let span=1, j=i+1;
+    const g=sc[i].group||""; let span=1, j=i+1;
     while(j<sc.length && (sc[j].group||"")===g){ span++; j++; }
-    const th = document.createElement("th");
-    th.textContent = g || "";
-    th.colSpan = span;
+    const th=document.createElement("th");
+    th.textContent=g;
+    th.colSpan=span;
     elGroupRow.appendChild(th);
     i=j;
   }
-
-  // skill names row
+  // skill labels
   for(const col of state.skills){
-    const th = document.createElement("th");
-    th.textContent = col.label;
+    const th=document.createElement("th");
+    th.textContent=col.label;
     elSkillRow.appendChild(th);
   }
 
-  // อัปเดต offset แถวบนสุด → ให้หัวบรรทัดสกิลซ้อนถูก
   requestAnimationFrame(()=>{
-    const r1 = document.querySelector('#groupRow');
-    const h  = (r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
-    document.documentElement.style.setProperty('--h1', h + 'px');
+    const r1=document.querySelector('#groupRow');
+    const h=(r1&&r1.offsetHeight)?r1.offsetHeight:34;
+    document.documentElement.style.setProperty('--h1', h+'px');
   });
 }
 
-/* ============== RENDER FILTERS ================= */
+/* ===== RENDER FILTERS ===== */
+function getFilteredNames(){
+  if(state.filterBranch==="All") return state.names.slice();
+  return state.names.filter(n => (state.levels[n]?._branch||"")===state.filterBranch);
+}
 function buildPeopleDropdown(){
-  const namesForFilter = getFilteredNames();
-  elPerson.innerHTML = namesForFilter.map(n => `<option value="${n}">${n}</option>`).join("");
-  if(namesForFilter.length){
-    if(!namesForFilter.includes(state.current)) state.current = namesForFilter[0];
-    elPerson.value = state.current;
+  const list=getFilteredNames();
+  elPerson.innerHTML=list.map(n=>`<option value="${n}">${n}</option>`).join("");
+  if(list.length){
+    if(!list.includes(state.current)) state.current=list[0];
+    elPerson.value=state.current;
   }
 }
 function buildBranchFilter(){
-  elBranchFilter.innerHTML = state.branches.map(b=>`<option value="${b}">${b}</option>`).join("");
-  elBranchFilter.value = state.filterBranch;
+  elBranchFilter.innerHTML=state.branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+  elBranchFilter.value=state.filterBranch;
 }
 
-/* =============== BODY RENDER =================== */
-function getFilteredNames(){
-  if(state.filterBranch==="All") return state.names.slice();
-  return state.names.filter(n => (state.levels[n]?._branch || "") === state.filterBranch);
-}
-
+/* ===== RENDER BODY ===== */
 function buildTbody(){
-  elTbody.innerHTML = "";
-  const names = getFilteredNames();
+  elTbody.innerHTML="";
+  const names=getFilteredNames();
 
   for(const name of names){
-    const tr = document.createElement("tr");
+    const tr=document.createElement("tr");
     if(name===state.current) tr.classList.add("is-selected");
 
-    // name cell
-    const tdName = document.createElement("td");
-    tdName.className = "name-td";
-    tdName.textContent = name;
+    // name
+    const tdName=document.createElement("td");
+    tdName.className="name-td";
+    tdName.textContent=name;
     tr.appendChild(tdName);
 
-    // branch cell
-    const tdBranch = document.createElement("td");
-    tdBranch.className = "branch-td";
-    tdBranch.textContent = state.levels[name]?._branch || "";
+    // branch
+    const tdBranch=document.createElement("td");
+    tdBranch.className="branch-td";
+    tdBranch.textContent=state.levels[name]?._branch || "";
     tr.appendChild(tdBranch);
 
-    const editable = (name===state.current);
+    const editable=(name===state.current);
 
     // skills
     for(const col of state.skills){
-      const skill = col.label;
-      const baseline = (state.levels[name]?.[skill] ?? '0') || '0';
-      const current  = (editable && state.dirty.has(skill)) ? state.dirty.get(skill) : baseline;
+      const skill=col.label;
+      const baseline=(state.levels[name]?.[skill]??'0')||'0';
+      const current=(editable && state.dirty.has(skill)) ? state.dirty.get(skill) : baseline;
 
-      const td = document.createElement("td");
-      td.className = "center";
-      const wrap = document.createElement("div");
-      wrap.className = "cell";
-
-      const btn = document.createElement("button");
-      btn.type="button";
-      btn.className="lvbtn";
-      btn.dataset.skill = skill;
-      btn.dataset.value = current;
-      btn.textContent = symbolForLevel(current);
+      const td=document.createElement("td");
+      td.className="center";
+      const wrap=document.createElement("div"); wrap.className="cell";
+      const btn=document.createElement("button");
+      btn.type="button"; btn.className="lvbtn";
+      btn.dataset.skill=skill; btn.dataset.value=current;
+      btn.textContent=symbolForLevel(current);
 
       if(!editable){
         btn.classList.add("readonly");
       }else{
         if(current!==baseline) btn.classList.add("dirty");
         btn.addEventListener("click", ()=>{
-          const oldV = btn.dataset.value;
-          const newV = nextLevel(oldV);
-          btn.dataset.value = newV;
-          btn.textContent = symbolForLevel(newV);
-
-          if(newV===baseline){
-            state.dirty.delete(skill);
-            btn.classList.remove("dirty");
-          }else{
-            state.dirty.set(skill, newV);
-            btn.classList.add("dirty");
-          }
+          const newV=nextLevel(btn.dataset.value);
+          btn.dataset.value=newV; btn.textContent=symbolForLevel(newV);
+          if(newV===baseline){ state.dirty.delete(skill); btn.classList.remove("dirty"); }
+          else{ state.dirty.set(skill,newV); btn.classList.add("dirty"); }
         });
       }
-
-      wrap.appendChild(btn);
-      td.appendChild(wrap);
-      tr.appendChild(td);
+      wrap.appendChild(btn); td.appendChild(wrap); tr.appendChild(td);
     }
-
     elTbody.appendChild(tr);
   }
 }
 
-/* ================== EVENTS ==================== */
+/* ===== EVENTS ===== */
 elPerson.addEventListener("change", ()=>{
-  state.current = elPerson.value;
-  state.dirty.clear();
-  buildTbody();
+  state.current=elPerson.value; state.dirty.clear(); buildTbody();
 });
 $("resetBtn").addEventListener("click", ()=>{
-  state.dirty.clear();
-  buildTbody();
-  setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
+  state.dirty.clear(); buildTbody(); setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
 });
-
 elBranchFilter.addEventListener("change", ()=>{
-  state.filterBranch = elBranchFilter.value || "All";
-  buildPeopleDropdown();
-  state.dirty.clear();
-  buildTbody();
+  state.filterBranch=elBranchFilter.value||"All";
+  buildPeopleDropdown(); state.dirty.clear(); buildTbody();
 });
 
-/* =============== SAVE via iframe =============== */
+/* SAVE */
 $("saveBtn").addEventListener("click", ()=>{
-  const selected = state.current;
+  const selected=state.current;
   if(!selected){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
   if(state.dirty.size===0){ setMessage("ไม่มีการแก้ไข"); return; }
 
-  const form = $("gasForm"); const iframe=$("gasTarget");
-  form.action = GAS_ENDPOINT;
-
-  // set name/branch
-  $("f_name").value   = selected;
-  $("f_branch").value = state.levels[selected]?._branch || "";
-
-  // ลบของเก่าแล้วเติมใหม่
+  const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
+  $("f_name").value=selected;
+  $("f_branch").value=state.levels[selected]?._branch || "";
   [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
-  for(const [skill, level] of state.dirty.entries()){
+  for(const [skill,level] of state.dirty.entries()){
     const a=document.createElement("input"); a.type="hidden"; a.name="u_skill[]"; a.value=skill; form.appendChild(a);
     const b=document.createElement("input"); b.type="hidden"; b.name="u_level[]"; b.value=level; form.appendChild(b);
   }
-
-  const onLoad = ()=>{
-    // sync กลับ
-    const mp = state.levels[selected] || (state.levels[selected]={});
-    for(const [skill, level] of state.dirty.entries()) mp[skill]=level;
-    state.dirty.clear();
-    buildTbody();
-    setMessage("✅ บันทึกสำเร็จ");
+  const onLoad=()=>{
+    const mp=state.levels[selected]||(state.levels[selected]={});
+    for(const [skill,level] of state.dirty.entries()) mp[skill]=level;
+    state.dirty.clear(); buildTbody(); setMessage("✅ บันทึกสำเร็จ");
     iframe.removeEventListener("load", onLoad);
   };
-  iframe.addEventListener("load", onLoad, { once:true });
-
-  setMessage("กำลังบันทึก...");
-  form.submit();
+  iframe.addEventListener("load", onLoad, {once:true});
+  setMessage("กำลังบันทึก..."); form.submit();
 });
 
-/* ===== Add / Delete name (with branch) ===== */
+/* ADD / DELETE */
 $("btnAdd").addEventListener("click", ()=>{
-  const nm = ($("newName").value || "").trim();
-  const br = ($("newBranch").value || "").trim();
+  const nm=($("newName").value||"").trim();
+  const br=($("newBranch").value||"").trim();
   if(!nm){ alert("กรุณากรอกชื่อพนักงาน"); return; }
-  const form=$("gasForm"), iframe=$("gasTarget");
-  form.action = GAS_ENDPOINT;
-
-  $("f_action").value = "addName";
-  $("f_new_name").value = nm;
-  $("f_new_branch").value = br;   // ส่ง branch ไปด้วย
-
-  const cleanup=()=>{
-    $("f_action").value="";
-    $("f_new_name").value="";
-    $("f_new_branch").value="";
-    $("newName").value="";
-    $("newBranch").value="";
-  };
-
-  iframe.onload=()=>{
-    iframe.onload=null;
-    cleanup();
-    setMessage("✅ เพิ่มชื่อสำเร็จ");
-    loadCSV().then(()=>{
-      // เลือกแถวที่เพิ่ม
-      if(state.names.includes(nm)){
-        state.current = nm;
-        elPerson.value = nm;
-        // ฟิลเตอร์ไป branch ที่เพิ่ม (ถ้าระบุ)
-        if(br && state.branches.includes(br)) { state.filterBranch = br; elBranchFilter.value = br; }
-        buildPeopleDropdown();
-        buildTbody();
-      }
-    });
-  };
-
-  setMessage("กำลังเพิ่มชื่อ...");
-  form.submit();
+  const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
+  $("f_action").value="addName"; $("f_new_name").value=nm; $("f_new_branch").value=br;
+  const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("f_new_branch").value=""; $("newName").value=""; $("newBranch").value=""; };
+  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ เพิ่มชื่อสำเร็จ"); loadCSV().then(()=>{ if(state.names.includes(nm)){ state.current=nm; if(br && state.branches.includes(br)){ state.filterBranch=br; elBranchFilter.value=br; } buildBranchFilter(); buildPeopleDropdown(); buildTbody(); } }); };
+  setMessage("กำลังเพิ่มชื่อ..."); form.submit();
 });
-
 $("btnDel").addEventListener("click", ()=>{
-  const nm = ($("newName").value || elPerson.value || "").trim();
+  const nm=($("newName").value||elPerson.value||"").trim();
   if(!nm){ alert("ไม่พบชื่อที่จะลบ"); return; }
   if(!confirm(`ยืนยันลบชื่อ "${nm}" ?`)) return;
-
-  const form=$("gasForm"), iframe=$("gasTarget");
-  form.action = GAS_ENDPOINT;
-
-  // ไม่ให้ส่ง u_skill[] ติดไป
+  const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
   [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
-  $("f_name").value="";
-  $("f_action").value="deleteName";
-  $("f_new_name").value = nm;
-
-  const cleanup=()=>{
-    $("f_action").value="";
-    $("f_new_name").value="";
-    $("newName").value="";
-  };
-
-  iframe.onload=()=>{
-    iframe.onload=null;
-    cleanup();
-    setMessage("✅ ลบชื่อสำเร็จ");
-    loadCSV().then(()=>{
-      buildPeopleDropdown();
-      buildTbody();
-    });
-  };
-
-  setMessage("กำลังลบชื่อ...");
-  form.submit();
+  $("f_name").value=""; $("f_action").value="deleteName"; $("f_new_name").value=nm;
+  const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("newName").value=""; };
+  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ ลบชื่อสำเร็จ"); loadCSV().then(()=>{ buildBranchFilter(); buildPeopleDropdown(); buildTbody(); }); };
+  setMessage("กำลังลบชื่อ..."); form.submit();
 });
 
-/* =================== BOOT ====================== */
+/* BOOT */
 loadCSV().catch(err=> setMessage("❌ โหลดข้อมูลไม่สำเร็จ: "+(err.message||err)));
 </script>
-
 </body>
 </html>
