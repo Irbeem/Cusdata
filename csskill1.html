@@ -9,17 +9,26 @@
     --border:#e5e7eb; --muted:#6b7280; --ink:#0f172a; --bg:#fff;
     --brand-50:#eef2ff; --brand-100:#e0e7ff; --brand-200:#c7d2fe;
     --brand-400:#6366f1; --brand-500:#4f46e5; --brand-600:#4338ca;
-    --green-50:#ecfdf5; --green-100:#d1fae5; --green-500:#10b981; --green-600:#059669;
-    --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-500:#3b82f6; --blue-600:#2563eb;
+
+    /* โทนสีสถานะ */
+    --green-50:#ecfdf5; --green-100:#d1fae5; --green-200:#a7f3d0; --green-600:#059669;
+    --blue-50:#eff6ff;  --blue-100:#dbeafe;  --blue-200:#bfdbfe;  --blue-600:#2563eb;
+
     --rose-500:#f43f5e; --amber-500:#f59e0b;
+
     --header-grad:linear-gradient(180deg,#f8fafc 0%,#ffffff 100%);
-    --table-top-1:#4424d6; /* สีหัวกลุ่ม */
-    --table-top-2:#5a3aec; /* สีเส้นล่างหัวกลุ่ม */
-    --hover:#f1f5ff;
-    --row-selected:#f0f7ff;
+    --table-top-1:#4424d6;
+    --table-top-2:#5a3aec;
+
+    --hover:#e8f0ff;         /* hover เข้มขึ้น */
+    --row-selected:#eaf4ff;  /* แถวผู้ถูกเลือกเข้มขึ้น */
   }
-  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial}
-  header{position:sticky;top:0;z-index:5;background:var(--header-grad);border-bottom:1px solid var(--border);padding:12px 12px 10px;box-shadow:0 4px 14px rgba(15,23,42,.06)}
+
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial}
+  header{position:sticky;top:0;z-index:5;background:var(--header-grad);
+    border-bottom:1px solid var(--border);padding:12px 12px 10px;
+    box-shadow:0 4px 14px rgba(15,23,42,.06)}
   h1{margin:0 0 10px;font-size:16px}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   select,input[type=text]{padding:8px 12px;border:1px solid var(--border);border-radius:10px;background:#fff;min-width:160px}
@@ -32,14 +41,21 @@
   .small{font-size:12px;color:var(--muted)}
   .status{margin-top:6px;font-size:13px;color:#374151}
   .wrap{padding:12px}
-  .table-wrap{border:1px solid var(--border);border-radius:14px;overflow:auto;max-height:calc(100vh - 210px);box-shadow:0 12px 24px rgba(15,23,42,.05);background:#fff}
+
+  .table-wrap{border:1px solid var(--border);border-radius:14px;overflow:auto;
+    max-height:calc(100vh - 210px);box-shadow:0 12px 24px rgba(15,23,42,.05);background:#fff}
   table{border-collapse:separate;border-spacing:0;min-width:100%;width:max-content}
-  th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#fff;padding:10px 12px;white-space:nowrap}
+  th,td{
+    border-right:1px solid var(--border);border-bottom:1px solid var(--border);
+    background:#fff;padding:10px 12px;white-space:nowrap;vertical-align:middle
+  }
   th:first-child,td:first-child{border-left:1px solid var(--border)}
+
   /* Sticky header 2 แถว */
   thead th{position:sticky;background:#fff;z-index:2}
   thead tr:first-child th{top:0;z-index:40}
   thead tr:nth-child(2) th{top:var(--h1,38px);z-index:39}
+
   /* สีหัวกลุ่ม */
   #groupRow th{
     background:linear-gradient(180deg,var(--table-top-1) 0%, var(--table-top-2) 100%);
@@ -50,31 +66,47 @@
     background:#fff;font-weight:800;color:var(--ink);
     border-bottom:2px solid var(--brand-100)
   }
-  /* Sticky name + branch (คอลัมน์แรก= name, คอลัมน์สอง= branch) */
+
+  /* Sticky name + branch */
   tbody td:first-child{position:sticky;left:0;background:linear-gradient(90deg,#f8fafc 0%,#ffffff 100%);z-index:20;font-weight:800}
   thead th:first-child{position:sticky;left:0;z-index:41;background:linear-gradient(90deg,#4c40dd 0%,#573cf7 100%);color:#fff}
-  /* branch col sticky (ซ้ายถัดไป) */
-  thead th:nth-child(2){position:sticky;left:var(--namew,160px);z-index:41;background:linear-gradient(90deg,#4c40dd 0%,#573cf7 100%);color:#fff}
-  tbody td:nth-child(2){position:sticky;left:var(--namew,160px);z-index:20;background:linear-gradient(90deg,#f8fafc 0%,#ffffff 100%);font-weight:700}
+  thead th:nth-child(2){position:sticky;left:var(--namew,170px);z-index:41;background:linear-gradient(90deg,#4c40dd 0%,#573cf7 100%);color:#fff}
+  tbody td:nth-child(2){position:sticky;left:var(--namew,170px);z-index:20;background:linear-gradient(90deg,#f8fafc 0%,#ffffff 100%);font-weight:700}
 
-  /* ความกว้างคอลัมน์ซ้าย 2 ช่อง (กะเองได้) */
+  /* ความกว้างคอลัมน์ซ้าย */
   th:first-child, td:first-child {min-width: 170px}
   thead th:nth-child(2), tbody td:nth-child(2){min-width: 90px}
+
   /* hover & selected row */
   tbody tr:hover td{background:var(--hover)}
   tr.is-selected td{background:var(--row-selected) !important}
+
+  /* ทำให้ “เซลล์สกิล” จัดกลางแนวตั้ง/แนวนอน */
+  td.center{
+    display:grid;             /* เคล็ดลับ: กริด 1 ช่อง = เซ็นเตอร์ได้แม่น */
+    place-items:center;       /* จัดกลางทั้งแกน X/Y */
+    text-align:center;
+  }
+  td.center .lvbtn{margin:0}  /* กันเผื่อ */
+
   /* ปุ่มระดับสกิล */
-  .lvbtn{display:inline-grid;place-items:center;width:36px;height:36px;background:#fff;border:1px solid var(--brand-200);border-radius:12px;font-size:22px;line-height:1;user-select:none}
-  .lvbtn.readonly{opacity:.65;filter:saturate(0.7)}
+  .lvbtn{
+    display:inline-grid;place-items:center;
+    width:36px;height:36px;border:1px solid var(--brand-200);
+    border-radius:12px;background:#fff;font-size:22px;line-height:1;user-select:none
+  }
+  .lvbtn.readonly{opacity:.75;filter:saturate(0.85)}
   .lvbtn.dirty{outline:2px solid var(--amber-500);outline-offset:-2px}
-  /* สี “ตัวอักษร” วงกลม + สีพื้นหลังของเซลล์ตามระดับ */
+
+  /* สี “ตัวอักษร” วงกลม + ปุ่มระดับ 2 เป็นปุ่มทึบ */
   .lv-0{color:#9aa0a6}
   .lv-1{color:var(--green-600)}
-  .lv-2{color:#fff; background:var(--blue-600); border-color:var(--blue-600)}
-  /* พื้นหลังเซลล์ตามระดับ */
-  td.lvbg-1{background:var(--green-50)}
-  td.lvbg-2{background:var(--blue-50)}
-  /* เส้นขอบกลุ่มท่อนบนเข้มขึ้นเล็กน้อย */
+  .lv-2{color:#fff;background:var(--blue-600);border-color:var(--blue-600)}
+
+  /* พื้นหลังเซลล์ตามระดับ → เข้มขึ้นตามที่ขอ */
+  td.lvbg-1{background:var(--green-200)} /* เดิม 50 -> 200 */
+  td.lvbg-2{background:var(--blue-200)}  /* เดิม 50 -> 200 */
+
   .group-cap{box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--table-top-2) 65%, #000)}
   iframe{display:none}
 </style>
@@ -114,7 +146,6 @@
     </div>
   </div>
 
-  <!-- ส่งข้อมูลด้วย iframe -> Apps Script -->
   <iframe id="gasTarget" name="gasTarget"></iframe>
   <form id="gasForm" method="POST" target="gasTarget" action="">
     <input type="hidden" name="name" id="f_name"/>
@@ -142,18 +173,17 @@ const toStr = v => String(v ?? "").replace(/\s+/g," ").trim();
 
 let state = {
   nameCol:0, branchCol:1,
-  names:[], branches:[],             // arrays (ตามลำดับแถวแสดงผล)
-  groups:[], skills:[],              // {idx,label,group}
-  levels:{},                         // { name: { skillLabel: "0|1|2|''" } }
-  mapBranchOf:{},                    // name -> branch
-  dirty:new Map(),                   // skillLabel -> level (เฉพาะ current)
-  current:"",                        // current selected person
-  allRows:[],                        // raw matrix rows after header
-  uniqueBranches:new Set(),          // สำหรับ filter
+  names:[], branches:[],
+  groups:[], skills:[],
+  levels:{}, mapBranchOf:{},
+  dirty:new Map(),
+  current:"",
+  allRows:[],
+  uniqueBranches:new Set(),
   activeBranch:"__ALL__"
 };
 
-/* -------------- CSV parser (รองรับ quoted) -------------- */
+/* -------- CSV parser -------- */
 function parseCSV(text){
   const rows=[]; let i=0, cur="", row=[], inq=false;
   while(i<text.length){
@@ -175,7 +205,7 @@ function parseCSV(text){
   return rows;
 }
 
-/* ---------------- Load CSV + robust header detect ---------------- */
+/* -------- Load + detect headers robustly -------- */
 async function loadCSV(){
   setMsg("กำลังโหลดข้อมูลจาก Google Sheet...");
   const r = await fetch(CSV_URL, {cache:"no-store"});
@@ -190,15 +220,15 @@ async function loadCSV(){
   }
   if(headerIdx<0) throw new Error("ไม่พบคอลัมน์ name");
 
-  // 2) หา branch col (ตัวอย่างในชีตอยู่คอลัมน์ถัดจาก name)
-  let branchCol = matrix[headerIdx].findIndex(v => toStr(v).toLowerCase() === 'brance') // กรณีสะกด brance
+  // 2) หา branch col
+  let branchCol = matrix[headerIdx].findIndex(v => toStr(v).toLowerCase() === 'brance');
   if(branchCol === -1) branchCol = matrix[headerIdx].findIndex(v => toStr(v).toLowerCase() === 'branch');
-  if(branchCol === -1) branchCol = nameCol+1; // fallback
+  if(branchCol === -1) branchCol = nameCol+1;
 
-  // 3) แถวกลุ่ม = แถวก่อนหน้า
+  // 3) group row
   const groupRowRaw = matrix[Math.max(0, headerIdx-1)].map(toStr);
 
-  // 4) บางครั้งแถวที่มี 'name' ยังเป็นแถวนับเป็นกลุ่ม → ตรวจแล้วเลื่อนลง 1
+  // 4) ถ้าแถว name ยังเหมือนหัวกลุ่ม → เลื่อนลง 1
   let skillRow = matrix[headerIdx].map(toStr);
   const startForCheck = Math.max(nameCol, branchCol) + 1;
   let nonEmpty=0, sameAsGroup=0;
@@ -212,7 +242,7 @@ async function loadCSV(){
     skillRow = matrix[headerIdx].map(toStr);
   }
 
-  // 5) forward-fill group
+  // 5) forward fill group
   const groupRow = [];
   let last="";
   const len = Math.max(groupRowRaw.length, skillRow.length);
@@ -222,7 +252,7 @@ async function loadCSV(){
     groupRow[c]=last;
   }
 
-  // 6) skill columns (ข้าม name & branch & ช่องว่าง)
+  // 6) skills
   const skillCols=[];
   for(let c=0;c<skillRow.length;c++){
     if(c===nameCol || c===branchCol) continue;
@@ -231,34 +261,30 @@ async function loadCSV(){
     skillCols.push({idx:c,label:s,group:groupRow[c]||""});
   }
 
-  // 7) data rows
+  // 7) data
   const dataRows = matrix.slice(headerIdx+1);
-
-  // 8) names / branches / levels
-  const names=[], branches=[], levels={}, mapBranch={};
-  const uniqBranch = new Set();
+  const names=[], branches=[], levels={}, mapBranch={}, uniq=new Set();
 
   for(const row of dataRows){
     const nm = toStr(row[nameCol]);
     const br = toStr(row[branchCol]);
     if(!nm) continue;
     names.push(nm); branches.push(br);
-    uniqBranch.add(br || "");
-    mapBranch[nm] = br || "";
+    uniq.add(br||"");
+    mapBranch[nm]=br||"";
     const mp={};
     for(const col of skillCols){
-      const raw = row[col.idx];
-      const v = toStr(raw);
+      const v = toStr(row[col.idx]);
       mp[col.label] = (v==='0'||v==='1'||v==='2') ? v : '';
     }
     levels[nm]=mp;
   }
 
-  // 9) update state
+  // 8) state
   state.nameCol=nameCol; state.branchCol=branchCol;
   state.groups=groupRow; state.skills=skillCols;
   state.allRows=dataRows; state.names=names; state.branches=branches;
-  state.levels=levels; state.mapBranchOf=mapBranch; state.uniqueBranches=uniqBranch;
+  state.levels=levels; state.mapBranchOf=mapBranch; state.uniqueBranches=uniq;
   if(!state.current || !names.includes(state.current)) state.current = names[0] || "";
   state.dirty.clear();
 
@@ -270,7 +296,7 @@ async function loadCSV(){
   setMsg("พร้อมใช้งาน");
 }
 
-/* ---------------- UI fill ---------------- */
+/* -------- UI fill -------- */
 function fillBranchFilter(){
   const opts = ['<option value="__ALL__">All branches</option>'];
   [...state.uniqueBranches].filter(Boolean).sort().forEach(b=>{
@@ -280,7 +306,6 @@ function fillBranchFilter(){
   elBranchFilter.value = state.activeBranch;
 }
 function fillPersonOptions(){
-  // apply branch filter
   const persons = state.names.filter((nm,i)=>{
     if(state.activeBranch==='__ALL__') return true;
     return (state.branches[i]||"") === state.activeBranch;
@@ -289,15 +314,13 @@ function fillPersonOptions(){
   if(!persons.includes(state.current)) state.current = persons[0] || "";
   elPerson.value = state.current || "";
 }
+const escapeHtml = s => s.replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
 
-function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]))}
-
-/* ---------------- Build Head ---------------- */
+/* -------- THEAD -------- */
 function buildThead(){
   elGroupRow.innerHTML = "";
   elSkillRow.innerHTML = "";
 
-  // Name (rowspan 2) + Branch (rowspan 2)
   const thName = document.createElement("th");
   thName.textContent = "name";
   thName.rowSpan = 2;
@@ -308,9 +331,7 @@ function buildThead(){
   thBr.rowSpan = 2;
   elGroupRow.appendChild(thBr);
 
-  // group caps (colspan)
-  let i=0;
-  const skills=state.skills;
+  let i=0; const skills=state.skills;
   while(i<skills.length){
     const g = skills[i].group || "";
     let span=1; let j=i+1;
@@ -322,7 +343,6 @@ function buildThead(){
     i=j;
   }
 
-  // skill names
   for(const col of state.skills){
     const th = document.createElement("th");
     th.textContent = col.label;
@@ -330,10 +350,9 @@ function buildThead(){
   }
 }
 
-/* ---------------- Build Body ---------------- */
+/* -------- TBODY -------- */
 function buildTbody(){
   elTbody.innerHTML = "";
-  // filter by branch
   const rows = state.names.map((nm,idx)=>({name:nm,branch:state.branches[idx]}))
     .filter(r => state.activeBranch==='__ALL__' ? true : (r.branch||"")===state.activeBranch);
 
@@ -341,36 +360,25 @@ function buildTbody(){
     const tr = document.createElement("tr");
     if(r.name === state.current) tr.classList.add("is-selected");
 
-    // name cell
-    const tdN = document.createElement("td");
-    tdN.textContent = r.name;
-    tr.appendChild(tdN);
-
-    // branch cell
-    const tdB = document.createElement("td");
-    tdB.textContent = r.branch || "";
-    tr.appendChild(tdB);
+    const tdN = document.createElement("td"); tdN.textContent = r.name; tr.appendChild(tdN);
+    const tdB = document.createElement("td"); tdB.textContent = r.branch || ""; tr.appendChild(tdB);
 
     const editable = (r.name === state.current);
     const baselineMap = state.levels[r.name] || {};
 
     for(const col of state.skills){
       const skill = col.label;
-      const base = (baselineMap[skill] ?? '') || '0'; // '' => '0'
-      // current value: dirty only for current person
+      const base = (baselineMap[skill] ?? '') || '0';
       const cur = (editable && state.dirty.has(skill)) ? state.dirty.get(skill) : base;
 
       const td = document.createElement("td");
       td.className = "center";
-      // พื้นหลังตามระดับ
       if(cur==='1') td.classList.add('lvbg-1');
       if(cur==='2') td.classList.add('lvbg-2');
 
       const btn = document.createElement("button");
-      btn.type="button";
-      btn.className = "lvbtn";
-      btn.dataset.skill = skill;
-      btn.dataset.value = cur;
+      btn.type="button"; btn.className = "lvbtn";
+      btn.dataset.skill = skill; btn.dataset.value = cur;
       setButtonFace(btn, cur);
 
       if(!editable){
@@ -383,18 +391,12 @@ function buildTbody(){
           btn.dataset.value = newV;
           setButtonFace(btn, newV);
 
-          // เปลี่ยนพื้นหลังเซลล์ตามระดับ
           td.classList.remove('lvbg-1','lvbg-2');
           if(newV==='1') td.classList.add('lvbg-1');
           if(newV==='2') td.classList.add('lvbg-2');
 
-          if(newV === base){
-            state.dirty.delete(skill);
-            btn.classList.remove("dirty");
-          }else{
-            state.dirty.set(skill, newV);
-            btn.classList.add("dirty");
-          }
+          if(newV === base){ state.dirty.delete(skill); btn.classList.remove("dirty"); }
+          else{ state.dirty.set(skill, newV); btn.classList.add("dirty"); }
         });
       }
 
@@ -406,26 +408,14 @@ function buildTbody(){
 }
 
 function setButtonFace(btn, lv){
-  // set glyph + color class
   btn.classList.remove('lv-0','lv-1','lv-2');
-  // reset bg for 2 (we add via class lv-2)
-  btn.style.background = '';
-  btn.style.borderColor = '';
-  if(lv==='2'){
-    btn.textContent='●';
-    btn.classList.add('lv-2');
-  }else if(lv==='1'){
-    btn.textContent='○';
-    btn.classList.add('lv-1');
-  }else{
-    // 0
-    btn.textContent='-';
-    btn.classList.add('lv-0');
-  }
+  if(lv==='2'){ btn.textContent='●'; btn.classList.add('lv-2'); }
+  else if(lv==='1'){ btn.textContent='○'; btn.classList.add('lv-1'); }
+  else { btn.textContent='-'; btn.classList.add('lv-0'); }
 }
-function nextLevel(lv){ return lv==='0'?'1':(lv==='1'?'2':'0'); }
+const nextLevel = lv => (lv==='0'?'1':(lv==='1'?'2':'0'));
 
-/* ---------------- Events ---------------- */
+/* -------- Events -------- */
 elPerson.addEventListener("change", ()=>{
   state.current = elPerson.value;
   state.dirty.clear();
@@ -443,21 +433,16 @@ elBranchFilter.addEventListener("change", ()=>{
   buildTbody();
 });
 
-/* ===== SAVE via iframe (u_skill[]/u_level[]) ===== */
+/* -------- Save via iframe -------- */
 $("saveBtn").addEventListener("click", ()=>{
   const selectedName = state.current;
   if(!selectedName){ setMsg("❌ ไม่มีชื่อพนักงานให้บันทึก"); return; }
   if(state.dirty.size===0){ setMsg("ไม่มีการแก้ไข"); return; }
 
-  const form = $("gasForm");
-  const iframe = $("gasTarget");
-  form.action = GAS_ENDPOINT;
-  $("f_name").value = selectedName;
+  const form = $("gasForm"); const iframe = $("gasTarget");
+  form.action = GAS_ENDPOINT; $("f_name").value = selectedName;
 
-  // clear old
-  [...form.querySelectorAll('input[name="u_skill[]"],input[name="u_level[]"]')]
-    .forEach(el=>el.remove());
-
+  [...form.querySelectorAll('input[name="u_skill[]"],input[name="u_level[]"]')].forEach(el=>el.remove());
   for(const [skill, level] of state.dirty.entries()){
     const a=document.createElement('input'); a.type='hidden'; a.name='u_skill[]'; a.value=skill; form.appendChild(a);
     const b=document.createElement('input'); b.type='hidden'; b.name='u_level[]'; b.value=level; form.appendChild(b);
@@ -466,17 +451,14 @@ $("saveBtn").addEventListener("click", ()=>{
   const onLoad = ()=>{
     const mp = state.levels[selectedName] ||= {};
     for(const [s,l] of state.dirty.entries()) mp[s]=l;
-    state.dirty.clear();
-    buildTbody();
-    setMsg("✅ บันทึกสำเร็จ");
+    state.dirty.clear(); buildTbody(); setMsg("✅ บันทึกสำเร็จ");
     iframe.removeEventListener('load', onLoad);
   };
   iframe.addEventListener('load', onLoad, {once:true});
-  setMsg("กำลังบันทึก...");
-  form.submit();
+  setMsg("กำลังบันทึก..."); form.submit();
 });
 
-/* ===== Add/Delete name with branch ===== */
+/* -------- Add/Delete -------- */
 $("btnAdd").addEventListener("click", ()=>{
   const nm = toStr($("newName").value);
   const br = toStr($("newBranch").value);
@@ -484,30 +466,19 @@ $("btnAdd").addEventListener("click", ()=>{
   if(!br){ alert("กรุณากรอก Branch"); return; }
 
   const form=$("gasForm"), iframe=$("gasTarget");
-  form.action = GAS_ENDPOINT;
-  $("f_action").value="addName";
-  $("f_new_name").value=nm;
-  $("f_new_branch").value=br;
+  form.action = GAS_ENDPOINT; $("f_action").value="addName"; $("f_new_name").value=nm; $("f_new_branch").value=br;
 
-  const cleanup=()=>{
-    $("f_action").value=""; $("f_new_name").value=""; $("f_new_branch").value="";
-    $("newName").value=""; $("newBranch").value="";
-  };
+  const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("f_new_branch").value=""; $("newName").value=""; $("newBranch").value=""; };
 
   iframe.onload=()=>{
-    iframe.onload=null; cleanup();
-    setMsg(`✅ เพิ่มชื่อสำเร็จ: ${nm} (${br})`);
-    // reload + select new
+    iframe.onload=null; cleanup(); setMsg(`✅ เพิ่มชื่อสำเร็จ: ${nm} (${br})`);
     loadCSV().then(()=>{
-      state.activeBranch = "__ALL__";
-      elBranchFilter.value="__ALL__";
-      fillPersonOptions();
-      if([...elPerson.options].some(o=>o.value===nm)){ state.current=nm; elPerson.value=nm; }
+      state.activeBranch="__ALL__"; elBranchFilter.value="__ALL__";
+      fillPersonOptions(); if([...elPerson.options].some(o=>o.value===nm)){ state.current=nm; elPerson.value=nm; }
       buildTbody();
     });
   };
-  setMsg("กำลังเพิ่มชื่อ...");
-  form.submit();
+  setMsg("กำลังเพิ่มชื่อ..."); form.submit();
 });
 
 $("btnDel").addEventListener("click", ()=>{
@@ -516,38 +487,28 @@ $("btnDel").addEventListener("click", ()=>{
   if(!confirm(`ยืนยันลบ "${target}" ?`)) return;
 
   const form=$("gasForm"), iframe=$("gasTarget");
-  form.action = GAS_ENDPOINT;
-  $("f_action").value="deleteName";
-  $("f_new_name").value=target;
-  $("f_new_branch").value="";
+  form.action = GAS_ENDPOINT; $("f_action").value="deleteName"; $("f_new_name").value=target; $("f_new_branch").value="";
 
   const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("newName").value=""; };
 
   iframe.onload=()=>{
-    iframe.onload=null; cleanup();
-    setMsg(`✅ ลบชื่อสำเร็จ: ${target}`);
-    loadCSV().then(()=>{
-      fillPersonOptions();
-      buildTbody();
-    });
+    iframe.onload=null; cleanup(); setMsg(`✅ ลบชื่อสำเร็จ: ${target}`);
+    loadCSV().then(()=>{ fillPersonOptions(); buildTbody(); });
   };
-  setMsg("กำลังลบชื่อ...");
-  form.submit();
+  setMsg("กำลังลบชื่อ..."); form.submit();
 });
 
-/* ---------------- Sticky offsets ---------------- */
+/* -------- Sticky offsets -------- */
 function updateStickyOffsets(){
-  // ความสูงแถวหัวแรก
   const r1h = elGroupRow?.offsetHeight || 38;
   document.documentElement.style.setProperty('--h1', r1h + 'px');
-  // ความกว้างคอลัมน์ name (ซ้าย) สำหรับเลื่อน branch ให้พอดี
   const thName = elGroupRow?.querySelector('th:first-child');
-  const nameW = thName ? thName.offsetWidth : 160;
+  const nameW = thName ? thName.offsetWidth : 170;
   document.documentElement.style.setProperty('--namew', nameW + 'px');
 }
 window.addEventListener('resize', updateStickyOffsets);
 
-/* ---------------- Boot ---------------- */
+/* -------- Boot -------- */
 loadCSV().catch(err=>setMsg("❌ โหลดข้อมูลไม่สำเร็จ: " + (err.message||err)));
 </script>
 </body>
