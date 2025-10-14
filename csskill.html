@@ -140,6 +140,29 @@
     /* hover ซ้อน: ถ้าเป็นแถวที่เลือก ให้คงสีเลือกไว้ */
     tbody tr:hover td{ background:#9e79d1; }
     tbody tr.is-selected:hover td{ background: var(--row-select-bg); }
+    /* ความกว้างคอลัมน์ name (ให้ JS ใส่ค่า) */
+:root{ --nameW: 220px; }   /* fallback กรณี JS ยังไม่ได้คำนวณ */
+
+/* sticky ซ้าย 2 คอลัมน์ */
+thead th.sticky-1, tbody td.sticky-1{
+  position: sticky; left: 0; z-index: 41; background: #f9fafb;
+}
+thead th.sticky-2, tbody td.sticky-2{
+  position: sticky; left: var(--nameW); z-index: 40; background: #f9fafb;
+}
+
+/* ปรับโทน/ตัวหนาให้สองคอลัมน์ซ้าย */
+tbody td.sticky-1, thead th.sticky-1,
+tbody td.sticky-2, thead th.sticky-2{
+  font-weight: 600;
+  background: linear-gradient(90deg,#f8fafc 0%, #ffffff 100%);
+}
+
+/* เวลามีแถวที่เลือกอยู่ ให้สองคอลัมน์ซ้ายกลมกลืนสีเลือก */
+tr.is-selected td.sticky-1,
+tr.is-selected td.sticky-2{
+  background: var(--row-select-bg) !important;
+}
   </style>
 </head>
 <body>
