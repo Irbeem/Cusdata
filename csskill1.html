@@ -6,6 +6,7 @@
 <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
 <style>
 :root{
+  /* ความกว้างคงที่ของ 2 คอลัมน์ซ้าย */
   --nameW: 200px;
   --branchW: 120px;
 
@@ -56,6 +57,7 @@ thead th.branch-th{
 #groupRow th{ background:var(--header-grad); color:#fff; border-bottom:2px solid #c7d2fe; text-shadow:0 1px 0 rgba(0,0,0,.15); z-index:15 }
 #skillRow th{ font-weight:700; background:#fafbff; z-index:14 }
 
+/* sticky body cells */
 tbody td.name-td{
   position:sticky; left:0; z-index:80;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
@@ -71,18 +73,9 @@ tbody td.branch-td{
 /* Hover/Selected */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
-
-/* ✅ FIX: อย่า override position (sticky) ของคอลัมน์ซ้าย */
-tr.is-selected td{ background:var(--row-select-bg) !important; }   /* ลบ position:relative ออก */
-
-/* ใส่ position เฉพาะเซลล์ name (ต้องใช้กับ ::before) */
-tr.is-selected td.name-td{ 
-  background:linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important; 
-}
-tr.is-selected td.name-td::before{
-  content:""; position:absolute; inset:0 auto 0 0; width:4px;
-  background:var(--row-select-left); border-top-left-radius:6px; border-bottom-left-radius:6px;
-}
+tr.is-selected td{ background:var(--row-select-bg) !important; position:relative }
+tr.is-selected td.name-td{ background:linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important }
+tr.is-selected td.name-td::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left); border-top-left-radius:6px; border-bottom-left-radius:6px}
 
 /* ปุ่มสกิล 0/1/2 */
 td.center{ text-align:center; vertical-align:middle }
@@ -175,6 +168,7 @@ function setMessage(t){ elMsg.textContent = t; }
 function symbolForLevel(lv){ return lv==='2'?'●':(lv==='1'?'○':'-'); }
 function nextLevel(lv){ return lv==='0'?'1':(lv==='1'?'2':'0'); }
 
+/* CSV parser (support quotes) */
 function parseCSV(text){
   const rows=[]; let i=0, cur="", row=[], inq=false;
   while(i<text.length){
@@ -215,24 +209,25 @@ async function loadCSV(){
 
   // group header อยู่บน 1 แถว
   const grpIdx=Math.max(0,hdrIdx-1);
-  const groupRowRaw=matrix[grpIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
-  let skillRow=matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
+  const rawGroupRow = matrix[grpIdx];                              // ดิบ
+  const cleanGroupRow = rawGroupRow.map(x => String(x??"").replace(/\s+/g,' ').trim());
+  const rawSkillRow = matrix[hdrIdx];                              // ดิบ
+  let cleanSkillRow = rawSkillRow.map(x => String(x??"").replace(/\s+/g,' ').trim());
 
   // กันเพี้ยน
-  const looksLikeGroup=skillRow.some((v,i)=>i!==nameCol && v) &&
-                        skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
+  const looksLikeGroup=cleanSkillRow.some((v,i)=>i!==nameCol && v) &&
+                        cleanSkillRow.every((v,i)=>i===nameCol || v===cleanGroupRow[i]);
   if(looksLikeGroup && matrix[hdrIdx+1]){
     hdrIdx+=1;
-    skillRow=matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
+    cleanSkillRow = matrix[hdrIdx].map(x => String(x??"").replace(/\s+/g,' ').trim());
   }
 
-  // หา branchCol (ทนทาน)
-  let branchCol = skillRow.findIndex(v=>{
+  // หา branchCol
+  let branchCol = cleanSkillRow.findIndex(v=>{
     const t=String(v??"").trim().toLowerCase();
     return t==="branch" || t==="brance" || t==="department";
   });
-
-  // ถ้ายังไม่พบ ลองเดา: คอลัมน์ถัดจาก name
+  // เดาเป็นคอลัมน์ถัดจาก name ถ้าเห็น pattern BKK/CBI ฯลฯ
   if(branchCol<0){
     const guessCol = nameCol+1;
     const dataRows = matrix.slice(hdrIdx+1);
@@ -245,40 +240,45 @@ async function loadCSV(){
     if(total>0 && score/total > 0.6) branchCol=guessCol;
   }
 
-  // forward-fill group
-  const groupRow=[];
+  // forward-fill group (จาก rawGroupRow แต่ใช้ค่าที่สะอาดแสดงผล)
+  const groupRowDisplay=[];             // สำหรับโชว์
   let last="";
-  for(let c=0;c<groupRowRaw.length;c++){
-    const g=groupRowRaw[c]; if(g) last=g; groupRow[c]=last;
+  for(let c=0;c<cleanGroupRow.length;c++){
+    const g=cleanGroupRow[c]; if(g) last=g; groupRowDisplay[c]=last;
   }
 
-  // รวบรวมคอลัมน์สกิล
+  // ===== รวบรวมคอลัมน์สกิล: เก็บทั้ง label (โชว์) + raw (คีย์จริงในชีต) =====
   const skillCols=[];
-  for(let c=0;c<skillRow.length;c++){
+  for(let c=0;c<cleanSkillRow.length;c++){
     if(c===nameCol || c===branchCol) continue;
-    const s=skillRow[c]; if(!s) continue;
-    skillCols.push({idx:c,label:s,group:groupRow[c]||""});
+    const label = cleanSkillRow[c];       // แสดงผล
+    const raw   = String(rawSkillRow[c] ?? "");  // คีย์จริง (ไม่แตะต้อง)
+    if(!label) continue;
+    skillCols.push({ idx:c, label, raw, group: (groupRowDisplay[c]||"") });
   }
 
   const dataRows=matrix.slice(hdrIdx+1);
   const names=[], branchSet=new Set(), levels={};
+
   for(const row of dataRows){
     const nm=String(row[nameCol]??"").trim();
     if(!nm) continue;
     const br = branchCol>=0 ? String(row[branchCol]??"").trim() : "";
     names.push(nm);
     if(br) branchSet.add(br);
-    const mp={_branch:br};
+
+    const mp={ _branch: br };
     for(const col of skillCols){
-      const raw=row[col.idx];
-      const v=(raw===undefined||raw===null)?'':String(raw).trim();
-      mp[col.label]=(v==='0'||v==='1'||v==='2')?v:'';
+      const rawVal = row[col.idx];
+      const v = (rawVal==null ? '' : String(rawVal).trim());
+      // ใช้ raw เป็น key เพื่อให้ตรงกับหัวคอลัมน์ในชีต 100%
+      mp[col.raw] = (v==='0'||v==='1'||v==='2') ? v : '';
     }
     levels[nm]=mp;
   }
 
   state.nameCol=nameCol; state.branchCol=branchCol;
-  state.groups=groupRow; state.skills=skillCols;
+  state.groups=groupRowDisplay; state.skills=skillCols;
   state.rows=dataRows; state.names=names; state.levels=levels;
   state.branches=["All",...([...branchSet].sort((a,b)=>a.localeCompare(b)))];
   if(!state.current || !names.includes(state.current)) state.current=names[0]||"";
@@ -319,7 +319,7 @@ function buildThead(){
     elGroupRow.appendChild(th);
     i=j;
   }
-  // skill labels
+  // skill labels (โชว์ label ที่สะอาด)
   for(const col of state.skills){
     const th=document.createElement("th");
     th.textContent=col.label;
@@ -333,7 +333,7 @@ function buildThead(){
   });
 }
 
-/* ===== RENDER FILTERS ===== */
+/* ===== FILTER + DROPDOWNS ===== */
 function getFilteredNames(){
   if(state.filterBranch==="All") return state.names.slice();
   return state.names.filter(n => (state.levels[n]?._branch||"")===state.filterBranch);
@@ -351,7 +351,7 @@ function buildBranchFilter(){
   elBranchFilter.value=state.filterBranch;
 }
 
-/* ===== RENDER BODY ===== */
+/* ===== BODY ===== */
 function buildTbody(){
   elTbody.innerHTML="";
   const names=getFilteredNames();
@@ -376,16 +376,17 @@ function buildTbody(){
 
     // skills
     for(const col of state.skills){
-      const skill=col.label;
-      const baseline=(state.levels[name]?.[skill]??'0')||'0';
-      const current=(editable && state.dirty.has(skill)) ? state.dirty.get(skill) : baseline;
+      const skillKey = col.raw; // ใช้ raw key
+      const baseline=(state.levels[name]?.[skillKey]??'0')||'0';
+      const current=(editable && state.dirty.has(skillKey)) ? state.dirty.get(skillKey) : baseline;
 
       const td=document.createElement("td");
       td.className="center";
       const wrap=document.createElement("div"); wrap.className="cell";
       const btn=document.createElement("button");
       btn.type="button"; btn.className="lvbtn";
-      btn.dataset.skill=skill; btn.dataset.value=current;
+      btn.dataset.skill=skillKey;   // สำคัญ!
+      btn.dataset.value=current;
       btn.textContent=symbolForLevel(current);
 
       if(!editable){
@@ -395,8 +396,8 @@ function buildTbody(){
         btn.addEventListener("click", ()=>{
           const newV=nextLevel(btn.dataset.value);
           btn.dataset.value=newV; btn.textContent=symbolForLevel(newV);
-          if(newV===baseline){ state.dirty.delete(skill); btn.classList.remove("dirty"); }
-          else{ state.dirty.set(skill,newV); btn.classList.add("dirty"); }
+          if(newV===baseline){ state.dirty.delete(skillKey); btn.classList.remove("dirty"); }
+          else{ state.dirty.set(skillKey,newV); btn.classList.add("dirty"); }
         });
       }
       wrap.appendChild(btn); td.appendChild(wrap); tr.appendChild(td);
@@ -417,51 +418,94 @@ elBranchFilter.addEventListener("change", ()=>{
   buildPeopleDropdown(); state.dirty.clear(); buildTbody();
 });
 
-/* SAVE */
+/* ===== SAVE ===== */
 $("saveBtn").addEventListener("click", ()=>{
   const selected=state.current;
   if(!selected){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
   if(state.dirty.size===0){ setMessage("ไม่มีการแก้ไข"); return; }
 
   const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
-  $("f_name").value=selected;
-  $("f_branch").value=state.levels[selected]?._branch || "";
-  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
-  for(const [skill,level] of state.dirty.entries()){
-    const a=document.createElement("input"); a.type="hidden"; a.name="u_skill[]"; a.value=skill; form.appendChild(a);
+
+  // 🔧 สำคัญ: ล้าง action เผื่อค้างมาจาก Add/Delete
+  $("f_action").value = "";
+
+  // ใส่ชื่อ (Apps Script คาดว่า name)
+  $("f_name").value = selected;
+
+  // (ถ้า Apps Script ไม่ได้ใช้ branch ตอนอัปเดต จะส่งหรือไม่ส่งก็ได้)
+  $("f_branch").value = state.levels[selected]?._branch || "";
+
+  // ลบอินพุตเก่า u_skill[] / u_level[]
+  [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')]
+    .forEach(el => el.remove());
+
+  // เติมเฉพาะที่แก้ไข (ใช้ raw key)
+  for (const [skillKey, level] of state.dirty.entries()){
+    const a=document.createElement("input"); a.type="hidden"; a.name="u_skill[]"; a.value=skillKey; form.appendChild(a);
     const b=document.createElement("input"); b.type="hidden"; b.name="u_level[]"; b.value=level; form.appendChild(b);
   }
+
   const onLoad=()=>{
     const mp=state.levels[selected]||(state.levels[selected]={});
-    for(const [skill,level] of state.dirty.entries()) mp[skill]=level;
+    for(const [k,v] of state.dirty.entries()) mp[k]=v;
     state.dirty.clear(); buildTbody(); setMessage("✅ บันทึกสำเร็จ");
     iframe.removeEventListener("load", onLoad);
   };
   iframe.addEventListener("load", onLoad, {once:true});
-  setMessage("กำลังบันทึก..."); form.submit();
+
+  setMessage("กำลังบันทึก...");
+  form.submit();
 });
 
-/* ADD / DELETE */
+/* ===== ADD / DELETE ===== */
 $("btnAdd").addEventListener("click", ()=>{
   const nm=($("newName").value||"").trim();
   const br=($("newBranch").value||"").trim();
   if(!nm){ alert("กรุณากรอกชื่อพนักงาน"); return; }
   const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
-  $("f_action").value="addName"; $("f_new_name").value=nm; $("f_new_branch").value=br;
+
+  $("f_action").value="addName";
+  $("f_new_name").value=nm;
+  $("f_new_branch").value=br;
+
   const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("f_new_branch").value=""; $("newName").value=""; $("newBranch").value=""; };
-  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ เพิ่มชื่อสำเร็จ"); loadCSV().then(()=>{ if(state.names.includes(nm)){ state.current=nm; if(br && state.branches.includes(br)){ state.filterBranch=br; elBranchFilter.value=br; } buildBranchFilter(); buildPeopleDropdown(); buildTbody(); } }); };
-  setMessage("กำลังเพิ่มชื่อ..."); form.submit();
+
+  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ เพิ่มชื่อสำเร็จ");
+    loadCSV().then(()=>{ 
+      if(state.names.includes(nm)){ 
+        state.current=nm; 
+        if(br && state.branches.includes(br)){ state.filterBranch=br; elBranchFilter.value=br; }
+        buildBranchFilter(); buildPeopleDropdown(); buildTbody(); 
+      }
+    });
+  };
+
+  setMessage("กำลังเพิ่มชื่อ...");
+  form.submit();
 });
+
 $("btnDel").addEventListener("click", ()=>{
   const nm=($("newName").value||elPerson.value||"").trim();
   if(!nm){ alert("ไม่พบชื่อที่จะลบ"); return; }
   if(!confirm(`ยืนยันลบชื่อ "${nm}" ?`)) return;
+
   const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
+
+  // ล้าง u_skill/u_level ที่อาจค้าง
   [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el=>el.remove());
-  $("f_name").value=""; $("f_action").value="deleteName"; $("f_new_name").value=nm;
+
+  $("f_name").value="";
+  $("f_action").value="deleteName";
+  $("f_new_name").value=nm;
+
   const cleanup=()=>{ $("f_action").value=""; $("f_new_name").value=""; $("newName").value=""; };
-  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ ลบชื่อสำเร็จ"); loadCSV().then(()=>{ buildBranchFilter(); buildPeopleDropdown(); buildTbody(); }); };
-  setMessage("กำลังลบชื่อ..."); form.submit();
+
+  iframe.onload=()=>{ iframe.onload=null; cleanup(); setMessage("✅ ลบชื่อสำเร็จ");
+    loadCSV().then(()=>{ buildBranchFilter(); buildPeopleDropdown(); buildTbody(); });
+  };
+
+  setMessage("กำลังลบชื่อ...");
+  form.submit();
 });
 
 /* BOOT */
