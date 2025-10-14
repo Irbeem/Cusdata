@@ -12,7 +12,11 @@
     --brand-400:#6366f1;
     --brand-500:#4f46e5;
     --amber-500:#f59e0b;
-    --nameW: 180px; /* จะอัปเดตด้วย JS */
+    --nameW: 200px; /* JS will update */
+    --h1: 34px;     /* height of first header row (JS updates) */
+
+    --row-select-bg:#fff7d6;
+    --row-hover-bg:#f6f9ff;
   }
 
   html,body{margin:0;padding:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans Thai","Noto Sans",Arial;color:#111827;background:#fff}
@@ -21,31 +25,37 @@
 
   .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .controls select,.controls input{border:1px solid var(--border);border-radius:10px;padding:8px 12px}
+  .controls input{min-width:160px}
   button{border-radius:10px;padding:10px 14px;border:1px solid transparent;font-weight:600;cursor:pointer}
   .primary{background:var(--brand-500);border-color:var(--brand-500);color:#fff}
   .secondary{background:#fff;color:#4f46e5;border:1px solid var(--brand-200)}
-  .status{font-size:13px;color:#374151;margin-top:8px}
+  .danger{background:#fff;color:#b91c1c;border:1px solid #fecaca}
+  .status{font-size:13px;color:#374151;margin-top:6px}
 
   .wrap{padding:12px}
-  .table-wrap{max-height:calc(100vh - 170px);overflow:auto;border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 22px rgba(15,23,42,.06);background:#fff}
+  .table-wrap{max-height:calc(100vh - 220px);overflow:auto;border:1px solid var(--border);border-radius:12px;box-shadow:0 10px 22px rgba(15,23,42,.06);background:#fff}
 
   table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
-  th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap}
+  th,td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:10px 12px;background:#fff;white-space:nowrap;vertical-align:middle}
   th:first-child,td:first-child{border-left:1px solid var(--border)}
   thead th{position:sticky;background:#fff}
   thead tr:first-child th{top:0;z-index:40}
-  :root{--h1:34px}
   thead tr:nth-child(2) th{top:var(--h1);z-index:39}
 
-  /* sticky ซ้าย 2 คอลัมน์ */
+  /* sticky left two columns */
   .sticky-1{position:sticky;left:0;background:linear-gradient(90deg,#f8fafc 0%,#fff 100%);z-index:41;font-weight:700}
-  .sticky-2{position:sticky;left:var(--nameW);background:linear-gradient(90deg,#f8fafc 0%,#fff 100%);z-index:40}
+  .sticky-2{position:sticky;left:var(--nameW);background:linear-gradient(90deg,#f8fafc 0%,#fff 100%);z-index:40;font-weight:700}
 
-  /* hover & แถวของคนที่ถูกเลือก */
-  tbody tr:hover td{background:#f6f9ff}
-  tr.selected-row td{background:#eef2ff !important}
+  /* group header aesthetics */
+  #groupRow th{background:linear-gradient(180deg,#eef2ff 0%,#fff 90%);border-bottom:2px solid var(--brand-200);font-weight:700}
+  #skillRow th{font-weight:700}
 
-  /* ปุ่มวงกลม 0/1/2 */
+  /* hover/selected row */
+  tbody tr:hover td{background:var(--row-hover-bg)}
+  tr.selected-row td{background:var(--row-select-bg) !important}
+  tr.selected-row td.sticky-1, tr.selected-row td.sticky-2{background:var(--row-select-bg) !important}
+
+  /* level buttons */
   .center{text-align:center}
   .lvbtn{
     display:inline-flex;align-items:center;justify-content:center;
@@ -64,14 +74,23 @@
 
 <header>
   <h1>Skill Matrix — ตารางกลุ่ม/สกิล (0/1/2)</h1>
+
   <div class="controls">
-    <label>พนักงาน (เลือกเพื่อแก้ไข):
+    <label>พนักงาน:
       <select id="person"></select>
     </label>
     <button id="saveBtn" class="primary">บันทึกการเปลี่ยนแปลง</button>
     <button id="resetBtn" class="secondary">ยกเลิก</button>
-    <span class="status" id="msg"></span>
   </div>
+
+  <div class="controls" style="margin-top:6px">
+    <input id="newName"   placeholder="Name (เพิ่ม/ลบ)" />
+    <input id="newBranch" placeholder="Branch (เช่น BKK, CBI)" />
+    <button id="btnAdd" class="secondary">➕ Add</button>
+    <button id="btnDel" class="danger">🗑 Delete</button>
+  </div>
+
+  <div class="status" id="msg"></div>
 </header>
 
 <div class="wrap">
@@ -92,6 +111,7 @@
   <input type="hidden" name="name" id="f_name">
   <input type="hidden" name="action" id="f_action">
   <input type="hidden" name="new_name" id="f_new_name">
+  <input type="hidden" name="new_branch" id="f_new_branch">
   <!-- u_skill[] / u_level[] จะถูกเติมตอนกด Save -->
 </form>
 
@@ -102,11 +122,16 @@ const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVD
 /* ============================================== */
 
 const $ = (id) => document.getElementById(id);
-const elPerson = $("person");
-const elMsg = $("msg");
+const elPerson   = $("person");
+const elMsg      = $("msg");
 const elGroupRow = $("groupRow");
 const elSkillRow = $("skillRow");
-const elTbody = $("tbody");
+const elTbody    = $("tbody");
+
+const elNewName   = $("newName");
+const elNewBranch = $("newBranch");
+const elBtnAdd    = $("btnAdd");
+const elBtnDel    = $("btnDel");
 
 let state = {
   nameCol: 0,
@@ -166,8 +191,6 @@ async function loadCSV(){
 
   // 3) แถวหัวสกิลจริง
   let skillRow = matrix[skillHeaderRowIdx].map(norm);
-
-  // เผื่อ export เพี้ยน: แถวสกิลดันเท่ากับหัวกลุ่ม → เลื่อนลง 1
   const sLower = skillRow.map(x => x.toLowerCase());
   const gLower = groupRowRaw.map(x => x.toLowerCase());
   const looksLikeGroup = sLower.some((v,i)=>i!==nameCol && v) &&
@@ -194,8 +217,7 @@ async function loadCSV(){
     if(score>=3) branchCol = guessCol;
   }
 
-  // 5) รวม skill columns
-  // forward-fill group
+  // forward-fill group row
   const groupRow = [];
   let lastGroup="";
   for(let c=0;c<groupRowRaw.length;c++){
@@ -204,6 +226,7 @@ async function loadCSV(){
     groupRow[c]=lastGroup;
   }
 
+  // 5) รวม skill columns
   const skillCols=[];
   for(let c=0;c<skillRow.length;c++){
     if(c===nameCol) continue;
@@ -233,7 +256,7 @@ async function loadCSV(){
     levels[nm]=mp;
   }
 
-  // 7) update state + render
+  // update state
   state.nameCol = nameCol;
   state.branchCol = branchCol;
   state.names = names;
@@ -245,7 +268,8 @@ async function loadCSV(){
 
   buildThead();
   buildTbody();
-  // เติมรายชื่อใน select
+
+  // dropdown รายชื่อ
   elPerson.innerHTML = names.map(n=>`<option value="${n.replace(/&/g,"&amp;").replace(/</g,"&lt;")}">${n}</option>`).join("");
   elPerson.value = state.current;
 
@@ -364,20 +388,17 @@ function buildTbody(){
   }
 }
 
-/* ========= Sticky helpers (header offset & left) ========= */
+/* ========= Sticky helpers ========= */
 function updateStickyHeaderOffset(){
   const r1=document.querySelector('#groupRow');
   const h=(r1 && r1.offsetHeight) ? r1.offsetHeight : 34;
   document.documentElement.style.setProperty('--h1', h+'px');
 }
-
 function updateStickyLefts(){
-  // กว้างคอลัมน์ name (ซ้ายสุด)
   const thName=document.querySelector('thead th.sticky-1');
-  const w = thName ? (thName.getBoundingClientRect().width || thName.offsetWidth || 180) : 180;
+  const w = thName ? (thName.getBoundingClientRect().width || thName.offsetWidth || 200) : 200;
   document.documentElement.style.setProperty('--nameW', w+'px');
 }
-
 window.addEventListener('resize', ()=>{
   updateStickyHeaderOffset();
   updateStickyLefts();
@@ -413,7 +434,7 @@ $("saveBtn").addEventListener("click", ()=>{
   [...form.querySelectorAll('input[name="u_skill[]"],input[name="u_level[]"]')]
     .forEach(el=>el.remove());
 
-  // เติมใหม่
+  // เติมเฉพาะช่องที่แก้
   for(const [skill,level] of state.dirty.entries()){
     const a=document.createElement('input'); a.type='hidden'; a.name='u_skill[]'; a.value=skill; form.appendChild(a);
     const b=document.createElement('input'); b.type='hidden'; b.name='u_level[]'; b.value=level; form.appendChild(b);
@@ -432,13 +453,100 @@ $("saveBtn").addEventListener("click", ()=>{
   form.submit();
 });
 
+/* ====== Add / Delete Name + Branch (GAS expects new_name, new_branch) ====== */
+elBtnAdd.addEventListener("click", ()=>{
+  const name = (elNewName.value||"").trim();
+  const branch = (elNewBranch.value||"").trim();
+  if(!name){ alert("กรุณากรอก Name"); return; }
+  if(!branch){ alert("กรุณากรอก Branch"); return; }
+
+  const form=$("gasForm");
+  const iframe=$("gasTarget");
+  form.action = GAS_ENDPOINT;
+
+  $("f_action").value    = "addName";
+  $("f_new_name").value  = name;
+  $("f_new_branch").value= branch;
+
+  elBtnAdd.disabled = true; elBtnDel.disabled = true;
+
+  const cleanup = ()=>{
+    $("f_action").value = "";
+    $("f_new_name").value = "";
+    $("f_new_branch").value = "";
+    elNewName.value = "";
+    elNewBranch.value = "";
+    elBtnAdd.disabled = false; elBtnDel.disabled = false;
+  };
+
+  iframe.onload = ()=>{
+    iframe.onload = null;
+    cleanup();
+    setMessage("✅ เพิ่มชื่อสำเร็จ");
+    loadCSV().then(()=>{
+      if([...elPerson.options].some(o=>o.value===name)){
+        elPerson.value = name;
+        state.current = name;
+        buildTbody();
+      }
+    });
+  };
+
+  setMessage("กำลังเพิ่มชื่อ...");
+  form.submit();
+});
+
+elBtnDel.addEventListener("click", ()=>{
+  const target = (elNewName.value || elPerson.value || "").trim();
+  if(!target){ alert("ไม่พบชื่อที่จะลบ"); return; }
+  if(!confirm(`ยืนยันลบ "${target}" ?`)) return;
+
+  const form=$("gasForm");
+  const iframe=$("gasTarget");
+  form.action = GAS_ENDPOINT;
+
+  // ล้าง payload สกิล
+  $("f_name").value = "";
+  [...form.querySelectorAll('input[name="u_skill[]"],input[name="u_level[]"]')].forEach(el=>el.remove());
+
+  $("f_action").value    = "deleteName";
+  $("f_new_name").value  = target;
+  $("f_new_branch").value= ""; // ไม่ใช้ตอนลบ
+
+  elBtnAdd.disabled = true; elBtnDel.disabled = true;
+
+  const cleanup = ()=>{
+    $("f_action").value = "";
+    $("f_new_name").value = "";
+    $("f_new_branch").value = "";
+    elNewName.value = "";
+    elNewBranch.value = "";
+    elBtnAdd.disabled = false; elBtnDel.disabled = false;
+  };
+
+  iframe.onload = ()=>{
+    iframe.onload = null;
+    cleanup();
+    setMessage("✅ ลบชื่อสำเร็จ");
+    loadCSV().then(()=>{
+      if(![...elPerson.options].some(o=>o.value===state.current)){
+        state.current = elPerson.options[0]?.value || "";
+        elPerson.value = state.current;
+        buildTbody();
+      }
+    });
+  };
+
+  setMessage("กำลังลบชื่อ...");
+  form.submit();
+});
+
 /* ====== Helpers ====== */
 function symbolForLevel(lv){ return lv==='2' ? '●' : (lv==='1' ? '○' : '–'); }
 function nextLevel(lv){ return lv==='0' ? '1' : (lv==='1' ? '2' : '0'); }
 
 /* Boot */
 loadCSV().catch(err=> setMessage("❌ โหลดข้อมูลไม่สำเร็จ: "+(err.message||err)));
-
 </script>
 </body>
 </html>
