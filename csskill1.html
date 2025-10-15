@@ -6,6 +6,7 @@
 <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
 <style>
 :root{
+  /* ความกว้างคงที่ของ 2 คอลัมน์ซ้าย */
   --nameW: 200px;
   --branchW: 120px;
 
@@ -40,30 +41,32 @@ thead th{position:sticky;background:#fff; z-index:10}
 thead tr:first-child th{top:0}
 thead tr:nth-child(2) th{top:var(--h1)}
 
-/* Sticky headers left */
+/* Sticky ซ้าย 2 คอลัมน์ (หัว) */
 thead th.name-th{
-  position:sticky; left:0; z-index:120 !important;
+  left:0; z-index:120 !important;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
 thead th.branch-th{
-  position:sticky; left:calc(var(--nameW) + 1px); z-index:119 !important;
+  left:var(--nameW); z-index:119 !important;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   color:#fff; background:var(--header-grad);
   border-bottom:2px solid #c7d2fe;
 }
+
+/* กลุ่มหัวตาราง และชื่อสกิล */
 #groupRow th{ background:var(--header-grad); color:#fff; border-bottom:2px solid #c7d2fe; text-shadow:0 1px 0 rgba(0,0,0,.15); z-index:15 }
 #skillRow th{ font-weight:700; background:#fafbff; z-index:14 }
 
-/* Sticky body cells */
+/* Sticky ซ้าย 2 คอลัมน์ (ตัวตาราง) */
 tbody td.name-td{
   position:sticky; left:0; z-index:80;
   width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW);
   background:#f8fafc; font-weight:700;
 }
 tbody td.branch-td{
-  position:sticky; left:calc(var(--nameW) + 1px); z-index:79;
+  position:sticky; left:var(--nameW); z-index:79;
   width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW);
   background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
   box-shadow: inset -1px 0 0 var(--border);
@@ -72,16 +75,11 @@ tbody td.branch-td{
 /* Hover/Selected */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
-tr.is-selected td{ background: var(--row-select-bg) !important; }
-tr.is-selected td.name-td{ position:sticky; left:0; z-index:90; }
-tr.is-selected td.branch-td{ position:sticky; left:calc(var(--nameW) + 1px); z-index:89; }
-tr.is-selected td.name-td::before{
-  content:""; position:absolute; inset:0 auto 0 0;
-  width:4px; background:var(--row-select-left);
-  border-top-left-radius:6px; border-bottom-left-radius:6px;
-}
+tr.is-selected td{ background:var(--row-select-bg) !important; position:relative }
+tr.is-selected td.name-td{ background:linear-gradient(90deg,#eaf0ff 0%, var(--row-select-bg) 100%) !important }
+tr.is-selected td.name-td::before{content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--row-select-left); border-top-left-radius:6px; border-bottom-left-radius:6px}
 
-/* Skill buttons */
+/* ปุ่มสกิล 0/1/2 */
 td.center{ text-align:center; vertical-align:middle }
 td.center .cell{ display:flex; align-items:center; justify-content:center; width:100% }
 .lvbtn{
@@ -136,6 +134,7 @@ td.center .cell{ display:flex; align-items:center; justify-content:center; width
   </div>
 </div>
 
+<!-- IFRAME + FORM สำหรับโพสไป Apps Script -->
 <iframe id="gasTarget" name="gasTarget" style="display:none"></iframe>
 <form id="gasForm" method="POST" target="gasTarget" action="">
   <input type="hidden" name="name" id="f_name">
@@ -213,66 +212,58 @@ async function loadCSV(){
 
   // group header อยู่บน 1 แถว
   const grpIdx=Math.max(0,hdrIdx-1);
-  const groupRowRaw = matrix[grpIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
-  let skillRow = matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
+  const groupRowRaw = matrix[grpIdx].map(x => String(x??"").replace(/\s+/g,' ').trim());
+  let skillRow = matrix[hdrIdx].map(x => String(x??"").replace(/\s+/g,' ').trim());
 
-  // ป้องกันกรณี export เพี้ยน
-  const looksLikeGroup = skillRow.some((v,i)=>i!==nameCol && v) &&
-                         skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
+  // กันเพี้ยน
+  const looksLikeGroup=skillRow.some((v,i)=>i!==nameCol && v) &&
+                        skillRow.every((v,i)=>i===nameCol || v===groupRowRaw[i]);
   if(looksLikeGroup && matrix[hdrIdx+1]){
     hdrIdx+=1;
-    skillRow = matrix[hdrIdx].map(x=>String(x??"").replace(/\s+/g,' ').trim());
+    skillRow = matrix[hdrIdx].map(x => String(x??"").replace(/\s+/g,' ').trim());
   }
 
-  // หา branchCol จาก header
+  // หา branchCol อย่างทนทาน
   let branchCol = skillRow.findIndex(v=>{
-    const t=(v||"").toString().trim().toLowerCase();
+    const t=String(v??"").trim().toLowerCase();
     return t==="branch" || t==="brance" || t==="department";
   });
-  // ถ้าไม่เจอ พยายามเดาจากข้อมูลคอลัมน์ถัดจาก name
   if(branchCol<0){
-    const guess = nameCol+1;
+    const guessCol = nameCol+1;
     const dataRows = matrix.slice(hdrIdx+1);
-    let score=0,total=0;
+    let score=0, total=0;
     for(const r of dataRows){
-      const val=String(r[guess]??"").trim();
+      const val=String(r[guessCol]??"").trim();
       if(val) total++;
       if(/^[A-Za-z]{2,4}$/.test(val)) score++;
     }
-    if(total>0 && score/total>0.6) branchCol=guess;
+    if(total>0 && score/total > 0.6) branchCol=guessCol;
   }
 
   // forward-fill group header
-  const groupRow = [];
+  const groupRow=[];
   let last="";
   for(let c=0;c<groupRowRaw.length;c++){
     const g=groupRowRaw[c]; if(g) last=g; groupRow[c]=last;
   }
 
-  // ===== รวมคอลัมน์สกิล: ใช้ "label" เป็นคีย์เสมอ (สำคัญ) =====
+  // ===== ใช้ "label" เป็นคีย์มาตรฐาน (เหมือนเวอร์ชันที่เรียงถูก)
   const skillCols=[];
   for(let c=0;c<skillRow.length;c++){
-    if(c===nameCol || c===branchCol) continue;         // กัน branch ออก
+    if(c===nameCol || c===branchCol) continue;
     const label = skillRow[c];
     if(!label) continue;
-    // กันเคสที่คนตั้งหัวว่า "branch" แล้วดันหลุดเข้า skill
-    const lc = label.toLowerCase();
-    if(lc==="branch" || lc==="brance" || lc==="department") continue;
-
     skillCols.push({ idx:c, label, group: (groupRow[c]||"") });
   }
 
-  // ===== สร้าง levels โดยใช้ label เป็น key =====
   const dataRows=matrix.slice(hdrIdx+1);
   const names=[], branchSet=new Set(), levels={};
-
   for(const row of dataRows){
     const nm=String(row[nameCol]??"").trim();
     if(!nm) continue;
     const br = branchCol>=0 ? String(row[branchCol]??"").trim() : "";
     names.push(nm);
     if(br) branchSet.add(br);
-
     const mp={ _branch: br };
     for(const col of skillCols){
       const rawVal = row[col.idx];
@@ -286,7 +277,6 @@ async function loadCSV(){
   state.groups=groupRow; state.skills=skillCols;
   state.rows=dataRows; state.names=names; state.levels=levels;
   state.branches=["All",...([...branchSet].sort((a,b)=>a.localeCompare(b)))];
-
   if(!state.current || !names.includes(state.current)) state.current=names[0]||"";
   if(!state.branches.includes(state.filterBranch)) state.filterBranch="All";
 
@@ -314,7 +304,7 @@ function buildThead(){
   thBranch.rowSpan=2;
   elGroupRow.appendChild(thBranch);
 
-  // groups (colspan)
+  // groups
   let i=0, sc=state.skills;
   while(i<sc.length){
     const g=sc[i].group||""; let span=1, j=i+1;
@@ -325,11 +315,10 @@ function buildThead(){
     elGroupRow.appendChild(th);
     i=j;
   }
-
   // skill labels
   for(const col of state.skills){
     const th=document.createElement("th");
-    th.textContent=col.label;           // ใช้ label ที่โชว์
+    th.textContent=col.label;
     elSkillRow.appendChild(th);
   }
 
@@ -381,18 +370,18 @@ function buildTbody(){
 
     const editable=(name===state.current);
 
-    // skills (ใช้ label เป็นคีย์เสมอ)
+    // skills (เรียงตาม state.skills เสมอ)
     for(const col of state.skills){
-      const key = col.label;
-      const baseline=(state.levels[name]?.[key]??'0')||'0';
-      const current=(editable && state.dirty.has(key)) ? state.dirty.get(key) : baseline;
+      const skillLabel = col.label; // ใช้ label เป็น key
+      const baseline=(state.levels[name]?.[skillLabel]??'0')||'0';
+      const current=(editable && state.dirty.has(skillLabel)) ? state.dirty.get(skillLabel) : baseline;
 
       const td=document.createElement("td");
       td.className="center";
       const wrap=document.createElement("div"); wrap.className="cell";
       const btn=document.createElement("button");
       btn.type="button"; btn.className="lvbtn";
-      btn.dataset.skill=key;
+      btn.dataset.skill=skillLabel;   // สำคัญ! ใช้ label
       btn.dataset.value=current;
       btn.textContent=symbolForLevel(current);
 
@@ -403,8 +392,8 @@ function buildTbody(){
         btn.addEventListener("click", ()=>{
           const newV=nextLevel(btn.dataset.value);
           btn.dataset.value=newV; btn.textContent=symbolForLevel(newV);
-          if(newV===baseline){ state.dirty.delete(key); btn.classList.remove("dirty"); }
-          else{ state.dirty.set(key,newV); btn.classList.add("dirty"); }
+          if(newV===baseline){ state.dirty.delete(skillLabel); btn.classList.remove("dirty"); }
+          else{ state.dirty.set(skillLabel,newV); btn.classList.add("dirty"); }
         });
       }
       wrap.appendChild(btn); td.appendChild(wrap); tr.appendChild(td);
@@ -433,20 +422,20 @@ $("saveBtn").addEventListener("click", ()=>{
 
   const form=$("gasForm"), iframe=$("gasTarget"); form.action=GAS_ENDPOINT;
 
-  // ล้าง action เผื่อค้าง
-  $("f_action").value = "";
+  // บอก Apps Script ให้เข้า path อัปเดต
+  $("f_action").value = "updateSkills";
 
-  // ใส่ชื่อ + branch ปัจจุบัน (ถ้า GAS อยากใช้)
+  // ใส่ชื่อ + branch (ถ้าใช้)
   $("f_name").value = selected;
   $("f_branch").value = state.levels[selected]?._branch || "";
 
-  // เคลียร์เก่า
+  // ลบอินพุตเก่า
   [...form.querySelectorAll('input[name="u_skill[]"], input[name="u_level[]"]')].forEach(el => el.remove());
 
-  // ส่งเฉพาะที่แก้ไข โดยใช้ "label" เป็น key
+  // เติมเฉพาะที่แก้ไข (key = label)
   for (const [skillLabel, level] of state.dirty.entries()){
     const a=document.createElement("input"); a.type="hidden"; a.name="u_skill[]"; a.value=skillLabel; form.appendChild(a);
-    const b=document.createElement("input"); b.type="hidden"; b.name="u_level[]"; b.value=level; form.appendChild(b);
+    const b=document.createElement("input"); b.type="hidden"; b.name="u_level[]"; b.value=level;     form.appendChild(b);
   }
 
   const onLoad=()=>{
