@@ -35,7 +35,7 @@ thead th.sticky-left-2{left:var(--nameW); z-index:6; width:var(--branchW); min-w
 tbody td.sticky-left-1{position:sticky; left:0; z-index:3; background:#f8fafc; font-weight:700}
 tbody td.sticky-left-2{
   position:sticky; left:var(--nameW);
-  z-index:2; /* ↓ ให้ต่ำกว่าช่องสกิล เพื่อไม่บังปุ่มเวลาเลือกคน */
+  z-index:2; /* ให้ต่ำกว่าช่องสกิล จะได้ไม่บังปุ่ม */
   background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
   box-shadow: inset -1px 0 0 var(--border);
 }
@@ -320,7 +320,16 @@ async function loadAll(){
 
 /* ===== WRITE (Apps Script only) ===== */
 async function gasPost(payload){
-  const r = await fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 't=' + Date.now(); // กันแคช
+  const r = await fetch(url, {
+    method:'POST',
+    headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // ลด preflight/CORS
+    body: JSON.stringify(payload),
+    cache: 'no-store',
+    redirect: 'follow',
+    mode: 'cors'
+  });
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json().catch(()=>({ ok:false, error:'Bad JSON response'}));
   if(!j.ok) throw new Error(j.error || 'Unknown error');
   return j;
