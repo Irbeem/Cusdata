@@ -6,81 +6,50 @@
   <title>Skills Table (Google Sheet → CSV)</title>
   <style>
     :root {
-      --sticky-left-0: 0px; /* name */
-      --sticky-left-1: 0px; /* branch */
+      --sticky-left-0: 0px;
+      --sticky-left-1: 0px;
       --row-height: 36px;
-      --header-bg: #0f172a; /* slate-900 */
+      --header-bg: #0f172a;
       --header-fg: #fff;
-      --body-bg: #0b1022;  /* deep slate */
+      --body-bg: #0b1022;
       --body-fg: #e5e7eb;
       --muted: #94a3b8;
-      --accent: #22c55e;
-      --warn: #f59e0b;
-      --danger: #ef4444;
       --line: #1f2937;
     }
     html, body { height: 100%; margin: 0; }
-    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--body-bg); color: var(--body-fg); }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial; background: var(--body-bg); color: var(--body-fg); }
     .wrap { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
-    h1 { font-size: 20px; margin: 0 0 10px; }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-    .controls input, .controls select { height: 36px; background: #0f172a; color: var(--body-fg); border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; }
-    .btn { height: 36px; border: 1px solid var(--line); background: #111827; color: #e5e7eb; border-radius: 10px; padding: 0 12px; cursor: pointer; }
-    .btn.primary { background: #2563eb; }
-    .btn.success { background: #16a34a; }
+    input, select { height: 36px; background: #0f172a; color: var(--body-fg); border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; }
+    .btn { height: 36px; border: 1px solid var(--line); background: #2563eb; color: white; border-radius: 10px; padding: 0 12px; cursor: pointer; }
     .btn:disabled { opacity: .5; cursor: not-allowed; }
-
     .table-shell { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #0b1022; }
     .scroll { overflow: auto; max-height: 70vh; }
-
     table { border-collapse: separate; border-spacing: 0; min-width: 900px; width: 100%; }
     thead th { position: sticky; top: 0; background: var(--header-bg); color: var(--header-fg); z-index: 4; border-bottom: 1px solid var(--line); font-weight: 600; }
     thead tr:nth-child(1) th { top: 0; }
     thead tr:nth-child(2) th { top: var(--row-height); }
-
     th, td { padding: 6px 10px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); height: var(--row-height); white-space: nowrap; }
-    tbody tr:hover td { background: #0f172a; }
-
-    /* sticky first two columns */
     .sticky-col-0 { position: sticky; left: var(--sticky-left-0); z-index: 3; background: #0e1328; }
     .sticky-col-1 { position: sticky; left: var(--sticky-left-1); z-index: 3; background: #0e1328; }
-    thead .sticky-col-0, thead .sticky-col-1 { z-index: 5; }
-
-    .muted { color: var(--muted); }
-    .pill { display: inline-block; line-height: 22px; height: 24px; padding: 0 8px; border-radius: 999px; background: #0f172a; border: 1px solid var(--line); }
-
-    select.skill {
-      height: 28px; border-radius: 8px; background: #0f172a; color: var(--body-fg); border: 1px solid var(--line); padding: 0 6px; width: 64px;
-    }
-
-    .saving { display: none; align-items: center; gap: 8px; }
-    .saving.show { display: inline-flex; }
-
-    .hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
-    .foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 10px; background: #0c1226; border-top: 1px solid var(--line); }
+    select.skill { height: 28px; border-radius: 8px; background: #0f172a; color: var(--body-fg); border: 1px solid var(--line); padding: 0 6px; width: 64px; }
   </style>
-  <!-- PapaParse (CSV Parser) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <div class="wrap">
     <h1>ตารางสกิลจาก Google Sheet (CSV)</h1>
-
     <div class="controls">
-      <label class="pill">Sheet CSV URL:</label>
+      <label>Sheet CSV URL:</label>
       <input id="csvUrl" style="width:520px" />
       <button class="btn" id="reloadBtn">โหลดใหม่</button>
-      <span class="muted">* ใช้รูปแบบ <code>https://docs.google.com/spreadsheets/d/ID/export?format=csv&gid=0</code></span>
     </div>
-
     <div class="controls">
-      <label class="pill">เพิ่มคน/แผนก:</label>
+      <label>เพิ่มคน/แผนก:</label>
       <input id="newBranch" placeholder="branch" />
       <input id="newName" placeholder="name" />
       <button class="btn" id="addRowBtn">เพิ่ม</button>
-      <span class="muted">* ถ้ามี branch เดิม จะต่อท้ายใต้ branch เดิม — ถ้าไม่มีจะไปท้ายตาราง</span>
     </div>
-
     <div class="table-shell">
       <div class="scroll" id="scroller">
         <table id="grid">
@@ -88,258 +57,123 @@
           <tbody id="tbody"></tbody>
         </table>
       </div>
-      <div class="foot">
-        <div>
-          <button class="btn primary" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
-          <span class="saving" id="saving"><span class="pill">กำลังบันทึก…</span></span>
-        </div>
-        <div class="hint">คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</div>
+      <div>
+        <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
+        <span id="saving" style="display:none;">กำลังบันทึก...</span>
       </div>
     </div>
-
-    <p class="hint">หมายเหตุ: ตั้งค่า <code>GAS_URL</code> ในสคริปต์ให้ชี้ไปยัง Apps Script Web App ที่คุณ deploy แบบ <b>Anyone with the link</b>.</p>
   </div>
 
-  <script>
-    // === CONFIG ===
-    const DEFAULT_SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
-    const DEFAULT_GID = '0';
-    const DEFAULT_CSV_URL = `https://docs.google.com/spreadsheets/d/${DEFAULT_SHEET_ID}/export?format=csv&gid=${DEFAULT_GID}`;
-    const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec'; // <-- แทนที่ด้วยของคุณ
+<script>
+const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
+const GID = '0';
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
 
-    // === STATE ===
-    let raw = [];      // CSV -> [['h1','h2',...], ['h1b','h2b',...], [row...], ...]
-    let header1 = [];  // top header row
-    let header2 = [];  // second header row
-    let rows = [];     // data rows (array of arrays)
+let header1 = [], header2 = [], rows = [], edits = new Map(), appends = [];
+const csvUrlEl = document.getElementById('csvUrl');
+csvUrlEl.value = CSV_URL;
 
-    // Track edits and appends
-    const edits = new Map(); // key: rowIndex (in sheet, 0-based), val: updated row array
-    const appends = [];      // new rows to append
+async function load(url) {
+  const res = await fetch(url);
+  const text = await res.text();
+  const parsed = Papa.parse(text).data;
+  header1 = parsed[0];
+  header2 = parsed[1];
+  rows = parsed.slice(2);
+  render();
+}
 
-    const csvUrlEl = document.getElementById('csvUrl');
-    const reloadBtn = document.getElementById('reloadBtn');
-    const addRowBtn = document.getElementById('addRowBtn');
-    const saveBtn = document.getElementById('saveBtn');
-    const savingEl = document.getElementById('saving');
-    const thead = document.getElementById('thead');
-    const tbody = document.getElementById('tbody');
-    const scroller = document.getElementById('scroller');
+function render() {
+  renderHeader(header1, header2);
+  renderBody();
+  requestAnimationFrame(updateStickyLefts);
+}
 
-    csvUrlEl.value = DEFAULT_CSV_URL;
-
-    reloadBtn.addEventListener('click', () => load(csvUrlEl.value));
-    addRowBtn.addEventListener('click', onAddRow);
-    saveBtn.addEventListener('click', onSave);
-
-    function parseCSV(text) {
-      const parsed = Papa.parse(text, { skipEmptyLines: false });
-      return parsed.data;
+function renderHeader(h1, h2) {
+  const tr1 = document.createElement('tr');
+  const tr2 = document.createElement('tr');
+  const n = Math.max(h1.length, h2.length);
+  let i = 0;
+  while (i < n) {
+    const title = (h1[i] ?? '').trim();
+    if (i === 0 || i === 1) {
+      const th1 = document.createElement('th');
+      th1.textContent = title || (i === 0 ? 'name' : 'branch');
+      th1.classList.add(i === 0 ? 'sticky-col-0' : 'sticky-col-1');
+      th1.setAttribute('rowspan', 2);
+      tr1.appendChild(th1);
+      i++; continue;
     }
+    if (!title) { const th = document.createElement('th'); th.setAttribute('rowspan', 2); tr1.appendChild(th); i++; continue; }
+    let j = i + 1; while (j < n && (h1[j] ?? '').trim() === '') j++;
+    const groupEnd = j, colspan = Math.max(1, groupEnd - i);
+    let hasSub = false; for (let k = i; k < groupEnd; k++) if ((h2[k] ?? '').trim()) hasSub = true;
+    const thGroup = document.createElement('th'); thGroup.textContent = title;
+    if (hasSub) thGroup.setAttribute('colspan', colspan); else thGroup.setAttribute('rowspan', 2);
+    tr1.appendChild(thGroup);
+    if (hasSub) { for (let k = i; k < groupEnd; k++) { const th2 = document.createElement('th'); th2.textContent = (h2[k] ?? '').trim(); tr2.appendChild(th2);} }
+    i = groupEnd;
+  }
+  thead.innerHTML = ''; thead.append(tr1, tr2);
+}
 
-    async function load(url) {
-      tbody.innerHTML = '';
-      thead.innerHTML = '';
-      edits.clear();
-      appends.length = 0;
-      const res = await fetch(url, { cache: 'no-store' });
-      const text = await res.text();
-      raw = parseCSV(text);
-      if (!raw || raw.length < 3) {
-        alert('CSV ต้องมีอย่างน้อย 2 แถวสำหรับหัวตาราง และ 1 แถวข้อมูล');
-        return;
+function renderBody() {
+  tbody.innerHTML = '';
+  rows.forEach((r, ri) => {
+    const tr = document.createElement('tr');
+    r.forEach((v, ci) => {
+      const td = document.createElement('td');
+      if (ci === 0) { td.textContent = v; td.classList.add('sticky-col-0'); }
+      else if (ci === 1) { td.textContent = v; td.classList.add('sticky-col-1'); }
+      else {
+        const sel = document.createElement('select'); sel.className='skill';
+        ['0','1','2'].forEach(optVal=>{ const o=document.createElement('option'); o.value=optVal; o.textContent=optVal; if(optVal===v) o.selected=true; sel.append(o); });
+        sel.onchange = ()=>markEdit(ri, ci, sel.value);
+        td.append(sel);
       }
-      header1 = raw[0];
-      header2 = raw[1];
-      rows = raw.slice(2);
-      render();
-    }
+      tr.append(td);
+    });
+    tbody.append(tr);
+  });
+}
 
-    function render() {
-      renderHeader(header1, header2);
-      renderBody();
-      requestAnimationFrame(updateStickyLefts);
-    }
+function updateStickyLefts() {
+  const fr = tbody.querySelector('tr'); if(!fr)return;
+  const w0 = fr.children[0].getBoundingClientRect().width;
+  document.documentElement.style.setProperty('--sticky-left-0', '0px');
+  document.documentElement.style.setProperty('--sticky-left-1', w0+'px');
+}
 
-    function renderHeader(h1, h2) {
-      // Build 2-tier header with dynamic colspan/rowspan based on values.
-      // If h1 cell has value and there are subsequent same values, set colspan.
-      // If h2 cell is empty and h1 has value (and no children), set rowspan=2.
-      const tr1 = document.createElement('tr');
-      const tr2 = document.createElement('tr');
+function markEdit(r,c,v){ const rowCopy=rows[r].slice(); rowCopy[c]=v; edits.set(r+2,rowCopy); }
 
-      const n = Math.max(h1.length, h2.length);
-      let i = 0;
-      while (i < n) {
-        const v1 = (h1[i] ?? '').trim();
-        const v2 = (h2[i] ?? '').trim();
+function onAddRow(){
+  const b=document.getElementById('newBranch').value.trim(); const n=document.getElementById('newName').value.trim();
+  if(!n||!b){alert('กรุณากรอกให้ครบ');return;}
+  const cols = rows.length?rows[0].length:Math.max(header1.length,header2.length);
+  const newRow=new Array(cols).fill('0'); newRow[0]=n; newRow[1]=b;
+  let insertAt=rows.length; for(let i=rows.length-1;i>=0;i--){if((rows[i][1]??'').trim()===b){insertAt=i+1;break;}}
+  rows.splice(insertAt,0,newRow); appends.push({name:n,branch:b,values:newRow}); renderBody(); requestAnimationFrame(updateStickyLefts);
+}
 
-        // Determine group span for top row
-        let colspan = 1;
-        if (v1) {
-          let j = i + 1;
-          while (j < n && (h1[j] ?? '').trim() === v1 && (h2[j] ?? '').trim()) {
-            colspan++; j++;
-          }
-        }
+async function onSave(){
+  const payload={updates:Array.from(edits.entries()).map(([r,row])=>({sheetRowIndex:r,rowValues:row})),appends};
+  try{
+    document.getElementById('saving').style.display='inline';
+    const res=await fetch(GAS_URL,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const text=await res.text(); let js={}; try{js=JSON.parse(text);}catch{}
+    if(!res.ok||js.error)throw new Error(js.error||text);
+    alert('บันทึกสำเร็จ'); edits.clear(); appends.length=0;
+  }catch(e){alert('Error: '+e.message);}finally{document.getElementById('saving').style.display='none';}
+}
 
-        const th1 = document.createElement('th');
-        th1.textContent = v1 || (v2 ? '' : '');
+const thead=document.getElementById('thead'); const tbody=document.getElementById('tbody');
 
-        // First two columns are special: Name, Branch  (assume index 0 and 1)
-        if (i === 0) th1.classList.add('sticky-col-0');
-        if (i === 1) th1.classList.add('sticky-col-1');
+document.getElementById('reloadBtn').onclick=()=>load(csvUrlEl.value);
+document.getElementById('addRowBtn').onclick=onAddRow;
+document.getElementById('saveBtn').onclick=onSave;
 
-        if (v2 && v1) {
-          th1.setAttribute('colspan', colspan);
-        } else {
-          th1.setAttribute('rowspan', 2);
-        }
-        tr1.appendChild(th1);
-
-        if (v2) {
-          for (let k = 0; k < colspan; k++) {
-            const th2 = document.createElement('th');
-            const label = (h2[i + k] ?? '').trim();
-            th2.textContent = label || '';
-            if (i + k === 0) th2.classList.add('sticky-col-0');
-            if (i + k === 1) th2.classList.add('sticky-col-1');
-            tr2.appendChild(th2);
-          }
-          i += colspan;
-        } else {
-          // No second row under this header cell
-          i += 1;
-        }
-      }
-
-      thead.appendChild(tr1);
-      thead.appendChild(tr2);
-
-      // Ensure fixed heights for sticky top offsets
-      Array.from(thead.querySelectorAll('th')).forEach(th => th.style.height = 'var(--row-height)');
-    }
-
-    function renderBody() {
-      tbody.innerHTML = '';
-      rows.forEach((row, rIdx) => {
-        const tr = document.createElement('tr');
-        for (let c = 0; c < row.length; c++) {
-          const td = document.createElement('td');
-          const val = row[c] ?? '';
-          if (c === 0) { // name
-            td.textContent = val;
-            td.classList.add('sticky-col-0');
-          } else if (c === 1) { // branch
-            td.textContent = val;
-            td.classList.add('sticky-col-1');
-          } else {
-            // skill cell: select 0/1/2
-            const sel = document.createElement('select');
-            sel.className = 'skill';
-            ['0','1','2'].forEach(v => {
-              const opt = document.createElement('option');
-              opt.value = v; opt.textContent = v; if ((val + '') === v) opt.selected = true; sel.appendChild(opt);
-            });
-            sel.addEventListener('change', () => markEdit(rIdx, c, sel.value));
-            td.appendChild(sel);
-          }
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      });
-    }
-
-    function updateStickyLefts() {
-      // Compute widths for first two columns to set left offsets precisely
-      const firstRow = tbody.querySelector('tr');
-      if (!firstRow) return;
-      const c0 = firstRow.children[0];
-      const c1 = firstRow.children[1];
-      const w0 = c0 ? c0.getBoundingClientRect().width : 160;
-      const w1 = c1 ? c1.getBoundingClientRect().width : 160;
-      document.documentElement.style.setProperty('--sticky-left-0', '0px');
-      document.documentElement.style.setProperty('--sticky-left-1', w0 + 'px');
-    }
-
-    function markEdit(rIdx, cIdx, newVal) {
-      // rIdx is relative to rows (data area). Sheet row index = rIdx + 2 (skip 2 header rows)
-      const rowCopy = rows[rIdx].slice();
-      rowCopy[cIdx] = newVal;
-      edits.set(rIdx + 2, rowCopy); // store using absolute sheet row index
-    }
-
-    function onAddRow() {
-      const branch = document.getElementById('newBranch').value.trim();
-      const name = document.getElementById('newName').value.trim();
-      if (!name) { alert('กรุณากรอก name'); return; }
-      if (!branch) { alert('กรุณากรอก branch'); return; }
-
-      // Construct a blank row with same column count as header length
-      const cols = Math.max(header1.length, header2.length);
-      const newRow = new Array(cols).fill('0');
-      newRow[0] = name; // name
-      newRow[1] = branch; // branch
-
-      // find last index with same branch
-      let insertAt = rows.length; // default append to end
-      for (let i = rows.length - 1; i >= 0; i--) {
-        if ((rows[i][1] ?? '').trim() === branch) { insertAt = i + 1; break; }
-      }
-      rows.splice(insertAt, 0, newRow);
-      appends.push({ name, branch, values: newRow });
-      renderBody();
-      requestAnimationFrame(updateStickyLefts);
-
-      document.getElementById('newBranch').value = '';
-      document.getElementById('newName').value = '';
-    }
-
-    async function onSave() {
-      if (!GAS_URL.includes('REPLACE_WITH_YOUR_DEPLOY_ID')) {
-        const payload = {
-          updates: Array.from(edits.entries()).map(([sheetRowIndex, rowValues]) => ({ sheetRowIndex, rowValues })),
-          appends
-        };
-        try {
-          savingEl.classList.add('show');
-          saveBtn.disabled = true;
-          const res = await fetch(GAS_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-          const json = await res.json().catch(() => ({}));
-          if (!res.ok) throw new Error(json.error || 'บันทึกล้มเหลว');
-          alert('บันทึกสำเร็จ');
-          edits.clear();
-          appends.length = 0;
-        } catch (e) {
-          console.error(e);
-          alert('เกิดข้อผิดพลาด: ' + e.message);
-        } finally {
-          savingEl.classList.remove('show');
-          saveBtn.disabled = false;
-        }
-      } else {
-        alert('โปรดตั้งค่า GAS_URL ให้ถูกต้องก่อนบันทึก');
-      }
-    }
-
-    // initial load
-    load(DEFAULT_CSV_URL);
-
-    // Recompute sticky offsets on resize
-    window.addEventListener('resize', () => requestAnimationFrame(updateStickyLefts));
-  </script>
-
-  <!--
-  ========================= HOW TO USE =========================
-  1) เปิดลิงก์ CSV: https://docs.google.com/spreadsheets/d/ID/export?format=csv&gid=0
-  2) วางไฟล์นี้บน GitHub Pages (repo: username.github.io หรือสาขา gh-pages)
-  3) ตั้งค่า GAS_URL ให้เป็น Web App URL ที่ deploy จาก Apps Script (ตัวอย่างโค้ดอยู่ในคำตอบแชต)
-  4) ปรับสิทธิ์ Web App เป็น "Anyone with the link" (ไม่ต้อง Sign in)
-  =============================================================
-  -->
+load(CSV_URL);
+</script>
 </body>
 </html>
