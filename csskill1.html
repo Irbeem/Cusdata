@@ -33,7 +33,13 @@ thead tr:nth-child(2) th{top:34px; background:#fafbff}
 thead th.sticky-left-1{left:0; z-index:7; width:var(--nameW); min-width:var(--nameW); max-width:var(--nameW)}
 thead th.sticky-left-2{left:var(--nameW); z-index:6; width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW)}
 tbody td.sticky-left-1{position:sticky; left:0; z-index:3; background:#f8fafc; font-weight:700}
-tbody td.sticky-left-2{position:sticky; left:var(--nameW); z-index:2; background:linear-gradient(90deg,#f8fafc 0%, #fff 100%); box-shadow: inset -1px 0 0 var(--border)}
+tbody td.sticky-left-2{
+  position:sticky; left:var(--nameW);
+  z-index:2; /* ↓ ให้ต่ำกว่าช่องสกิล เพื่อไม่บังปุ่มเวลาเลือกคน */
+  background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
+  box-shadow: inset -1px 0 0 var(--border);
+}
+tbody td.center{ position:relative; z-index:3; } /* ปุ่มสกิลลอยเหนือ branch */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
 tr.is-selected td{ background:var(--row-select-bg) !important; position:relative }
@@ -96,11 +102,9 @@ td.center{ text-align:center; vertical-align:middle }
 <script>
 /* ===== CONFIG ===== */
 // อ่านจาก CSV เท่านั้น
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0"; 
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0";
 // เขียนผ่าน Apps Script เท่านั้น (Web App URL)
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec"; 
-//const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0"; 
-//const GAS_URL = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
 
 /* ===== STATE ===== */
 const S = {
@@ -169,8 +173,22 @@ function csvToModel(matrix){
   }
   if(hdrIdx<0) throw new Error("ไม่พบคอลัมน์ name");
 
-  const groupRowRaw = matrix[Math.max(0, hdrIdx-1)].map(norm);
+  // เริ่มจากแถว group เดิม (ก่อน hdrIdx) และแถว skill ณ hdrIdx
+  const groupRowRaw0 = matrix[Math.max(0, hdrIdx-1)].map(norm);
   let skillRow = matrix[hdrIdx].map(norm);
+
+  // ถ้าหัว skill "ดันเหมือน" group (ซ้ำ) ให้เลื่อนไปใช้แถวถัดไปแทน
+  const looksLikeGroup =
+    skillRow.some((v,i)=> i!==nameCol && norm(v)) &&
+    skillRow.every((v,i)=> i===nameCol || norm(v) === norm(groupRowRaw0[i]));
+
+  if (looksLikeGroup && matrix[hdrIdx+1]) {
+    hdrIdx += 1;
+    skillRow = matrix[hdrIdx].map(norm);
+  }
+
+  // groupRow ตัวจริง = แถวก่อนหน้า skillRow (หลังเลื่อนแล้ว)
+  const groupRowRaw = matrix[Math.max(0, hdrIdx-1)].map(norm);
 
   // เดา branchCol
   let branchCol = skillRow.findIndex(v=>{
