@@ -6,37 +6,48 @@
   <title>Skills Table (Google Sheet → CSV)</title>
   <style>
     :root{
-      --sticky-left-0:0px;--sticky-left-1:0px;--row-h:40px;
+      --sticky-left-0:0px;--sticky-left-1:0px;
+      --head1:40px; /* จะถูกคำนวณจริงด้วย JS */
+      --row-h:40px;
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
     }
     html,body{height:100%;margin:0}
     body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
-    .wrap{max-width:1400px;margin:16px auto;padding:0 16px}
-    h1{margin:0 0 12px;font-size:22px}
-    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff}
-    .scroll{overflow:auto;max-height:80vh}
+
+    /* เต็มหน้าจอตลอด */
+    .wrap{width:100vw;max-width:none;margin:0;padding:12px}
+    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px}
+    .rowadd{display:flex;gap:8px;align-items:center}
+    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(280px,40vw)}
+    .btn{height:40px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;
+      /* ให้กล่องตารางสูงเต็ม viewport ลบส่วนบน */
+      height:calc(100vh - 92px); /* ปรับตามความสูงจริงของหัว+แถบเครื่องมือ */
+    }
+    .scroll{overflow:auto;width:100%;height:calc(100% - 40px)} /* ลบพื้นที่ .foot 40px */
+
     table{border-collapse:separate;border-spacing:0;min-width:1000px;width:100%}
     thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700}
     thead tr:nth-child(1) th{top:0}
-    thead tr:nth-child(2) th{top:var(--row-h)}
+    thead tr:nth-child(2) th{top:var(--head1)} /* ใช้ค่าจริงจาก JS */
+
     th,td{padding:8px 10px;border-right:1px solid var(--c-line);border-bottom:1px solid var(--c-line);height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
+
     .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc}
     .sticky-col-1{position:sticky;left:var(--sticky-left-1);z-index:3;background:#f8fafc}
     thead .sticky-col-0, thead .sticky-col-1{z-index:5;background:var(--c-head-bg)}
-    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:0 0 10px}
-    .btn{height:38px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
-    .btn:disabled{opacity:.6;cursor:not-allowed}
-    .rowadd{display:flex;gap:8px;align-items:center}
-    .rowadd input{height:38px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px}
+
     select.skill{height:30px;border-radius:8px;background:#fff;color:#111827;border:1px solid #d1d5db;padding:0 6px;width:64px}
-    .foot{display:flex;gap:12px;align-items:center;justify-content:flex-end;padding:10px;background:#f9fafb;border-top:1px solid var(--c-line)}
+    .foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <div class="wrap">
-    <h1>ตารางสกิลจาก Google Sheet</h1>
+    <h1 style="margin:0 0 6px">ตารางสกิลจาก Google Sheet</h1>
 
     <div class="bar">
       <div class="rowadd">
@@ -46,7 +57,7 @@
       </div>
       <div class="rowops">
         <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
-        <span id="saving" style="display:none;color:#2563eb">กำลังบันทึก…</span>
+        <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังบันทึก…</span>
       </div>
     </div>
 
@@ -54,9 +65,7 @@
       <div class="scroll" id="scroller">
         <table id="grid"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
       </div>
-      <div class="foot">
-        <small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small>
-      </div>
+      <div class="foot"><small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small></div>
     </div>
   </div>
 
@@ -65,14 +74,12 @@
   const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
   const GID = '0';
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-  // ใส่ Web App URL ของ Apps Script ที่คุณ Deploy (Anyone with the link)
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
-  //https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec
+
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  const edits=new Map(); // key: sheetRowIndex (0-based, รวม header 2 แถว), val: updated row array
+  const edits=new Map();
   const appends=[];
-
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
 
@@ -81,12 +88,15 @@
     const res=await fetch(CSV_URL,{cache:'no-store'});
     const text=await res.text();
     const data=Papa.parse(text,{skipEmptyLines:false}).data;
-    if(!data||data.length<3){ alert('CSV ควรมี 2 แถวหัว + อย่างน้อย 1 แถวข้อมูล'); return; }
-    header1=data[0]; header2=data[1]; rows=data.slice(2);
+    header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
     render();
   }
 
-  function render(){ renderHeader(header1,header2); renderBody(); requestAnimationFrame(updateStickyLefts); }
+  function render(){
+    renderHeader(header1,header2);
+    renderBody();
+    requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
+  }
 
   // ====== HEADER (รองรับ merge จาก Google Sheet) ======
   function renderHeader(h1,h2){
@@ -115,12 +125,21 @@
     thead.innerHTML=''; thead.append(tr1,tr2);
   }
 
+  // คำนวณความสูงจริงของแถวหัวบน เพื่อให้แถวที่ 2 ไม่ขยับเวลาเลื่อน
+  function fixHeaderTop(){
+    const tr1=thead.querySelector('tr:first-child');
+    if(!tr1) return;
+    const h = Math.round(tr1.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--head1', h+'px');
+  }
+
   // ====== BODY ======
   function renderBody(){
     tbody.innerHTML='';
     rows.forEach((row,rIdx)=>{
       const tr=document.createElement('tr');
-      for(let c=0;c<row.length;c++){
+      const cols = Math.max(row.length, header1.length, header2.length);
+      for(let c=0;c<cols;c++){
         const td=document.createElement('td'); const val=row[c]??'';
         if(c===0){ td.textContent=val; td.classList.add('sticky-col-0'); }
         else if(c===1){ td.textContent=val; td.classList.add('sticky-col-1'); }
@@ -144,9 +163,7 @@
   }
 
   // ====== EDIT / ADD ======
-  function markEdit(rIdx,cIdx,newVal){
-    const copy=rows[rIdx].slice(); copy[cIdx]=newVal; edits.set(rIdx+2,copy); // +2 เพราะมีหัว 2 แถว
-  }
+  function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; edits.set(rIdx+2,copy); }
 
   function onAddRow(){
     const branch=document.getElementById('newBranch').value.trim();
@@ -156,39 +173,33 @@
     const newRow=new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
     let insertAt=rows.length; for(let i=rows.length-1;i>=0;i--){ if((rows[i][1]??'').trim()===branch){ insertAt=i+1; break; } }
     rows.splice(insertAt,0,newRow); appends.push({ name, branch, values:newRow });
-    renderBody(); requestAnimationFrame(updateStickyLefts);
+    renderBody(); requestAnimationFrame(()=>{updateStickyLefts();});
     document.getElementById('newBranch').value=''; document.getElementById('newName').value='';
   }
 
-  // ====== SAVE (หลบ preflight โดยใช้ text/plain) ======
+  // ====== SAVE ======
   async function onSave(){
-    const payload={
-      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
-      appends
-    };
+    const payload={ updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})), appends };
+    const saving=document.getElementById('saving');
     try{
-      document.getElementById('saving').style.display='inline';
-      const res=await fetch(GAS_URL,{
-        method:'POST',
-        mode:'cors',
-        headers:{ 'Content-Type':'text/plain;charset=UTF-8' },
-        body: JSON.stringify(payload)
-      });
-      const text=await res.text();
-      let json={}; try{ json=JSON.parse(text);}catch{}
-      if(!res.ok || json.error){ throw new Error(json.error || text || 'save failed'); }
-      alert('บันทึกสำเร็จ'); edits.clear(); appends.length=0;
-    }catch(e){
-      console.error(e);
-      alert('Error: '+e.message+"\nโปรดตรวจสอบว่า Apps Script deploy เป็น Web app และตั้งสิทธิ์ Anyone with the link");
-    }finally{
-      document.getElementById('saving').style.display='none';
-    }
+      saving.style.display='inline';
+      try {
+        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
+        const text=await res.text(); let json={}; try{json=JSON.parse(text);}catch{}
+        if(!res.ok||json.error) throw new Error(json.error||text||'save failed');
+        alert('บันทึกสำเร็จ');
+      } catch(err){
+        await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
+        alert('บันทึกสำเร็จ');
+      }
+      edits.clear(); appends.length=0;
+    }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
+    finally{ saving.style.display='none'; }
   }
 
   document.getElementById('addRowBtn').addEventListener('click',onAddRow);
   document.getElementById('saveBtn').addEventListener('click',onSave);
-  window.addEventListener('resize',()=>requestAnimationFrame(updateStickyLefts));
+  window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
   loadCsv();
 </script>
 </body>
