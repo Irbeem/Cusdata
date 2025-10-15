@@ -6,13 +6,9 @@
 <title>Skill Matrix (0/1/2) — YAPTCSSKILL</title>
 <style>
 :root{
-  --nameW: 200px;
-  --branchW: 120px;
-  --border:#e5e7eb;
+  --nameW: 200px; --branchW: 120px; --border:#e5e7eb;
   --brand-50:#eef2ff; --brand-200:#c7d2fe; --brand-500:#4f46e5; --brand-600:#4338ca;
-  --row-select-bg:#F6C8B6;
-  --row-select-left:#6366f1;
-  --row-hover:#f0f4ff;
+  --row-select-bg:#F6C8B6; --row-select-left:#6366f1; --row-hover:#f0f4ff;
   --header-grad: linear-gradient(180deg,#6366f1 0%, #4f46e5 80%, #4338ca 100%);
 }
 *{box-sizing:border-box}
@@ -99,9 +95,13 @@ td.center{ text-align:center; vertical-align:middle }
 
 <script>
 /* ===== CONFIG ===== */
-const GAS_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0"; // <<< วาง URL จาก Deploy
+// อ่านจาก CSV เท่านั้น
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0"; 
+// เขียนผ่าน Apps Script เท่านั้น (Web App URL)
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec"; 
 //const CSV_URL = "https://docs.google.com/spreadsheets/d/1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k/export?format=csv&gid=0"; 
-//const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
+//const GAS_URL = "https://script.google.com/macros/s/AKfycbzPMwWO8ir9wa8kSVDn_aWn_-vyY11K8Z2msF4nY2Aj7iyRyYJctzEo3F-VlYW-w-68jQ/exec";
+
 /* ===== STATE ===== */
 const S = {
   meta: { skills: [], nameCol:-1, branchCol:-1 },
@@ -121,6 +121,30 @@ function sym(lv){ return lv==='2'?'●':(lv==='1'?'○':'-'); }
 function next(lv){ return lv==='0'?'1':(lv==='1'?'2':'0'); }
 function byThaiLocale(a,b){ return a.localeCompare(b,'th'); }
 
+/* --- CSV parser (รองรับเครื่องหมายอัญประกาศ) --- */
+function parseCSV(text){
+  const rows=[]; let i=0, cur="", row=[], inq=false;
+  while(i<text.length){
+    const ch=text[i];
+    if(inq){
+      if(ch==='\"'){
+        if(text[i+1]==='\"'){cur+='\"'; i+=2; continue;}
+        inq=false; i++; continue;
+      }else{ cur+=ch; i++; continue; }
+    }else{
+      if(ch==='\"'){inq=true; i++; continue;}
+      if(ch===','){row.push(cur); cur=""; i++; continue;}
+      if(ch==='\n'){row.push(cur); rows.push(row); row=[]; cur=""; i++; continue;}
+      if(ch==='\r'){i++; continue;}
+      cur+=ch; i++;
+    }
+  }
+  row.push(cur); rows.push(row);
+  return rows;
+}
+const norm = s => String(s ?? '').replace(/\s+/g,' ').trim();
+const normLower = s => norm(s).toLowerCase();
+
 function uniqueBranches(){
   const set = new Set();
   for(const r of S.rows){ if (r.branch) set.add(r.branch); }
@@ -132,16 +156,71 @@ function filteredNames(){
 }
 function findRowByName(name){ return S.rows.find(r => r.name===name); }
 
+/* ====== CSV → Model ====== */
+function csvToModel(matrix){
+  // หา header "name" ภายใน 20 แถวแรก
+  let hdrIdx=-1, nameCol=-1;
+  for(let i=0;i<Math.min(20,matrix.length);i++){
+    const idx = matrix[i].findIndex(v=>{
+      const t = normLower(v);
+      return ['name','ชื่อ','employee','person','emp','staff'].includes(t);
+    });
+    if(idx!==-1){ hdrIdx=i; nameCol=idx; break; }
+  }
+  if(hdrIdx<0) throw new Error("ไม่พบคอลัมน์ name");
+
+  const groupRowRaw = matrix[Math.max(0, hdrIdx-1)].map(norm);
+  let skillRow = matrix[hdrIdx].map(norm);
+
+  // เดา branchCol
+  let branchCol = skillRow.findIndex(v=>{
+    const t=normLower(v);
+    return t==='branch' || t==='brance' || t==='department';
+  });
+  if(branchCol<0){
+    const guess=nameCol+1;
+    if (guess < skillRow.length) branchCol=guess;
+  }
+
+  // forward-fill group header
+  const groupRow=[]; let last="";
+  for(let c=0;c<groupRowRaw.length;c++){ last = groupRowRaw[c] || last; groupRow[c]=last; }
+
+  // เก็บคอลัมน์สกิล
+  const skillCols=[];
+  for(let c=0;c<skillRow.length;c++){
+    if (c===nameCol || c===branchCol) continue;
+    const label = skillRow[c]; if (!label) continue;
+    skillCols.push({ idx:c, label, group: groupRow[c] || '' });
+  }
+
+  // สร้าง rows จากข้อมูลหลัง header
+  const rows=[];
+  for(let r=hdrIdx+1; r<matrix.length; r++){
+    const row = matrix[r];
+    const name = norm(row[nameCol]);
+    if (!name) continue;
+    const branch = branchCol>=0 ? norm(row[branchCol]) : '';
+    const levels = {};
+    for(const sc of skillCols){
+      const v = norm(row[sc.idx]);
+      levels[sc.label] = (v===''||v==='0'||v==='1'||v==='2') ? (v||'') : '';
+    }
+    rows.push({ name, branch, levels });
+  }
+
+  return {
+    meta:{ nameCol, branchCol, skills: skillCols.map(s=>({label:s.label, group:s.group})) },
+    rows
+  };
+}
+
 /* ===== RENDER ===== */
 function buildHeader(){
-  elGroupRow.innerHTML="";
-  elSkillRow.innerHTML="";
-
-  // Sticky left 2 หัวคอลัมน์
+  elGroupRow.innerHTML=""; elSkillRow.innerHTML="";
   const th1 = document.createElement("th"); th1.textContent="name"; th1.className="sticky-left-1"; th1.rowSpan=2; elGroupRow.appendChild(th1);
   const th2 = document.createElement("th"); th2.textContent="branch"; th2.className="sticky-left-2"; th2.rowSpan=2; elGroupRow.appendChild(th2);
 
-  // กลุ่ม
   let i=0, sc=S.meta.skills;
   while(i<sc.length){
     const g=sc[i].group||""; let span=1, j=i+1;
@@ -149,24 +228,19 @@ function buildHeader(){
     const th=document.createElement("th"); th.textContent=g; th.colSpan=span; elGroupRow.appendChild(th);
     i=j;
   }
-  // ป้ายชื่อสกิล
   for(const col of S.meta.skills){
-    const th=document.createElement("th");
-    th.textContent=col.label;
-    elSkillRow.appendChild(th);
+    const th=document.createElement("th"); th.textContent=col.label; elSkillRow.appendChild(th);
   }
 }
-
 function buildBranchFilter(){
   const items = uniqueBranches();
   elBranchFilter.innerHTML = items.map(b=>`<option value="${b}">${b}</option>`).join("");
   if (!items.includes(S.filterBranch)) S.filterBranch="All";
   elBranchFilter.value = S.filterBranch;
 }
-
 function buildPersonDropdown(){
   const names = filteredNames();
-  elBadge.textContent = `${names.length} คน`;
+  $("badgeCount").textContent = `${names.length} คน`;
   elPerson.innerHTML = names.map(n=>`<option value="${n}">${n}</option>`).join("");
   if (names.length){
     if(!names.includes(S.current)) S.current = names[0];
@@ -175,19 +249,14 @@ function buildPersonDropdown(){
     S.current = "";
   }
 }
-
 function buildBody(){
   elTbody.innerHTML="";
-  const names = filteredNames();
-
-  for(const name of names){
+  for(const name of filteredNames()){
     const r = findRowByName(name);
     const tr=document.createElement("tr");
     if (name===S.current) tr.classList.add("is-selected");
 
-    // name
     const tdN=document.createElement("td"); tdN.textContent=name; tdN.className="sticky-left-1"; tr.appendChild(tdN);
-    // branch
     const tdB=document.createElement("td"); tdB.textContent=r.branch||""; tdB.className="sticky-left-2"; tr.appendChild(tdB);
 
     const editable = (name===S.current);
@@ -215,26 +284,28 @@ function buildBody(){
   }
 }
 
-/* ===== LOAD ===== */
+/* ===== LOAD (CSV only) ===== */
 async function loadAll(){
   setMessage("กำลังโหลดข้อมูล...");
-  const url = `${GAS_URL}?action=read`;
-  const r = await fetch(url, { cache:'no-store' });
+  const r = await fetch(CSV_URL, { cache:'no-store' });
   if (!r.ok) throw new Error(`โหลดไม่สำเร็จ (${r.status})`);
-  const j = await r.json();
-  if (!j.ok) throw new Error(j.error || 'unknown error');
+  const text = await r.text();
+  const matrix = parseCSV(text);
 
-  S.meta = j.meta;
-  S.rows = j.rows;
-  // default current
+  const { meta, rows } = csvToModel(matrix);
+  S.meta = meta; S.rows = rows;
   if (!S.current && S.rows.length) S.current = S.rows[0].name;
 
-  buildHeader();
-  buildBranchFilter();
-  buildPersonDropdown();
-  buildBody();
-
+  buildHeader(); buildBranchFilter(); buildPersonDropdown(); buildBody();
   setMessage("พร้อมใช้งาน");
+}
+
+/* ===== WRITE (Apps Script only) ===== */
+async function gasPost(payload){
+  const r = await fetch(GAS_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  const j = await r.json().catch(()=>({ ok:false, error:'Bad JSON response'}));
+  if(!j.ok) throw new Error(j.error || 'Unknown error');
+  return j;
 }
 
 /* ===== EVENTS ===== */
@@ -242,71 +313,40 @@ $("saveBtn").addEventListener("click", async ()=>{
   const name = S.current;
   if (!name){ setMessage("❌ ไม่พบชื่อพนักงาน"); return; }
   if (S.dirty.size===0){ setMessage("ไม่มีการแก้ไข"); return; }
-
-  const updates = [...S.dirty.entries()].map(([skill, level])=>({ skill, level }));
   setMessage("กำลังบันทึก...");
-  try{
-    const r = await fetch(GAS_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ action:'update', name, updates })
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error||'บันทึกไม่สำเร็จ');
 
-    // apply optimistic
+  try{
+    const updates = [...S.dirty.entries()].map(([skill, level])=>({ skill, level }));
+    await gasPost({ action:'update', name, updates });
+    // apply local
     const row = findRowByName(name);
-    for (const {skill, level} of updates) row.levels[skill] = level;
-    S.dirty.clear();
-    buildBody();
+    for(const {skill, level} of updates){ row.levels[skill]=level; }
+    S.dirty.clear(); buildBody();
     setMessage("✅ บันทึกสำเร็จ");
+    // reload จาก CSV เพื่อความชัวร์
+    await loadAll();
   }catch(err){
     setMessage("❌ บันทึกไม่สำเร็จ: " + err.message);
   }
 });
 
 $("resetBtn").addEventListener("click", ()=>{
-  S.dirty.clear();
-  buildBody();
-  setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
+  S.dirty.clear(); buildBody(); setMessage("ล้างการแก้ไขที่ยังไม่บันทึกแล้ว");
 });
-
-elPerson.addEventListener("change", ()=>{
-  S.current = elPerson.value;
-  S.dirty.clear();
-  buildBody();
-});
-
-elBranchFilter.addEventListener("change", ()=>{
-  S.filterBranch = elBranchFilter.value || "All";
-  S.dirty.clear();
-  buildPersonDropdown();
-  buildBody();
-});
+elPerson.addEventListener("change", ()=>{ S.current = elPerson.value; S.dirty.clear(); buildBody(); });
+elBranchFilter.addEventListener("change", ()=>{ S.filterBranch = elBranchFilter.value||"All"; S.dirty.clear(); buildPersonDropdown(); buildBody(); });
 
 $("btnAdd").addEventListener("click", async ()=>{
   const nm = ($("newName").value||"").trim();
   const br = ($("newBranch").value||"").trim();
   if (!nm){ alert("กรุณากรอกชื่อพนักงาน"); return; }
-
   setMessage("กำลังเพิ่มชื่อ...");
   try{
-    const r = await fetch(GAS_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ action:'add', name:nm, branch:br })
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error||'เพิ่มชื่อไม่สำเร็จ');
-
-    await loadAll();
-    S.current = nm;
-    if (br) { S.filterBranch = br; }
-    buildBranchFilter();
-    buildPersonDropdown();
-    buildBody();
-
+    await gasPost({ action:'add', name:nm, branch:br });
     $("newName").value=""; $("newBranch").value="";
+    await loadAll();
+    S.current = nm; if (br) S.filterBranch=br;
+    buildBranchFilter(); buildPersonDropdown(); buildBody();
     setMessage("✅ เพิ่มชื่อสำเร็จ");
   }catch(err){
     setMessage("❌ เพิ่มชื่อไม่สำเร็จ: " + err.message);
@@ -317,23 +357,12 @@ $("btnDel").addEventListener("click", async ()=>{
   const nm = ($("newName").value||elPerson.value||"").trim();
   if (!nm){ alert("ไม่พบชื่อที่จะลบ"); return; }
   if (!confirm(`ยืนยันลบชื่อ "${nm}" ?`)) return;
-
   setMessage("กำลังลบชื่อ...");
   try{
-    const r = await fetch(GAS_URL, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ action:'delete', name:nm })
-    });
-    const j = await r.json();
-    if (!j.ok) throw new Error(j.error||'ลบชื่อไม่สำเร็จ');
-
-    await loadAll();
-    buildBranchFilter();
-    buildPersonDropdown();
-    buildBody();
-
+    await gasPost({ action:'delete', name:nm });
     $("newName").value="";
+    await loadAll();
+    buildBranchFilter(); buildPersonDropdown(); buildBody();
     setMessage("✅ ลบชื่อสำเร็จ");
   }catch(err){
     setMessage("❌ ลบชื่อไม่สำเร็จ: " + err.message);
