@@ -34,12 +34,14 @@ thead th.sticky-left-1{left:0; z-index:7; width:var(--nameW); min-width:var(--na
 thead th.sticky-left-2{left:var(--nameW); z-index:6; width:var(--branchW); min-width:var(--branchW); max-width:var(--branchW)}
 tbody td.sticky-left-1{position:sticky; left:0; z-index:3; background:#f8fafc; font-weight:700}
 tbody td.sticky-left-2{
-  position:sticky; left:var(--nameW);
-  z-index:2; /* ให้ต่ำกว่าช่องสกิล จะได้ไม่บังปุ่ม */
-  background:linear-gradient(90deg,#f8fafc 0%, #fff 100%);
+  position: sticky;
+  left: var(--nameW);
+  z-index: 6;                /* สูงกว่าช่องสกิล เพื่อไม่ถูกทับ/หาย */
+  background: linear-gradient(90deg,#f8fafc 0%, #fff 100%);
   box-shadow: inset -1px 0 0 var(--border);
+  pointer-events: none;      /* ไม่ดักคลิก -> ปุ่มสกิลคลิกได้ */
 }
-tbody td.center{ position:relative; z-index:3; } /* ปุ่มสกิลลอยเหนือ branch */
+tbody td.center{ position:relative; z-index:5; } /* ปุ่มยังลอยสูงพอ */
 tbody tr:nth-child(even) td{ background:#fcfcff }
 tbody tr:hover td{ background:var(--row-hover) }
 tr.is-selected td{ background:var(--row-select-bg) !important; position:relative }
@@ -322,16 +324,16 @@ async function loadAll(){
 async function gasPost(payload){
   const url = GAS_URL + (GAS_URL.includes('?') ? '&' : '?') + 't=' + Date.now(); // กันแคช
   const r = await fetch(url, {
-    method:'POST',
-    headers:{ 'Content-Type':'text/plain;charset=utf-8' }, // ลด preflight/CORS
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // ลด preflight/CORS
     body: JSON.stringify(payload),
     cache: 'no-store',
     redirect: 'follow',
     mode: 'cors'
   });
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json().catch(()=>({ ok:false, error:'Bad JSON response'}));
-  if(!j.ok) throw new Error(j.error || 'Unknown error');
+  if (!j.ok) throw new Error(j.error || 'Unknown error');
   return j;
 }
 
