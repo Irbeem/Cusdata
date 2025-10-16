@@ -39,6 +39,7 @@
     .legend{display:flex;gap:10px;align-items:center}
     .legend .chip{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--edited-bg);box-shadow: inset 0 0 0 2px var(--edited-border)}
   </style>
+
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
@@ -74,7 +75,7 @@
   const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
   const GID = '0';
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-  // ต้องใช้ URL /exec ล่าสุดจาก Deploy Web App
+  // ใช้ URL /exec ล่าสุดจาก Deploy Web App
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
 
   // ====== STATE ======
@@ -89,20 +90,65 @@
   // ====== HELPERS ======
   function makeRequestId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
 
+  async function fetchCsvRows(){
+    const res=await fetch(CSV_URL,{cache:'no-store'});
+    const text=await res.text();
+    const data=Papa.parse(text,{skipEmptyLines:false}).data;
+    return (data||[]).slice(2); // ตัด 2 แถวหัว
+  }
+
+  // ตรวจว่า append แล้วแถวโผล่จริงไหม
+  async function verifyAppend(name, branch){
+    try{
+      const rowsNow = await fetchCsvRows();
+      return rowsNow.some(r => String(r[0]||'').trim()===name && String(r[1]||'').trim()===branch);
+    }catch{ return false; }
+  }
+
+  // ตรวจว่า delete by name แล้วไม่เหลือชื่อนี้แล้ว
+  async function verifyDeleteByName(nameLC){
+    try{
+      const rowsNow = await fetchCsvRows();
+      return !rowsNow.some(r => String(r[0]||'').trim().toLowerCase()===nameLC);
+    }catch{ return false; }
+  }
+
+  // ตรวจว่า update แล้วค่าตรงตามที่แก้ (เช็คทุกแถวใน payload)
+  async function verifyUpdates(updates){
+    try{
+      const rowsNow = await fetchCsvRows();
+      // สร้างดัชนี name||branch -> row array
+      const map = new Map();
+      rowsNow.forEach(r=>{
+        const key = (String(r[0]||'').trim().toLowerCase()+'||'+String(r[1]||'').trim().toLowerCase());
+        map.set(key, r);
+      });
+      return updates.every(u=>{
+        const vals = u.rowValues||[];
+        const key = (String(vals[0]||'').trim().toLowerCase()+'||'+String(vals[1]||'').trim().toLowerCase());
+        const actual = map.get(key);
+        if(!actual) return false;
+        // เทียบเฉพาะช่วงความยาวที่แก้
+        for(let i=0;i<vals.length;i++){
+          if(String(actual[i]??'') !== String(vals[i]??'')) return false;
+        }
+        return true;
+      });
+    }catch{ return false; }
+  }
+
   // ====== LOAD CSV ======
   async function loadCsv(){
     try{
-      const res=await fetch(CSV_URL,{cache:'no-store'});
-      if(!res.ok) throw new Error('โหลด CSV ไม่สำเร็จ: HTTP '+res.status);
-      const text=await res.text();
+      const rowsNow = await fetchCsvRows();
+      const resHead=await fetch(CSV_URL,{cache:'no-store'});
+      const text=await resHead.text();
       const data=Papa.parse(text,{skipEmptyLines:false}).data;
-      if(!data || data.length<2) throw new Error('รูปแบบ CSV ไม่ถูกต้อง (ต้องมีหัว 2 แถว)');
-      header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
+      header1=data[0]||[]; header2=data[1]||[]; rows=rowsNow;
       render();
     }catch(err){
       console.error(err);
       alert('โหลดตารางไม่สำเร็จ: '+err.message+'\nโปรดตรวจสอบสิทธิ์ของไฟล์ Google Sheet และลิงก์ CSV');
-      // อย่างน้อยให้เคลียร์ตารางเดิม
       thead.innerHTML=''; tbody.innerHTML='';
     }
   }
@@ -189,7 +235,7 @@
     edits.set(rIdx+2, copy); // sheet row index = data index + 2 header rows
   }
 
-  // เพิ่ม: เขียนเข้า Google Sheet ก่อน แล้วค่อยรีโหลด
+  // เพิ่ม (ส่งครั้งเดียว + ตรวจยืนยันจากชีต)
   async function onAddRow(){
     if(inflight.add) return; inflight.add=true;
     const addBtn=document.getElementById('addRowBtn'); addBtn.disabled=true;
@@ -206,14 +252,15 @@
 
     try{
       saving.style.display='inline';
-      const res = await fetch(GAS_URL, {
-        method:'POST', mode:'cors',
-        headers:{'Content-Type':'text/plain;charset=UTF-8'},
-        body: JSON.stringify(payload)
-      });
-      const t = await res.text().catch(()=>null);
-      console.log('[addRow] resp:', t);
-      if(!res.ok) throw new Error('append failed: HTTP '+res.status);
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok = res.ok;
+      }catch{ ok=false; }
+
+      const appeared = await verifyAppend(name, branch);
+      if (!appeared && !ok) throw new Error('Failed to fetch');
 
       document.getElementById('newBranch').value='';
       document.getElementById('newName').value='';
@@ -228,26 +275,27 @@
     }
   }
 
-  // ลบด้วยชื่อ (พิมพ์ในช่อง name เดิม) → ลบทันทีในชีต แล้วรีโหลด
+  // ลบด้วยชื่อ (ส่งครั้งเดียว + ตรวจยืนยันจากชีต)
   async function onDeleteByNameImmediate(){
     if(inflight.del) return; inflight.del=true;
     const delBtn=document.getElementById('delByNameBtn'); delBtn.disabled=true;
 
-    const nameRaw = document.getElementById('newName').value.trim();
+    const nameRaw=document.getElementById('newName').value.trim();
     if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); inflight.del=false; delBtn.disabled=false; return; }
-    const name = nameRaw.toLowerCase();
+    const nameLC = nameRaw.toLowerCase();
 
-    const payload = { requestId: makeRequestId(), deletesNames: [name] };
+    const payload = { requestId: makeRequestId(), deletesNames: [nameLC] };
     try{
       document.getElementById('saving').style.display='inline';
-      const res = await fetch(GAS_URL, {
-        method:'POST', mode:'cors',
-        headers:{'Content-Type':'text/plain;charset=UTF-8'},
-        body: JSON.stringify(payload)
-      });
-      const t = await res.text().catch(()=>null);
-      console.log('[deleteByName] resp:', t);
-      if(!res.ok) throw new Error('delete failed: HTTP '+res.status);
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const gone = await verifyDeleteByName(nameLC);
+      if (!gone && !ok) throw new Error('Failed to fetch');
 
       await loadCsv();
       alert('ลบสำเร็จ');
@@ -260,27 +308,27 @@
     }
   }
 
-  // เซฟการแก้สกิลหลายแถวในครั้งเดียว
+  // เซฟอัปเดตหลายแถว (ส่งครั้งเดียว + ตรวจยืนยันจากชีต)
   async function onSave(){
     if(inflight.save) return; inflight.save=true;
 
-    const payload={
-      requestId: makeRequestId(),
-      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}))
-    };
-    if(payload.updates.length===0){ alert('ยังไม่มีการเปลี่ยนแปลง'); inflight.save=false; return; }
+    const updates = Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}));
+    if(updates.length===0){ alert('ยังไม่มีการเปลี่ยนแปลง'); inflight.save=false; return; }
 
+    const payload={ requestId: makeRequestId(), updates };
     const saving=document.getElementById('saving');
+
     try{
       saving.style.display='inline';
-      const res=await fetch(GAS_URL,{
-        method:'POST', mode:'cors',
-        headers:{'Content-Type':'text/plain;charset=UTF-8'},
-        body:JSON.stringify(payload)
-      });
-      const text=await res.text().catch(()=>null);
-      console.log('[save] resp:', text);
-      if(!res.ok) throw new Error('save failed: HTTP '+res.status);
+      let ok=false;
+      try{
+        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const verified = await verifyUpdates(updates);
+      if (!verified && !ok) throw new Error('Failed to fetch');
 
       edits.clear(); editedCells.clear();
       await loadCsv();
