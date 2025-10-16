@@ -7,31 +7,29 @@
   <style>
     :root{
       --sticky-left-0:0px;--sticky-left-1:0px;
-      --head1:40px; /* จะถูกคำนวณจริงด้วย JS */
+      --head1:40px; /* set by JS */
       --row-h:40px;
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
+      --danger:#ef4444;
     }
     html,body{height:100%;margin:0}
     body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
-
-    /* เต็มหน้าจอตลอด */
     .wrap{width:100vw;max-width:none;margin:0;padding:12px}
     .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px}
     .rowadd{display:flex;gap:8px;align-items:center}
     .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(280px,40vw)}
-    .btn{height:40px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
+    .btn{height:36px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
+    .btn.small{height:30px;padding:0 10px}
+    .btn.danger{background:var(--danger);border-color:#dc2626}
     .btn:disabled{opacity:.6;cursor:not-allowed}
 
-    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;
-      /* ให้กล่องตารางสูงเต็ม viewport ลบส่วนบน */
-      height:calc(100vh - 92px); /* ปรับตามความสูงจริงของหัว+แถบเครื่องมือ */
-    }
-    .scroll{overflow:auto;width:100%;height:calc(100% - 40px)} /* ลบพื้นที่ .foot 40px */
+    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 92px)}
+    .scroll{overflow:auto;width:100%;height:calc(100% - 40px)}
 
-    table{border-collapse:separate;border-spacing:0;min-width:1000px;width:100%}
+    table{border-collapse:separate;border-spacing:0;min-width:1100px;width:100%}
     thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700}
     thead tr:nth-child(1) th{top:0}
-    thead tr:nth-child(2) th{top:var(--head1)} /* ใช้ค่าจริงจาก JS */
+    thead tr:nth-child(2) th{top:var(--head1)}
 
     th,td{padding:8px 10px;border-right:1px solid var(--c-line);border-bottom:1px solid var(--c-line);height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
@@ -42,6 +40,7 @@
 
     select.skill{height:30px;border-radius:8px;background:#fff;color:#111827;border:1px solid #d1d5db;padding:0 6px;width:64px}
     .foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
+    .strike td{opacity:.6;text-decoration:line-through}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -80,6 +79,8 @@
   let header1=[], header2=[], rows=[];
   const edits=new Map();
   const appends=[];
+  const deletes=new Set(); // key: name||branch
+
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
 
@@ -98,7 +99,7 @@
     requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
   }
 
-  // ====== HEADER (รองรับ merge จาก Google Sheet) ======
+  // ====== HEADER (merge aware) ======
   function renderHeader(h1,h2){
     const tr1=document.createElement('tr');
     const tr2=document.createElement('tr');
@@ -122,13 +123,14 @@
       if(hasSub){ for(let k=i;k<groupEnd;k++){ const th2=document.createElement('th'); th2.textContent=(h2[k]??'').trim(); tr2.appendChild(th2);} }
       i=groupEnd;
     }
+    // เพิ่มคอลัมน์ Actions ท้ายสุด
+    const thAct=document.createElement('th'); thAct.textContent='Actions'; thAct.setAttribute('rowspan',2); tr1.appendChild(thAct);
+
     thead.innerHTML=''; thead.append(tr1,tr2);
   }
 
-  // คำนวณความสูงจริงของแถวหัวบน เพื่อให้แถวที่ 2 ไม่ขยับเวลาเลื่อน
   function fixHeaderTop(){
-    const tr1=thead.querySelector('tr:first-child');
-    if(!tr1) return;
+    const tr1=thead.querySelector('tr:first-child'); if(!tr1) return;
     const h = Math.round(tr1.getBoundingClientRect().height);
     document.documentElement.style.setProperty('--head1', h+'px');
   }
@@ -138,6 +140,7 @@
     tbody.innerHTML='';
     rows.forEach((row,rIdx)=>{
       const tr=document.createElement('tr');
+      tr.dataset.index = rIdx;
       const cols = Math.max(row.length, header1.length, header2.length);
       for(let c=0;c<cols;c++){
         const td=document.createElement('td'); const val=row[c]??'';
@@ -151,9 +154,23 @@
         }
         tr.appendChild(td);
       }
+      // actions cell
+      const tdAct=document.createElement('td');
+      const delBtn=document.createElement('button'); delBtn.textContent='ลบแถว'; delBtn.className='btn small danger';
+      delBtn.addEventListener('click',()=>toggleDelete(tr,rIdx));
+      tdAct.appendChild(delBtn); tr.appendChild(tdAct);
+
       tbody.appendChild(tr);
     });
   }
+
+  function toggleDelete(tr,rIdx){
+    const key = makeKey(rows[rIdx][0], rows[rIdx][1]);
+    if (deletes.has(key)) { deletes.delete(key); tr.classList.remove('strike'); }
+    else { deletes.add(key); tr.classList.add('strike'); }
+  }
+
+  function makeKey(name, branch){ return String((name||'').trim().toLowerCase()+"||"+(branch||'').trim().toLowerCase()); }
 
   function updateStickyLefts(){
     const first=tbody.querySelector('tr'); if(!first) return;
@@ -179,7 +196,11 @@
 
   // ====== SAVE ======
   async function onSave(){
-    const payload={ updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})), appends };
+    const payload={
+      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
+      appends,
+      deletes:Array.from(deletes.values()) // ['name||branch']
+    };
     const saving=document.getElementById('saving');
     try{
       saving.style.display='inline';
@@ -192,7 +213,10 @@
         await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
         alert('บันทึกสำเร็จ');
       }
-      edits.clear(); appends.length=0;
+      // local reset
+      edits.clear(); appends.length=0; deletes.clear();
+      // รีโหลดจาก CSV เพื่อให้ภาพตรงกับชีตจริง
+      await loadCsv();
     }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
     finally{ saving.style.display='none'; }
   }
