@@ -10,9 +10,7 @@
       --head1:40px; /* set by JS */
       --row-h:40px;
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
-      --danger:#ef4444; --accent:#2563eb;
-      --edited-bg: #fff7ed; /* อ่อน ๆ ส้ม */
-      --edited-border: #fb923c;
+      --danger:#ef4444;
     }
     html,body{height:100%;margin:0}
     body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
@@ -20,7 +18,7 @@
     .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px;flex-wrap:wrap}
     .rowadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(260px,38vw)}
-    .btn{height:36px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
+    .btn{height:36px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
     .btn.danger{background:var(--danger);border-color:#dc2626}
     .btn:disabled{opacity:.6;cursor:not-allowed}
 
@@ -32,7 +30,7 @@
     thead tr:nth-child(1) th{top:0}
     thead tr:nth-child(2) th{top:var(--head1)}
 
-    th,td{padding:8px 10px;border-right:1px solid var(--c-line);border-bottom:1px solid var(--c-line);height:var(--row-h);white-space:nowrap}
+    th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
 
     .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc}
@@ -40,16 +38,8 @@
     thead .sticky-col-0, thead .sticky-col-1{z-index:5;background:var(--c-head-bg)}
 
     select.skill{height:30px;border-radius:8px;background:#fff;color:#111827;border:1px solid #d1d5db;padding:0 6px;width:64px}
-
-    /* ไฮไลต์เซลที่แก้ */
-    td.edited{ background: var(--edited-bg); box-shadow: inset 0 0 0 2px var(--edited-border); }
-
-    .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
-    .legend{display:flex;gap:10px;align-items:center}
-    .legend .chip{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--edited-bg);box-shadow: inset 0 0 0 2px var(--edited-border)}
+    .foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
   </style>
-
-  <!-- PapaParse (CSV Parser) -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
@@ -73,10 +63,7 @@
       <div class="scroll" id="scroller">
         <table id="grid"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
       </div>
-      <div class="foot">
-        <small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small>
-        <div class="legend"><span class="chip"></span><small>เซลที่แก้ (รอเซฟ)</small></div>
-      </div>
+      <div class="foot"><small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small></div>
     </div>
   </div>
 
@@ -85,31 +72,23 @@
   const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
   const GID = '0';
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-  // IMPORTANT: ใช้ URL /exec ล่าสุดจาก Web App Deploy
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  const edits=new Map();             // key: sheetRowIndex(เริ่มจาก 0) -> updated row array
-  const editedCells = new Set();     // 'rIdx|cIdx' สำหรับไฮไลต์หลัง re-render
+  const edits=new Map();      // sheetRowIndex (0-based from start of sheet) -> updated row array
+  const appends=[];           // [{name, branch, values}]
+
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
 
   // ====== LOAD CSV ======
   async function loadCsv(){
-    try {
-      const res=await fetch(CSV_URL,{cache:'no-store'});
-      if(!res.ok) throw new Error('โหลด CSV ไม่สำเร็จ: ' + res.status);
-      const text=await res.text();
-      const data=Papa.parse(text,{skipEmptyLines:false}).data;
-      if(!data || data.length < 2) throw new Error('รูปแบบ CSV ไม่ถูกต้อง (ต้องมีหัว 2 แถว)');
-      header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
-      render();
-      console.log('[loadCsv] rows=', rows.length);
-    } catch(err){
-      console.error(err);
-      alert('โหลดตารางไม่สำเร็จ: ' + err.message + '\\nโปรดตรวจสอบสิทธิ์ของไฟล์ Google Sheet และลิงก์ CSV');
-    }
+    const res=await fetch(CSV_URL,{cache:'no-store'});
+    const text=await res.text();
+    const data=Papa.parse(text,{skipEmptyLines:false}).data;
+    header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
+    render();
   }
 
   function render(){
@@ -157,7 +136,6 @@
     rows.forEach((row,rIdx)=>{
       const tr=document.createElement('tr');
       tr.dataset.index = rIdx;
-
       const cols = Math.max(row.length, header1.length, header2.length);
       for(let c=0;c<cols;c++){
         const td=document.createElement('td'); const val=row[c]??'';
@@ -166,15 +144,9 @@
         else{
           const sel=document.createElement('select'); sel.className='skill';
           ['0','1','2'].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;if((val+'')===v)o.selected=true;sel.appendChild(o)});
-          sel.addEventListener('change',()=>{
-            markEdit(rIdx,c,sel.value);
-            td.classList.add('edited');
-            editedCells.add(`${rIdx}|${c}`);
-          });
+          sel.addEventListener('change',()=>markEdit(rIdx,c,sel.value));
           td.appendChild(sel);
         }
-        // re-apply highlight if edited before re-render
-        if (editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -188,34 +160,34 @@
     document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
   }
 
-  // ====== EDIT / ADD / DELETE ======
-  function markEdit(rIdx,cIdx,newVal){
-    const copy=rows[rIdx] ? rows[rIdx].slice() : [];
-    copy[cIdx]=newVal;
-    rows[rIdx]=copy;
-    edits.set(rIdx+2, copy); // sheet row index = data index + 2 (มี header 2 แถว)
-  }
+  // ====== EDIT / ADD ======
+  function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; rows[rIdx]=copy; edits.set(rIdx+2,copy); }
 
-  // เพิ่ม: เขียนเข้า Google Sheet ก่อน แล้วค่อยรีโหลด
   async function onAddRow(){
     const branch=document.getElementById('newBranch').value.trim();
     const name=document.getElementById('newName').value.trim();
     if(!name||!branch){ alert('กรุณากรอก name และ branch'); return; }
 
+    // เตรียมแถวใหม่ (จำนวนคอลัมน์ยึดตามส่วนหัวที่ยาวสุด)
     const cols = Math.max(header1.length, header2.length, (rows[0]||[]).length);
-    const newRow = new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
+    const newRow = new Array(cols).fill('0');
+    newRow[0]=name; newRow[1]=branch;
 
     const payload = { appends: [{ name, branch, values:newRow }] };
+
+    // ส่งไป Google Sheet ก่อน แล้วค่อยรีโหลดหน้าเว็บจาก CSV
     const saving=document.getElementById('saving');
     try{
       saving.style.display='inline';
       try {
         const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
-        const t = await res.text(); let j={}; try{ j=JSON.parse(t);}catch{}
-        if(!res.ok || j.error) throw new Error(j.error||t||'append failed');
+        const text = await res.text(); let json={}; try{ json = JSON.parse(text);}catch{}
+        if(!res.ok || json.error) throw new Error(json.error||text||'append failed');
       } catch(e){
+        // fallback กัน CORS
         await fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
       }
+      // เคลียร์ช่องกรอกและรีโหลดจากชีตจริง
       document.getElementById('newBranch').value='';
       document.getElementById('newName').value='';
       await loadCsv();
@@ -227,8 +199,15 @@
       saving.style.display='none';
     }
   }
+    const cols= rows.length? rows[0].length : Math.max(header1.length,header2.length);
+    const newRow=new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
+    let insertAt=rows.length; for(let i=rows.length-1;i>=0;i--){ if((rows[i][1]??'').trim()===branch){ insertAt=i+1; break; } }
+    rows.splice(insertAt,0,newRow); appends.push({ name, branch, values:newRow });
+    renderBody(); requestAnimationFrame(()=>{updateStickyLefts();});
+    document.getElementById('newBranch').value=''; document.getElementById('newName').value='';
+  }
 
-  // ลบด้วยชื่อ (พิมพ์ในช่อง name เดิม) → ลบทันทีในชีต แล้วรีโหลด
+  // ====== DELETE BY NAME (IMMEDIATE) ======
   async function onDeleteByNameImmediate(){
     const nameRaw = document.getElementById('newName').value.trim();
     if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); return; }
@@ -237,6 +216,7 @@
     const payload = { deletesNames: [name] };
     try{
       document.getElementById('saving').style.display='inline';
+      // ปิด modal CORS โดยส่งเป็น text/plain และลองโหมด cors ก่อน ถ้า fail ค่อย no-cors
       try {
         const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
         const t = await res.text(); let j={}; try{ j = JSON.parse(t);}catch{}
@@ -254,14 +234,12 @@
     }
   }
 
-  // ====== SAVE (UPDATES เท่านั้น) ======
+  // ====== SAVE (UPDATES + APPENDS) ======
   async function onSave(){
-    // รวมทุกแถวที่แก้ (หลายแถวได้) ไปครั้งเดียว
     const payload={
-      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}))
+      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
+      appends
     };
-    if(payload.updates.length===0){ alert('ยังไม่มีการเปลี่ยนแปลง'); return; }
-
     const saving=document.getElementById('saving');
     try{
       saving.style.display='inline';
@@ -272,15 +250,11 @@
       } catch(err){
         await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
       }
-      edits.clear(); editedCells.clear();
+      edits.clear(); appends.length=0;
       await loadCsv();
       alert('บันทึกสำเร็จ');
-    }catch(e){
-      alert('บันทึกไม่สำเร็จ: '+e.message);
-      console.error(e);
-    }finally{
-      saving.style.display='none';
-    }
+    }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
+    finally{ saving.style.display='none'; }
   }
 
   // ====== LISTENERS ======
@@ -288,10 +262,6 @@
   document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
   document.getElementById('saveBtn').addEventListener('click',onSave);
   window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
-
-  // เริ่มโหลด
-  console.log('[init] CSV_URL=', CSV_URL);
-  console.log('[init] GAS_URL=', GAS_URL);
   loadCsv();
 </script>
 </body>
