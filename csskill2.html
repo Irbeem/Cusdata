@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Skills Table (Google Sheet → CSV)</title>
+  <title>YAPT Skills</title>
   <style>
     :root{
       --sticky-left-0:0px;--sticky-left-1:0px;
@@ -44,7 +44,7 @@
 </head>
 <body>
   <div class="wrap">
-    <h1 style="margin:0 0 6px">ตารางสกิลจาก Google Sheet</h1>
+    <h1 style="margin:0 0 6px">YAPT SKILL</h1>
 
     <!-- แถวควบคุม: Filter branch → บันทึก → name → branch → เพิ่ม → ลบด้วยชื่อ -->
     <div class="bar">
@@ -52,14 +52,15 @@
         <option value="*">All branch</option>
       </select>
 
-      <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
-
+      <button class="btn" id="saveBtn">UPDATE SKILL</button>
+      <label>Name:</label>
       <input id="newName" placeholder="name" />
+      <label>Branch:</label>
       <input id="newBranch" placeholder="branch" />
-      <button class="btn" id="addRowBtn">เพิ่ม</button>
-      <button class="btn danger" id="delByNameBtn">ลบด้วยชื่อ</button>
+      <button class="btn" id="addRowBtn">ADD NEW ENGINEER</button>
+      <button class="btn danger" id="delByNameBtn">Delete name</button>
 
-      <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังทำงาน…</span>
+      <span id="saving" style="display:none;color:#2563eb;margin-left:8px">During save…</span>
     </div>
 
     <div class="table-shell">
@@ -67,8 +68,7 @@
         <table id="grid"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
       </div>
       <div class="foot">
-        <small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small>
-        <div class="legend"><span class="chip"></span><small>เซลที่แก้ (รอเซฟ)</small></div>
+        <div class="legend"><span class="chip"></span><small>Waiting update</small></div>
       </div>
     </div>
   </div>
@@ -96,7 +96,7 @@
 
   async function fetchCsvAll(){
     const res=await fetch(CSV_URL,{cache:'no-store'});
-    if(!res.ok) throw new Error('โหลด CSV ไม่สำเร็จ: HTTP '+res.status);
+    if(!res.ok) throw new Error('Load CSV fail: HTTP '+res.status);
     const text=await res.text();
     const data=Papa.parse(text,{skipEmptyLines:false}).data;
     return data||[];
@@ -168,13 +168,13 @@
   async function loadCsv(){
     try{
       const data = await fetchCsvAll();
-      if(!data || data.length<2) throw new Error('รูปแบบ CSV ไม่ถูกต้อง (ต้องมีหัว 2 แถว)');
+      if(!data || data.length<2) throw new Error('CSV format mistake (header 2 row)');
       header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
       populateFilter();
       render();
     }catch(err){
       console.error(err);
-      alert('โหลดตารางไม่สำเร็จ: '+err.message+'\nโปรดตรวจสอบสิทธิ์ของไฟล์ Google Sheet และลิงก์ CSV');
+      alert('load table fail: '+err.message+'\ncheck permision Google Sheet and CSV');
       thead.innerHTML=''; tbody.innerHTML='';
     }
   }
@@ -276,7 +276,7 @@
 
     const branch=document.getElementById('newBranch').value.trim();
     const name=document.getElementById('newName').value.trim();
-    if(!name||!branch){ alert('กรุณากรอก name และ branch'); inflight.add=false; addBtn.disabled=false; return; }
+    if(!name||!branch){ alert('Input name and branch'); inflight.add=false; addBtn.disabled=false; return; }
 
     const cols = Math.max(header1.length, header2.length, (rows[0]||[]).length);
     const newRow = new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
@@ -299,9 +299,9 @@
       document.getElementById('newBranch').value='';
       document.getElementById('newName').value='';
       await loadCsv();
-      alert('เพิ่มสำเร็จ');
+      alert('Add finished');
     }catch(err){
-      alert('เพิ่มไม่สำเร็จ: '+err.message);
+      alert('Add fail: '+err.message);
       console.error(err);
     }finally{
       saving.style.display='none';
@@ -315,7 +315,7 @@
     const delBtn=document.getElementById('delByNameBtn'); delBtn.disabled=true;
 
     const nameRaw=document.getElementById('newName').value.trim();
-    if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); inflight.del=false; delBtn.disabled=false; return; }
+    if(!nameRaw){ alert('Input delete name'); inflight.del=false; delBtn.disabled=false; return; }
     const nameLC = nameRaw.toLowerCase();
 
     const payload = { requestId: makeRequestId(), deletesNames: [nameLC] };
@@ -332,9 +332,9 @@
       if (!gone && !ok) throw new Error('Failed to fetch');
 
       await loadCsv();
-      alert('ลบสำเร็จ');
+      alert('Delete finished');
     }catch(err){
-      alert('ลบไม่สำเร็จ: '+err.message);
+      alert('Delete fail: '+err.message);
       console.error(err);
     }finally{
       document.getElementById('saving').style.display='none';
@@ -366,9 +366,9 @@
 
       edits.clear(); editedCells.clear();
       await loadCsv();
-      alert('บันทึกสำเร็จ');
+      alert('Saved');
     }catch(e){
-      alert('บันทึกไม่สำเร็จ: '+e.message);
+      alert('Save fail: '+e.message);
       console.error(e);
     }finally{
       saving.style.display='none';
