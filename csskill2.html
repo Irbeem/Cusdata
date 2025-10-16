@@ -15,15 +15,14 @@
     html,body{height:100%;margin:0}
     body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
     .wrap{width:100vw;max-width:none;margin:0;padding:12px}
-    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px}
-    .rowadd{display:flex;gap:8px;align-items:center}
-    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(240px,35vw)}
+    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px;flex-wrap:wrap}
+    .rowadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(260px,38vw)}
     .btn{height:36px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
-    .btn.small{height:30px;padding:0 10px}
     .btn.danger{background:var(--danger);border-color:#dc2626}
     .btn:disabled{opacity:.6;cursor:not-allowed}
 
-    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 92px)}
+    .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 106px)}
     .scroll{overflow:auto;width:100%;height:calc(100% - 40px)}
 
     table{border-collapse:separate;border-spacing:0;min-width:1100px;width:100%}
@@ -31,7 +30,7 @@
     thead tr:nth-child(1) th{top:0}
     thead tr:nth-child(2) th{top:var(--head1)}
 
-    th,td{padding:8px 10px;border-right:1px solid var(--c-line);border-bottom:1px solid var(--c-line);height:var(--row-h);white-space:nowrap}
+    th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
 
     .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc}
@@ -40,7 +39,6 @@
 
     select.skill{height:30px;border-radius:8px;background:#fff;color:#111827;border:1px solid #d1d5db;padding:0 6px;width:64px}
     .foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
-    .strike td{opacity:.6;text-decoration:line-through}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -53,12 +51,11 @@
         <input id="newBranch" placeholder="branch" />
         <input id="newName" placeholder="name" />
         <button class="btn" id="addRowBtn">เพิ่ม</button>
-      </div>
-      <div class="rowops" style="display:flex;gap:8px;align-items:center">
-        <input id="delName" placeholder="พิมพ์ชื่อเพื่อลบทั้งแถว" />
         <button class="btn danger" id="delByNameBtn">ลบด้วยชื่อ</button>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
         <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
-        <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังบันทึก…</span>
+        <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังทำงาน…</span>
       </div>
     </div>
 
@@ -79,10 +76,8 @@
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  const edits=new Map();              // sheetRowIndex(0-based) -> updated row array
-  const appends=[];                   // [{name, branch, values}]
-  const deletes=new Set();            // set of keys name||branch (per-row delete button)
-  const deletesByName=new Set();      // set of names (lowercase) typed in
+  const edits=new Map();      // sheetRowIndex (0-based from start of sheet) -> updated row array
+  const appends=[];           // [{name, branch, values}]
 
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
@@ -126,9 +121,6 @@
       if(hasSub){ for(let k=i;k<groupEnd;k++){ const th2=document.createElement('th'); th2.textContent=(h2[k]??'').trim(); tr2.appendChild(th2);} }
       i=groupEnd;
     }
-    // Actions column
-    const thAct=document.createElement('th'); thAct.textContent='Actions'; thAct.setAttribute('rowspan',2); tr1.appendChild(thAct);
-
     thead.innerHTML=''; thead.append(tr1,tr2);
   }
 
@@ -157,26 +149,9 @@
         }
         tr.appendChild(td);
       }
-      // actions cell
-      const tdAct=document.createElement('td');
-      const delBtn=document.createElement('button'); delBtn.textContent='ลบแถว'; delBtn.className='btn small danger';
-      delBtn.addEventListener('click',()=>toggleDelete(tr,rIdx));
-      tdAct.appendChild(delBtn); tr.appendChild(tdAct);
-
-      // mark if this row's name is in deletesByName
-      if (deletesByName.has(String((row[0]||'').trim().toLowerCase()))) tr.classList.add('strike');
-
       tbody.appendChild(tr);
     });
   }
-
-  function toggleDelete(tr,rIdx){
-    const key = makeKey(rows[rIdx][0], rows[rIdx][1]);
-    if (deletes.has(key)) { deletes.delete(key); tr.classList.remove('strike'); }
-    else { deletes.add(key); tr.classList.add('strike'); }
-  }
-
-  function makeKey(name, branch){ return String((name||'').trim().toLowerCase()+"||"+(branch||'').trim().toLowerCase()); }
 
   function updateStickyLefts(){
     const first=tbody.querySelector('tr'); if(!first) return;
@@ -185,7 +160,7 @@
     document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
   }
 
-  // ====== EDIT / ADD / DELETE BY NAME ======
+  // ====== EDIT / ADD ======
   function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; rows[rIdx]=copy; edits.set(rIdx+2,copy); }
 
   function onAddRow(){
@@ -200,25 +175,38 @@
     document.getElementById('newBranch').value=''; document.getElementById('newName').value='';
   }
 
-  function onDeleteByName(){
-    const name = document.getElementById('delName').value.trim().toLowerCase();
-    if(!name){ alert('พิมพ์ชื่อก่อน'); return; }
-    deletesByName.add(name);
-    // mark rows
-    Array.from(tbody.querySelectorAll('tr')).forEach((tr)=>{
-      const rIdx = Number(tr.dataset.index);
-      const rName = String(rows[rIdx]?.[0]||'').trim().toLowerCase();
-      if (rName === name) tr.classList.add('strike');
-    });
+  // ====== DELETE BY NAME (IMMEDIATE) ======
+  async function onDeleteByNameImmediate(){
+    const nameRaw = document.getElementById('newName').value.trim();
+    if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); return; }
+    const name = nameRaw.toLowerCase();
+
+    const payload = { deletesNames: [name] };
+    try{
+      document.getElementById('saving').style.display='inline';
+      // ปิด modal CORS โดยส่งเป็น text/plain และลองโหมด cors ก่อน ถ้า fail ค่อย no-cors
+      try {
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
+        const t = await res.text(); let j={}; try{ j = JSON.parse(t);}catch{}
+        if(!res.ok || j.error) throw new Error(j.error||t||'delete failed');
+      } catch(e){
+        await fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
+      }
+      await loadCsv();
+      alert('ลบสำเร็จ');
+    }catch(err){
+      alert('ลบไม่สำเร็จ: '+err.message);
+      console.error(err);
+    }finally{
+      document.getElementById('saving').style.display='none';
+    }
   }
 
-  // ====== SAVE ======
+  // ====== SAVE (UPDATES + APPENDS) ======
   async function onSave(){
     const payload={
       updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
-      appends,
-      deletes:Array.from(deletes.values()),
-      deletesNames:Array.from(deletesByName.values())
+      appends
     };
     const saving=document.getElementById('saving');
     try{
@@ -227,20 +215,19 @@
         const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
         const text=await res.text(); let json={}; try{json=JSON.parse(text);}catch{}
         if(!res.ok||json.error) throw new Error(json.error||text||'save failed');
-        alert('บันทึกสำเร็จ');
       } catch(err){
         await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
-        alert('บันทึกสำเร็จ');
       }
-      edits.clear(); appends.length=0; deletes.clear(); deletesByName.clear();
-      document.getElementById('delName').value='';
+      edits.clear(); appends.length=0;
       await loadCsv();
+      alert('บันทึกสำเร็จ');
     }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
     finally{ saving.style.display='none'; }
   }
 
+  // ====== LISTENERS ======
   document.getElementById('addRowBtn').addEventListener('click',onAddRow);
-  document.getElementById('delByNameBtn').addEventListener('click',onDeleteByName);
+  document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
   document.getElementById('saveBtn').addEventListener('click',onSave);
   window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
   loadCsv();
