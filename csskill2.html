@@ -17,7 +17,7 @@
     .wrap{width:100vw;max-width:none;margin:0;padding:12px}
     .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px}
     .rowadd{display:flex;gap:8px;align-items:center}
-    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(280px,40vw)}
+    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(240px,35vw)}
     .btn{height:36px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
     .btn.small{height:30px;padding:0 10px}
     .btn.danger{background:var(--danger);border-color:#dc2626}
@@ -54,7 +54,9 @@
         <input id="newName" placeholder="name" />
         <button class="btn" id="addRowBtn">เพิ่ม</button>
       </div>
-      <div class="rowops">
+      <div class="rowops" style="display:flex;gap:8px;align-items:center">
+        <input id="delName" placeholder="พิมพ์ชื่อเพื่อลบทั้งแถว" />
+        <button class="btn danger" id="delByNameBtn">ลบด้วยชื่อ</button>
         <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
         <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังบันทึก…</span>
       </div>
@@ -77,9 +79,10 @@
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  const edits=new Map();
-  const appends=[];
-  const deletes=new Set(); // key: name||branch
+  const edits=new Map();              // sheetRowIndex(0-based) -> updated row array
+  const appends=[];                   // [{name, branch, values}]
+  const deletes=new Set();            // set of keys name||branch (per-row delete button)
+  const deletesByName=new Set();      // set of names (lowercase) typed in
 
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
@@ -99,7 +102,7 @@
     requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
   }
 
-  // ====== HEADER (merge aware) ======
+  // ====== HEADER (merge-aware) ======
   function renderHeader(h1,h2){
     const tr1=document.createElement('tr');
     const tr2=document.createElement('tr');
@@ -123,7 +126,7 @@
       if(hasSub){ for(let k=i;k<groupEnd;k++){ const th2=document.createElement('th'); th2.textContent=(h2[k]??'').trim(); tr2.appendChild(th2);} }
       i=groupEnd;
     }
-    // เพิ่มคอลัมน์ Actions ท้ายสุด
+    // Actions column
     const thAct=document.createElement('th'); thAct.textContent='Actions'; thAct.setAttribute('rowspan',2); tr1.appendChild(thAct);
 
     thead.innerHTML=''; thead.append(tr1,tr2);
@@ -160,6 +163,9 @@
       delBtn.addEventListener('click',()=>toggleDelete(tr,rIdx));
       tdAct.appendChild(delBtn); tr.appendChild(tdAct);
 
+      // mark if this row's name is in deletesByName
+      if (deletesByName.has(String((row[0]||'').trim().toLowerCase()))) tr.classList.add('strike');
+
       tbody.appendChild(tr);
     });
   }
@@ -179,8 +185,8 @@
     document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
   }
 
-  // ====== EDIT / ADD ======
-  function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; edits.set(rIdx+2,copy); }
+  // ====== EDIT / ADD / DELETE BY NAME ======
+  function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; rows[rIdx]=copy; edits.set(rIdx+2,copy); }
 
   function onAddRow(){
     const branch=document.getElementById('newBranch').value.trim();
@@ -194,12 +200,25 @@
     document.getElementById('newBranch').value=''; document.getElementById('newName').value='';
   }
 
+  function onDeleteByName(){
+    const name = document.getElementById('delName').value.trim().toLowerCase();
+    if(!name){ alert('พิมพ์ชื่อก่อน'); return; }
+    deletesByName.add(name);
+    // mark rows
+    Array.from(tbody.querySelectorAll('tr')).forEach((tr)=>{
+      const rIdx = Number(tr.dataset.index);
+      const rName = String(rows[rIdx]?.[0]||'').trim().toLowerCase();
+      if (rName === name) tr.classList.add('strike');
+    });
+  }
+
   // ====== SAVE ======
   async function onSave(){
     const payload={
       updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
       appends,
-      deletes:Array.from(deletes.values()) // ['name||branch']
+      deletes:Array.from(deletes.values()),
+      deletesNames:Array.from(deletesByName.values())
     };
     const saving=document.getElementById('saving');
     try{
@@ -213,15 +232,15 @@
         await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
         alert('บันทึกสำเร็จ');
       }
-      // local reset
-      edits.clear(); appends.length=0; deletes.clear();
-      // รีโหลดจาก CSV เพื่อให้ภาพตรงกับชีตจริง
+      edits.clear(); appends.length=0; deletes.clear(); deletesByName.clear();
+      document.getElementById('delName').value='';
       await loadCsv();
     }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
     finally{ saving.style.display='none'; }
   }
 
   document.getElementById('addRowBtn').addEventListener('click',onAddRow);
+  document.getElementById('delByNameBtn').addEventListener('click',onDeleteByName);
   document.getElementById('saveBtn').addEventListener('click',onSave);
   window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
   loadCsv();
