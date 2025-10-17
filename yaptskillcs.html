@@ -22,6 +22,11 @@
     .btn.secondary{background:#6b7280;border-color:#9ca3af}
     .btn:disabled{opacity:.6;cursor:not-allowed}
 
+    /* Grouped control boxes */
+    .group{display:flex;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .bar .group + .group{margin-left:8px}
+    .bar label{font-size:14px;opacity:.8}
+
     .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 160px)}
     .scroll{overflow:auto;width:100%;height:calc(100% - 40px)}
 
@@ -57,21 +62,24 @@
 
     <!-- Controls: Filter branch → UPDATE SKILL → Cancel → Name → Branch → Add → Delete -->
     <div class="bar">
-      <select id="filterBranch" title="Filter branch">
-        <option value="*">All branch</option>
-      </select>
+      <div class="group" id="grp-filter">
+        <select id="filterBranch" title="Filter branch">
+          <option value="*">All branch</option>
+        </select>
+        <button class="btn" id="saveBtn">UPDATE SKILL</button>
+        <button class="btn secondary" id="cancelBtn">Cancel edits</button>
+      </div>
 
-      <button class="btn" id="saveBtn">UPDATE SKILL</button>
-      <button class="btn secondary" id="cancelBtn">Cancel edits</button>
+      <div class="group" id="grp-crud">
+        <label>Name:</label>
+        <input id="newName" placeholder="name" />
+        <label>Branch:</label>
+        <input id="newBranch" placeholder="branch" />
+        <button class="btn" id="addRowBtn">Add new engineer</button>
+        <button class="btn danger" id="delByNameBtn">Delete name</button>
+      </div>
 
-      <label>Name:</label>
-      <input id="newName" placeholder="name" />
-      <label>Branch:</label>
-      <input id="newBranch" placeholder="branch" />
-      <button class="btn" id="addRowBtn">Add new engineer</button>
-      <button class="btn danger" id="delByNameBtn">Delete name</button>
-
-      <span id="saving" style="display:none;color:#2563eb;margin-left:8px">Working…</span>
+      <span id="saving" style="color:#2563eb;margin-left:8px;display:none">Working…</span>
     </div>
 
     <!-- Legend → meanings for 0/1/2 display -->
