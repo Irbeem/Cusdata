@@ -6,7 +6,8 @@
   <title>YAPT Skills</title>
   <style>
     :root{
-      --sticky-left-0:0px;--sticky-left-1:0px;
+      --sticky-left-0:0px;--sticky-left-1:0px; /* name, branch */
+      --sticky-left-2:0px;--sticky-left-3:0px; /* L1, L2 */
       --head1:40px; --row-h:40px;
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
       --danger:#ef4444; --accent:#2563eb;
@@ -30,15 +31,20 @@
     .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 160px)}
     .scroll{overflow:auto;width:100%;height:calc(100% - 40px)}
 
-    table{border-collapse:separate;border-spacing:0;min-width:1100px;width:100%}
+    table{border-collapse:separate;border-spacing:0;min-width:1200px;width:100%}
     thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700}
     thead tr:nth-child(1) th{top:0}
     thead tr:nth-child(2) th{top:var(--head1)}
     th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
-    .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc}
-    .sticky-col-1{position:sticky;left:var(--sticky-left-1);z-index:3;background:#f8fafc}
-    thead .sticky-col-0, thead .sticky-col-1{z-index:5;background:var(--c-head-bg)}
+
+    /* Sticky columns */
+    .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc} /* name */
+    .sticky-col-1{position:sticky;left:var(--sticky-left-1);z-index:3;background:#f8fafc} /* branch */
+    .sticky-col-2{position:sticky;left:var(--sticky-left-2);z-index:3;background:#f1f5f9} /* L1 % */
+    .sticky-col-3{position:sticky;left:var(--sticky-left-3);z-index:3;background:#f1f5f9} /* L2 % */
+    thead .sticky-col-0, thead .sticky-col-1,
+    thead .sticky-col-2, thead .sticky-col-3 { z-index:5; background:var(--c-head-bg); }
 
     td.edited{ background: var(--edited-bg); box-shadow: inset 0 0 0 2px var(--edited-border); }
     td.skill-td{ text-align:center; }
@@ -46,21 +52,33 @@
     /* Skill button (cycle 0→1→2) */
     .skill-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; width:56px; height:28px; border:1px solid #d1d5db; border-radius:14px; background:#fff; cursor:pointer; user-select:none; }
     .skill-btn .dot{ width:12px; height:12px; border-radius:50%; display:inline-block; }
-    .skill-btn[data-skill="0"]{ background:#ffffff; color:#111827; }   /* shows "-" (No skill) */
+    .skill-btn[data-skill="0"]{ background:#ffffff; color:#111827; }   /* "-" (No skill) */
     .skill-btn[data-skill="1"]{ background:#22c55e; color:#ffffff; }   /* white dot on green (Can do) */
     .skill-btn[data-skill="2"]{ background:#2563eb; color:#ffffff; }   /* black dot on blue (Can teach) */
     .skill-btn:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
 
+    /* Percent columns */
+    td.pct{ text-align:center; font-weight:600; color:#111827; }
+    td.pct .chip{display:inline-block; min-width:46px; padding:2px 8px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
+    td.pct.pct-l1 .chip{ background:#dcfce7; border-color:#86efac; }
+    td.pct.pct-l2 .chip{ background:#dbeafe; border-color:#93c5fd; }
+
     .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
     .legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+
+    /* ── Stats (ใหม่) ── */
+    .stats{margin:0 0 10px;font-size:14px;opacity:.8}
+    .stats strong{color:#111827}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
   <div class="wrap">
     <h1 style="margin:0 0 6px">YAPT Skills</h1>
+    <!-- Stats (ใหม่) -->
+    <div id="stats" class="stats">—</div>
 
-    <!-- Controls: Filter branch → UPDATE SKILL → Cancel → Name → Branch → Add → Delete -->
+    <!-- Controls -->
     <div class="bar">
       <div class="group" id="grp-filter">
         <select id="filterBranch" title="Filter branch">
@@ -82,10 +100,10 @@
       <span id="saving" style="color:#2563eb;margin-left:8px;display:none">Working…</span>
     </div>
 
-    <!-- Legend → meanings for 0/1/2 display -->
+    <!-- Legend -->
     <div class="legend">
-      <label>  Description: </label>
-      <small><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fff7ed;box-shadow:inset 0 0 0 2px #fb923c;vertical-align:middle;margin-right:6px"></span>Waiting update</small>
+      <label>  Description : </label>
+      <small><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fff7ed;box-shadow:inset 0 0 0 2px #fb923c;vertical-align:middle;margin-right:6px"></span>Edited cell (waiting to save)</small>
       <div style="display:flex;align-items:center;gap:8px">
         <span class="skill-btn" data-skill="0" style="transform:scale(.9);">-</span>
         <small>No skill</small>
@@ -117,18 +135,16 @@
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[], originalRows=[];
-  const edits=new Map();          // sheetRowIndex -> updated row array
+  const edits=new Map();
   const editedCells=new Set();
-  const inflight={ add:false, save:false, del:false };
-
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
   const filterEl=document.getElementById('filterBranch');
+  const statsEl=document.getElementById('stats'); // (ใหม่)
 
-  // ====== HELPERS ======
   function makeRequestId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
 
-  // Try direct CSV first. If fail, use Apps Script proxy to avoid CORS and auth issues
+  // Load CSV (direct → proxy fallback)
   async function fetchCsvAll(){
     try{
       const r = await fetch(CSV_URL,{cache:'no-store'});
@@ -147,7 +163,7 @@
   }
   async function fetchCsvRows(){
     const data = await fetchCsvAll();
-    return data.slice(2); // after 2 header rows
+    return data.slice(2);
   }
 
   function uniqueBranches(list){
@@ -166,20 +182,36 @@
     if([...filterEl.options].some(o=>o.value===cur)) filterEl.value = cur;
   }
 
-  // ====== LAYOUT HELPERS ======
   function fixHeaderTop(){
     const tr1=thead.querySelector('tr:first-child'); if(!tr1) return;
     const h = Math.round(tr1.getBoundingClientRect().height);
     document.documentElement.style.setProperty('--head1', h+'px');
   }
+
+  // Robust sticky offsets (use header widths if body is empty)
   function updateStickyLefts(){
-    const first=tbody.querySelector('tr'); if(!first) return;
-    const w0=first.children[0]?.getBoundingClientRect().width||160;
+    const headerRow = thead.querySelector('tr:first-child');
+    const bodyRow = tbody.querySelector('tr');
+
+    const getW = (el) => el ? el.getBoundingClientRect().width : 0;
+
+    const c0 = (bodyRow?.children[0]) || (headerRow?.children[0]);
+    const c1 = (bodyRow?.children[1]) || (headerRow?.children[1]);
+    const c2 = (bodyRow?.children[2]) || (headerRow?.children[2]);
+    const c3 = (bodyRow?.children[3]) || (headerRow?.children[3]);
+
+    const w0 = getW(c0) || 160;  // name
+    const w1 = getW(c1) || 140;  // branch
+    const w2 = getW(c2) || 90;   // L1
+    const w3 = getW(c3) || 90;   // L2
+
     document.documentElement.style.setProperty('--sticky-left-0','0px');
-    document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
+    document.documentElement.style.setProperty('--sticky-left-1', (w0) + 'px');
+    document.documentElement.style.setProperty('--sticky-left-2', (w0 + w1) + 'px');
+    document.documentElement.style.setProperty('--sticky-left-3', (w0 + w1 + w2) + 'px');
   }
 
-  // ====== SKILL CONTROL ======
+  // Skill UI
   function makeDot(color){ const s=document.createElement('span'); s.className='dot'; s.style.background=color; return s; }
   function setSkillVisual(btn, val){
     btn.dataset.skill = String(val);
@@ -188,7 +220,27 @@
     else if(String(val)==='1'){ btn.appendChild(makeDot('#ffffff')); }
     else { btn.appendChild(makeDot('#000000')); }
   }
-  function createSkillControl(val, rIdx, cIdx, td){
+
+  function updateRowPercents(rIdx, tr){
+    const row = rows[rIdx] || [];
+    const maxCols = Math.max(row.length, header1.length, header2.length);
+    const skills = [];
+    for(let i=2;i<maxCols;i++){
+      const v = String(row[i] ?? '');
+      if(v==='0' || v==='1' || v==='2') skills.push(v);
+      else skills.push('0');
+    }
+    const denom = Math.max(1, skills.length);
+    const l1 = Math.round((skills.filter(v=>v==='1'||v==='2').length / denom) * 100);
+    const l2 = Math.round((skills.filter(v=>v==='2').length / denom) * 100);
+
+    const tdL1 = tr.querySelector('td.pct-l1');
+    const tdL2 = tr.querySelector('td.pct-l2');
+    if(tdL1) tdL1.innerHTML = `<span class="chip">${l1}%</span>`;
+    if(tdL2) tdL2.innerHTML = `<span class="chip">${l2}%</span>`;
+  }
+
+  function createSkillControl(val, rIdx, cIdx, td, tr){
     const btn=document.createElement('button');
     btn.type='button';
     btn.className='skill-btn';
@@ -203,11 +255,27 @@
       td.classList.add('edited');
       editedCells.add(`${rIdx}|${cIdx}`);
       setSkillVisual(btn, next);
+      updateRowPercents(rIdx, tr);
+      updateStats(); // (ใหม่) อัปเดตตัวเลขเมื่อแก้ไขสกิล
     });
     return btn;
   }
 
-  // ====== RENDER ======
+  // ── Stats updater (ใหม่) ──
+  function getVisibleRowIndices(){
+    const val = filterEl?.value||'*';
+    if(val==='*') return rows.map((_,i)=>i);
+    const out=[]; rows.forEach((r,i)=>{ if((String(r[1]||'').trim())===val) out.push(i); });
+    return out;
+  }
+  function updateStats(){
+    if(!statsEl) return;
+    const people = getVisibleRowIndices().length; // ตามตัวกรองสาขา
+    const edited = editedCells.size;              // ทุก cell ที่ถูกแก้ในรอบนี้
+    statsEl.innerHTML = `Showing <strong>${people}</strong> people • Edited skill cells: <strong>${edited}</strong>`;
+  }
+
+  // Render
   function renderHeader(h1,h2){
     const tr1=document.createElement('tr');
     const tr2=document.createElement('tr');
@@ -232,14 +300,28 @@
       i=groupEnd;
     }
     thead.innerHTML=''; thead.append(tr1,tr2);
+
+    // Insert sticky L1/L2 header icons (no text)
+    const top=thead.querySelector('tr:first-child');
+
+    const iconL1 = document.createElement('span');
+    iconL1.className = 'skill-btn'; iconL1.dataset.skill = '1';
+    iconL1.style.transform = 'scale(.85)';
+    iconL1.innerHTML = '<span class="dot" style="background:#ffffff"></span>';
+
+    const iconL2 = document.createElement('span');
+    iconL2.className = 'skill-btn'; iconL2.dataset.skill = '2';
+    iconL2.style.transform = 'scale(.85)';
+    iconL2.innerHTML = '<span class="dot" style="background:#000000"></span>';
+
+    const thL1=document.createElement('th'); thL1.rowSpan=2; thL1.className='sticky-col-2'; thL1.appendChild(iconL1);
+    const thL2=document.createElement('th'); thL2.rowSpan=2; thL2.className='sticky-col-3'; thL2.appendChild(iconL2);
+
+    // Insert right after name & branch
+    top.insertBefore(thL2, top.children[2] || null);
+    top.insertBefore(thL1, top.children[2] || null);
   }
 
-  function getVisibleRowIndices(){
-    const val = filterEl?.value||'*';
-    if(val==='*') return rows.map((_,i)=>i);
-    const out=[]; rows.forEach((r,i)=>{ if((String(r[1]||'').trim())===val) out.push(i); });
-    return out;
-  }
   function renderBody(){
     tbody.innerHTML='';
     const visible = getVisibleRowIndices();
@@ -247,21 +329,32 @@
       const row = rows[rIdx]||[];
       const tr=document.createElement('tr');
       tr.dataset.index = rIdx;
-      const cols = Math.max(row.length, header1.length, header2.length);
-      for(let c=0;c<cols;c++){
+
+      const maxCols = Math.max(row.length, header1.length, header2.length);
+
+      // name
+      const tdName=document.createElement('td'); tdName.textContent=row[0]??''; tdName.classList.add('sticky-col-0'); tr.appendChild(tdName);
+      // branch
+      const tdBranch=document.createElement('td'); tdBranch.textContent=row[1]??''; tdBranch.classList.add('sticky-col-1'); tr.appendChild(tdBranch);
+
+      // L1 / L2 (sticky)
+      const tdL1=document.createElement('td'); tdL1.className='pct pct-l1 sticky-col-2'; tr.appendChild(tdL1);
+      const tdL2=document.createElement('td'); tdL2.className='pct pct-l2 sticky-col-3'; tr.appendChild(tdL2);
+
+      // skills
+      for(let c=2;c<maxCols;c++){
         const td=document.createElement('td'); const val=row[c]??'';
-        if(c===0){ td.textContent=val; td.classList.add('sticky-col-0'); }
-        else if(c===1){ td.textContent=val; td.classList.add('sticky-col-1'); }
-        else{
-          td.classList.add('skill-td');
-          const ctrl = createSkillControl(val, rIdx, c, td);
-          td.appendChild(ctrl);
-        }
+        td.classList.add('skill-td');
+        const ctrl = createSkillControl(val, rIdx, c, td, tr);
+        td.appendChild(ctrl);
         if(editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
         tr.appendChild(td);
       }
+
+      updateRowPercents(rIdx, tr);
       tbody.appendChild(tr);
     });
+    updateStats(); // (ใหม่) อัปเดตหลังเรนเดอร์บอดี้
   }
 
   async function loadCsv(){
@@ -274,21 +367,16 @@
       renderHeader(header1,header2);
       renderBody();
       requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
+      updateStats(); // (ใหม่) สำรองอีกครั้งหลังโหลด
     }catch(err){
       console.error(err);
       alert('Load failed: '+err.message+'\nCheck Google Sheet permission or try proxy via GAS');
       thead.innerHTML=''; tbody.innerHTML='';
+      updateStats(); // (ใหม่) ให้แสดงสถานะว่าง
     }
   }
 
-  // ====== EDIT / ADD / DELETE & SAVE ======
-  function markEdit(rIdx,cIdx,newVal){
-    const copy = (rows[rIdx] ? rows[rIdx].slice() : []);
-    copy[cIdx]=newVal;
-    rows[rIdx]=copy;
-    edits.set(rIdx+2, copy);
-  }
-
+  // Save / Add / Delete / Cancel
   async function onAddRow(){
     const addBtn=document.getElementById('addRowBtn'); addBtn.disabled=true;
     const branch=document.getElementById('newBranch').value.trim();
@@ -373,7 +461,6 @@
         ok=res.ok;
       }catch{ ok=false; }
 
-      // Verify by reloading
       const verified = await (async()=>{
         try{
           const rowsNow = await fetchCsvRows();
@@ -415,18 +502,22 @@
     editedCells.clear();
     renderBody();
     requestAnimationFrame(()=>{updateStickyLefts();});
+    updateStats(); // (ใหม่) หลังยกเลิกให้รีเฟรชตัวเลข
     alert('Edits cancelled');
   }
 
-  // ====== LISTENERS ======
+  // Listeners
   document.getElementById('addRowBtn').addEventListener('click',onAddRow);
   document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
   document.getElementById('saveBtn').addEventListener('click',onSave);
   document.getElementById('cancelBtn').addEventListener('click',cancelEdits);
   window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
-  filterEl.addEventListener('change',()=>{ renderBody(); requestAnimationFrame(updateStickyLefts); });
+  filterEl.addEventListener('change',()=>{
+    renderBody();
+    requestAnimationFrame(()=>{ updateStickyLefts(); updateStats(); }); // (ใหม่)
+  });
 
-  // init
+  // Init
   console.log('[init] CSV_URL=', CSV_URL);
   console.log('[init] GAS_URL=', GAS_URL);
   loadCsv();
