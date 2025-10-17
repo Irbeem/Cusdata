@@ -42,10 +42,6 @@
 
     td.edited{ background: var(--edited-bg); box-shadow: inset 0 0 0 2px var(--edited-border); }
     td.skill-td{ text-align:center; }
-    td.pct{ text-align:center; font-weight:600; color:#111827; }
-    td.pct .chip{display:inline-block; min-width:46px; padding:2px 8px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
-    td.pct.l1 .chip{ background:#dcfce7; border-color:#86efac; }
-    td.pct.l2 .chip{ background:#dbeafe; border-color:#93c5fd; }
 
     /* Skill button (cycle 0→1→2) */
     .skill-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; width:56px; height:28px; border:1px solid #d1d5db; border-radius:14px; background:#fff; cursor:pointer; user-select:none; }
@@ -54,6 +50,12 @@
     .skill-btn[data-skill="1"]{ background:#22c55e; color:#ffffff; }   /* white dot on green (Can do) */
     .skill-btn[data-skill="2"]{ background:#2563eb; color:#ffffff; }   /* black dot on blue (Can teach) */
     .skill-btn:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
+
+    /* Percent columns */
+    td.pct{ text-align:center; font-weight:600; color:#111827; }
+    td.pct .chip{display:inline-block; min-width:46px; padding:2px 8px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
+    td.pct.l1 .chip{ background:#dcfce7; border-color:#86efac; }
+    td.pct.l2 .chip{ background:#dbeafe; border-color:#93c5fd; }
 
     .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
     .legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
@@ -108,7 +110,7 @@
       </div>
       <div class="foot">
         <small>Columns <b>name</b> and <b>branch</b> are pinned — the 2-row header stays on top while scrolling.</small>
-        <small><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fff7ed;box-shadow:inset 0 0 0 2px #fb923c;vertical-align:middle;margin-right:6px"></span>Waiting update</small>
+        <small><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fff7ed;box-shadow:inset 0 0 0 2px #fb923c;vertical-align:middle;margin-right:6px"></span>Edited cell (waiting to save)</small>
       </div>
     </div>
   </div>
@@ -125,8 +127,6 @@
   let header1=[], header2=[], rows=[], originalRows=[];
   const edits=new Map();          // sheetRowIndex -> updated row array
   const editedCells=new Set();
-  const inflight={ add:false, save:false, del:false };
-
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
   const filterEl=document.getElementById('filterBranch');
@@ -134,7 +134,7 @@
   // ====== HELPERS ======
   function makeRequestId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
 
-  // Try direct CSV first. If fail, use Apps Script proxy to avoid CORS and auth issues
+  // Try direct CSV first. If fail, use Apps Script proxy (avoids CORS / permissions hiccups)
   async function fetchCsvAll(){
     try{
       const r = await fetch(CSV_URL,{cache:'no-store'});
@@ -194,7 +194,28 @@
     else if(String(val)==='1'){ btn.appendChild(makeDot('#ffffff')); }
     else { btn.appendChild(makeDot('#000000')); }
   }
-  function createSkillControl(val, rIdx, cIdx, td){
+
+  function updateRowPercents(rIdx, tr){
+    // calculate % columns for this row based on current rows[rIdx]
+    const row = rows[rIdx] || [];
+    const maxCols = Math.max(row.length, header1.length, header2.length);
+    const skills = [];
+    for(let i=2;i<maxCols;i++){
+      const v = String(row[i] ?? '');
+      if(v==='0' || v==='1' || v==='2') skills.push(v);
+      else skills.push('0'); // treat empty as 0
+    }
+    const denom = Math.max(1, skills.length);
+    const l1 = Math.round((skills.filter(v=>v==='1'||v==='2').length / denom) * 100);
+    const l2 = Math.round((skills.filter(v=>v==='2').length / denom) * 100);
+
+    const tdL1 = tr.querySelector('td.pct-l1');
+    const tdL2 = tr.querySelector('td.pct-l2');
+    if(tdL1) tdL1.innerHTML = `<span class="chip">${l1}%</span>`;
+    if(tdL2) tdL2.innerHTML = `<span class="chip">${l2}%</span>`;
+  }
+
+  function createSkillControl(val, rIdx, cIdx, td, tr){
     const btn=document.createElement('button');
     btn.type='button';
     btn.className='skill-btn';
@@ -209,6 +230,7 @@
       td.classList.add('edited');
       editedCells.add(`${rIdx}|${cIdx}`);
       setSkillVisual(btn, next);
+      updateRowPercents(rIdx, tr);
     });
     return btn;
   }
@@ -238,10 +260,14 @@
       i=groupEnd;
     }
     thead.innerHTML=''; thead.append(tr1,tr2);
-    // Insert 2 summary columns after Branch
+
+    // Insert 2 summary columns after Branch (rowspan=2)
     const top=thead.querySelector('tr:first-child');
-    const thL1=document.createElement('th'); thL1.textContent='% L1 (>=1)'; thL1.rowSpan=2; top.insertBefore(thL1, top.children[2]||null);
-    const thL2=document.createElement('th'); thL2.textContent='% L2 (=2)'; thL2.rowSpan=2; top.insertBefore(thL2, top.children[3]||null);
+    const thL1=document.createElement('th'); thL1.textContent='% L1 (≥1)'; thL1.rowSpan=2; 
+    const thL2=document.createElement('th'); thL2.textContent='% L2 (=2)'; thL2.rowSpan=2;
+    // Insert right after the first two sticky columns
+    top.insertBefore(thL2, top.children[2] || null);
+    top.insertBefore(thL1, top.children[2] || null);
   }
 
   function getVisibleRowIndices(){
@@ -250,6 +276,7 @@
     const out=[]; rows.forEach((r,i)=>{ if((String(r[1]||'').trim())===val) out.push(i); });
     return out;
   }
+
   function renderBody(){
     tbody.innerHTML='';
     const visible = getVisibleRowIndices();
@@ -257,7 +284,8 @@
       const row = rows[rIdx]||[];
       const tr=document.createElement('tr');
       tr.dataset.index = rIdx;
-      const cols = Math.max(row.length, header1.length, header2.length);
+
+      const maxCols = Math.max(row.length, header1.length, header2.length);
 
       // name
       const tdName=document.createElement('td'); tdName.textContent=row[0]??''; tdName.classList.add('sticky-col-0'); tr.appendChild(tdName);
@@ -265,35 +293,21 @@
       const tdBranch=document.createElement('td'); tdBranch.textContent=row[1]??''; tdBranch.classList.add('sticky-col-1'); tr.appendChild(tdBranch);
 
       // summary % columns
-      const skills = []; for(let i=2;i<cols;i++){ const v=String(row[i]??''); if(v==='0'||v==='1'||v==='2') skills.push(v); }
-      const denom = skills.length || 1;
-      const l1 = Math.round((skills.filter(v=>v==='1'||v==='2').length / denom) * 100);
-      const l2 = Math.round((skills.filter(v=>v==='2').length / denom) * 100);
-
-      const tdL1=document.createElement('td'); tdL1.className='pct l1'; tdL1.innerHTML=`<span class="chip">${l1}%</span>`; tr.appendChild(tdL1);
-      const tdL2=document.createElement('td'); tdL2.className='pct l2'; tdL2.innerHTML=`<span class="chip">${l2}%</span>`; tr.appendChild(tdL2);
+      const tdL1=document.createElement('td'); tdL1.className='pct pct-l1'; tr.appendChild(tdL1);
+      const tdL2=document.createElement('td'); tdL2.className='pct pct-l2'; tr.appendChild(tdL2);
 
       // skill cells start at col 2
-      for(let c=2;c<cols;c++){
+      for(let c=2;c<maxCols;c++){
         const td=document.createElement('td'); const val=row[c]??'';
         td.classList.add('skill-td');
-        const ctrl = createSkillControl(val, rIdx, c, td);
+        const ctrl = createSkillControl(val, rIdx, c, td, tr);
         td.appendChild(ctrl);
         if(editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
         tr.appendChild(td);
       }
-      tbody.appendChild(tr);
-    });
-  }
-        else if(c===1){ td.textContent=val; td.classList.add('sticky-col-1'); }
-        else{
-          td.classList.add('skill-td');
-          const ctrl = createSkillControl(val, rIdx, c, td);
-          td.appendChild(ctrl);
-        }
-        if(editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
-        tr.appendChild(td);
-      }
+
+      // compute % initially
+      updateRowPercents(rIdx, tr);
       tbody.appendChild(tr);
     });
   }
