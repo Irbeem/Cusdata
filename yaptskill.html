@@ -7,47 +7,41 @@
   <style>
     :root{
       --sticky-left-0:0px;--sticky-left-1:0px;
-      --head1:40px; /* set by JS */
-      --row-h:40px;
+      --head1:40px; --row-h:40px;
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
-      --danger:#ef4444;
+      --danger:#ef4444; --accent:#2563eb;
+      --edited-bg:#fff7ed; --edited-border:#fb923c;
     }
     html,body{height:100%;margin:0}
     body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
     .wrap{width:100vw;max-width:none;margin:0;padding:12px}
-    .bar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:4px 0 8px;flex-wrap:wrap}
-    .rowadd{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .rowadd input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;width:min(260px,38vw)}
-    .bar select{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
-    .btn{height:36px;border:1px solid #d1d5db;background:#2563eb;color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
+    .bar{display:flex;gap:8px;align-items:center;justify-content:flex-start;margin:4px 0 8px;flex-wrap:wrap}
+    .bar select,.bar input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
+    .btn{height:36px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
     .btn.danger{background:var(--danger);border-color:#dc2626}
     .btn:disabled{opacity:.6;cursor:not-allowed}
-
     .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 106px)}
     .scroll{overflow:auto;width:100%;height:calc(100% - 40px)}
-
     table{border-collapse:separate;border-spacing:0;min-width:1100px;width:100%}
     thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700}
     thead tr:nth-child(1) th{top:0}
     thead tr:nth-child(2) th{top:var(--head1)}
-
     th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
     tbody tr:nth-child(odd) td{background:#fafafa}
-
     .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc}
     .sticky-col-1{position:sticky;left:var(--sticky-left-1);z-index:3;background:#f8fafc}
     thead .sticky-col-0, thead .sticky-col-1{z-index:5;background:var(--c-head-bg)}
-
-    select.skill{height:30px;border-radius:8px;background:#fff;color:#111827;border:1px solid #d1d5db;padding:0 6px;width:64px}
-    /* === Skill button (cycle 0→1→2) === */
+    td.edited{ background: var(--edited-bg); box-shadow: inset 0 0 0 2px var(--edited-border); }
     td.skill-td{ text-align:center; }
-    .skill-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; width:48px; height:28px; border:1px solid #d1d5db; border-radius:14px; background:#fff; cursor:pointer; user-select:none; }
+    .skill-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; width:56px; height:28px; border:1px solid #d1d5db; border-radius:14px; background:#fff; cursor:pointer; user-select:none; }
     .skill-btn .dot{ width:12px; height:12px; border-radius:50%; display:inline-block; }
-    .skill-btn[data-skill="0"]{ background:#ffffff; color:#111827; }
-    .skill-btn[data-skill="1"]{ background:#22c55e; color:#ffffff; }
-    .skill-btn[data-skill="2"]{ background:#2563eb; color:#ffffff; }
+    .skill-btn[data-skill="0"]{ background:#ffffff; color:#111827; }   /* แสดง "-" */
+    .skill-btn[data-skill="1"]{ background:#22c55e; color:#ffffff; }   /* วงกลมขาว พื้นเขียว */
+    .skill-btn[data-skill="2"]{ background:#2563eb; color:#ffffff; }   /* วงกลมดำ พื้นน้ำเงิน */
     .skill-btn:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
-    .foot{display:flex;align-items:center;justify-content:flex-end;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
+    .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
+    .legend{display:flex;gap:10px;align-items:center}
+    .legend .chip{display:inline-block;width:14px;height:14px;border-radius:4px;background:var(--edited-bg);box-shadow: inset 0 0 0 2px var(--edited-border)}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -55,15 +49,19 @@
   <div class="wrap">
     <h1 style="margin:0 0 6px">ตารางสกิลจาก Google Sheet</h1>
 
+    <!-- ซ้าย→ขวา: Filter branch → บันทึก → name → branch → เพิ่ม → ลบด้วยชื่อ -->
     <div class="bar">
       <select id="filterBranch" title="Filter branch">
         <option value="*">All branch</option>
       </select>
+
       <button class="btn" id="saveBtn">บันทึกการเปลี่ยนแปลง</button>
+
       <input id="newName" placeholder="name" />
       <input id="newBranch" placeholder="branch" />
       <button class="btn" id="addRowBtn">เพิ่ม</button>
       <button class="btn danger" id="delByNameBtn">ลบด้วยชื่อ</button>
+
       <span id="saving" style="display:none;color:#2563eb;margin-left:8px">กำลังทำงาน…</span>
     </div>
 
@@ -71,7 +69,10 @@
       <div class="scroll" id="scroller">
         <table id="grid"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
       </div>
-      <div class="foot"><small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small></div>
+      <div class="foot">
+        <small>คอลัมน์ <b>name</b> และ <b>branch</b> ถูกตรึงไว้ — หัวตาราง 2 แถวจะติดอยู่ด้านบนเมื่อเลื่อน</small>
+        <div class="legend"><span class="chip"></span><small>เซลที่แก้ (รอเซฟ)</small></div>
+      </div>
     </div>
   </div>
 
@@ -80,32 +81,91 @@
   const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
   const GID = '0';
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec'; // /exec ล่าสุด
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  const edits=new Map();      // sheetRowIndex (0-based from start of sheet) -> updated row array
-  const appends=[];           // [{name, branch, values}]
+  const edits=new Map();          // sheetRowIndex (0-based) -> updated row array
+  const editedCells=new Set();    // 'rIdx|cIdx'
+  const inflight={ add:false, save:false, del:false };
 
   const thead=document.getElementById('thead');
   const tbody=document.getElementById('tbody');
   const filterEl=document.getElementById('filterBranch');
 
-  // ====== LOAD CSV ======
+  // ====== HELPERS ======
+  function makeRequestId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+  async function fetchCsvAll(){
+    const res=await fetch(CSV_URL,{cache:'no-store'});
+    if(!res.ok) throw new Error('โหลด CSV ไม่สำเร็จ: HTTP '+res.status);
+    const text=await res.text();
+    return Papa.parse(text,{skipEmptyLines:false}).data || [];
+  }
+  async function fetchCsvRows(){
+    const data = await fetchCsvAll();
+    return data.slice(2);
+  }
+
+  function uniqueBranches(list){
+    const seen=new Set(); const out=[];
+    list.forEach(r=>{
+      const b=String(r[1]??'').trim();
+      if(b && !seen.has(b)){ seen.add(b); out.push(b); }
+    });
+    out.sort((a,b)=>a.localeCompare(b,'th'));
+    return out;
+  }
+  function populateFilter(){
+    const cur = filterEl.value || '*';
+    const branches = uniqueBranches(rows);
+    filterEl.innerHTML = '<option value="*">All branch</option>' + branches.map(b=>`<option value="${b}">${b}</option>`).join('');
+    if([...filterEl.options].some(o=>o.value===cur)) filterEl.value = cur;
+  }
+
+  // verify helpers
+  async function verifyAppend(name, branch){
+    try{ const rowsNow = await fetchCsvRows();
+      return rowsNow.some(r => String(r[0]||'').trim()===name && String(r[1]||'').trim()===branch);
+    }catch{ return false; }
+  }
+  async function verifyDeleteByName(nameLC){
+    try{ const rowsNow = await fetchCsvRows();
+      return !rowsNow.some(r => String(r[0]||'').trim().toLowerCase()===nameLC);
+    }catch{ return false; }
+  }
+  async function verifyUpdates(updates){
+    try{
+      const rowsNow = await fetchCsvRows();
+      const map = new Map();
+      rowsNow.forEach(r=>{
+        const key = (String(r[0]||'').trim().toLowerCase()+'||'+String(r[1]||'').trim().toLowerCase());
+        map.set(key, r);
+      });
+      return updates.every(u=>{
+        const vals = u.rowValues||[];
+        const key = (String(vals[0]||'').trim().toLowerCase()+'||'+String(vals[1]||'').trim().toLowerCase());
+        const actual = map.get(key);
+        if(!actual) return false;
+        for(let i=0;i<vals.length;i++){
+          if(String(actual[i]??'') !== String(vals[i]??'')) return false;
+        }
+        return true;
+      });
+    }catch{ return false; }
+  }
+
+  // ====== LOAD & RENDER ======
   async function loadCsv(){
     try{
-      const res=await fetch(CSV_URL,{cache:'no-store'});
-      if(!res.ok) throw new Error('โหลด CSV ไม่สำเร็จ: HTTP '+res.status);
-      const text=await res.text();
-      const data=Papa.parse(text,{skipEmptyLines:false}).data;
+      const data = await fetchCsvAll();
       if(!data || data.length<2) throw new Error('รูปแบบ CSV ไม่ถูกต้อง (ต้องมีหัว 2 แถว)');
-      header1=data[0]||[]; header2=data[1]||[]; rows=(data||[]).slice(2);
+      header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
       populateFilter();
       render();
     }catch(err){
       console.error(err);
-      alert('โหลดตารางไม่สำเร็จ: '+err.message+'
-โปรดตรวจสอบสิทธิ์ของไฟล์ Google Sheet และลิงก์ CSV');
+      alert('โหลดตารางไม่สำเร็จ: '+err.message+'\nโปรดตรวจสอบสิทธิ์ของไฟล์ Google Sheet และลิงก์ CSV');
       thead.innerHTML=''; tbody.innerHTML='';
     }
   }
@@ -116,7 +176,7 @@
     requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
   }
 
-  // ====== HEADER (merge-aware) ======
+  // header (merge aware)
   function renderHeader(h1,h2){
     const tr1=document.createElement('tr');
     const tr2=document.createElement('tr');
@@ -149,19 +209,14 @@
     document.documentElement.style.setProperty('--head1', h+'px');
   }
 
-  // ====== BODY ======
+  // skill control
   function makeDot(color){ const s=document.createElement('span'); s.className='dot'; s.style.background=color; return s; }
   function setSkillVisual(btn, val){
     btn.dataset.skill = String(val);
-    // reset content
     btn.innerHTML='';
-    if(String(val)==='0'){
-      btn.textContent='-';
-    } else if(String(val)==='1'){
-      btn.appendChild(makeDot('#ffffff')); // white dot on green bg
-    } else { // '2'
-      btn.appendChild(makeDot('#000000')); // black dot on blue bg
-    }
+    if(String(val)==='0'){ btn.textContent='-'; }
+    else if(String(val)==='1'){ btn.appendChild(makeDot('#ffffff')); }
+    else { btn.appendChild(makeDot('#000000')); }
   }
   function createSkillControl(val, rIdx, cIdx, td){
     const btn=document.createElement('button');
@@ -171,7 +226,6 @@
     btn.addEventListener('click',()=>{
       const cur = Number(rows[rIdx]?.[cIdx] ?? 0) || 0;
       const next = (cur + 1) % 3;
-      // update data & mark edit
       const copy = (rows[rIdx] ? rows[rIdx].slice() : []);
       copy[cIdx] = String(next);
       rows[rIdx] = copy;
@@ -181,6 +235,14 @@
       setSkillVisual(btn, next);
     });
     return btn;
+  }
+
+  // body
+  function getVisibleRowIndices(){
+    const val = filterEl?.value||'*';
+    if(val==='*') return rows.map((_,i)=>i);
+    const out=[]; rows.forEach((r,i)=>{ if((String(r[1]||'').trim())===val) out.push(i); });
+    return out;
   }
   function renderBody(){
     tbody.innerHTML='';
@@ -196,21 +258,10 @@
         else if(c===1){ td.textContent=val; td.classList.add('sticky-col-1'); }
         else{
           td.classList.add('skill-td');
-          const ctrl = createSkillControl(val, rIdx, c);
+          const ctrl = createSkillControl(val, rIdx, c, td);
           td.appendChild(ctrl);
         }
         if(editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
-        tr.appendChild(td);
-      }
-      tbody.appendChild(tr);
-    });
-  }
-        else if(c===1){ td.textContent=val; td.classList.add('sticky-col-1'); }
-        else{
-          td.classList.add('skill-td');
-          const ctrl = createSkillControl(val, rIdx, c);
-          td.appendChild(ctrl);
-        }
         tr.appendChild(td);
       }
       tbody.appendChild(tr);
@@ -224,34 +275,40 @@
     document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
   }
 
-  // ====== EDIT / ADD ======
-  function markEdit(rIdx,cIdx,newVal){ const copy=rows[rIdx].slice(); copy[cIdx]=newVal; rows[rIdx]=copy; edits.set(rIdx+2,copy); }
+  // ====== EDIT / ADD / DELETE & SAVE ======
+  function markEdit(rIdx,cIdx,newVal){
+    const copy = (rows[rIdx] ? rows[rIdx].slice() : []);
+    copy[cIdx]=newVal;
+    rows[rIdx]=copy;
+    edits.set(rIdx+2, copy);
+  }
 
   async function onAddRow(){
+    if(inflight.add) return; inflight.add=true;
+    const addBtn=document.getElementById('addRowBtn'); addBtn.disabled=true;
+
     const branch=document.getElementById('newBranch').value.trim();
     const name=document.getElementById('newName').value.trim();
-    if(!name||!branch){ alert('กรุณากรอก name และ branch'); return; }
+    if(!name||!branch){ alert('กรุณากรอก name และ branch'); inflight.add=false; addBtn.disabled=false; return; }
 
-    // เตรียมแถวใหม่ (จำนวนคอลัมน์ยึดตามส่วนหัวที่ยาวสุด)
     const cols = Math.max(header1.length, header2.length, (rows[0]||[]).length);
-    const newRow = new Array(cols).fill('0');
-    newRow[0]=name; newRow[1]=branch;
+    const newRow = new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
 
-    const payload = { appends: [{ name, branch, values:newRow }] };
-
-    // ส่งไป Google Sheet ก่อน แล้วค่อยรีโหลดหน้าเว็บจาก CSV
+    const payload = { requestId: makeRequestId(), appends: [{ name, branch, values:newRow }] };
     const saving=document.getElementById('saving');
+
     try{
       saving.style.display='inline';
-      try {
-        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
-        const text = await res.text(); let json={}; try{ json = JSON.parse(text);}catch{}
-        if(!res.ok || json.error) throw new Error(json.error||text||'append failed');
-      } catch(e){
-        // fallback กัน CORS
-        await fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
-      }
-      // เคลียร์ช่องกรอกและรีโหลดจากชีตจริง
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok = res.ok;
+      }catch{ ok=false; }
+
+      const appeared = await verifyAppend(name, branch);
+      if (!appeared && !ok) throw new Error('Failed to fetch');
+
       document.getElementById('newBranch').value='';
       document.getElementById('newName').value='';
       await loadCsv();
@@ -261,33 +318,31 @@
       console.error(err);
     }finally{
       saving.style.display='none';
+      inflight.add=false; addBtn.disabled=false;
     }
   }
-    const cols= rows.length? rows[0].length : Math.max(header1.length,header2.length);
-    const newRow=new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
-    let insertAt=rows.length; for(let i=rows.length-1;i>=0;i--){ if((rows[i][1]??'').trim()===branch){ insertAt=i+1; break; } }
-    rows.splice(insertAt,0,newRow); appends.push({ name, branch, values:newRow });
-    renderBody(); requestAnimationFrame(()=>{updateStickyLefts();});
-    document.getElementById('newBranch').value=''; document.getElementById('newName').value='';
-  }
 
-  // ====== DELETE BY NAME (IMMEDIATE) ======
   async function onDeleteByNameImmediate(){
-    const nameRaw = document.getElementById('newName').value.trim();
-    if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); return; }
-    const name = nameRaw.toLowerCase();
+    if(inflight.del) return; inflight.del=true;
+    const delBtn=document.getElementById('delByNameBtn'); delBtn.disabled=true;
 
-    const payload = { deletesNames: [name] };
+    const nameRaw=document.getElementById('newName').value.trim();
+    if(!nameRaw){ alert('พิมพ์ชื่อในช่อง name ก่อน'); inflight.del=false; delBtn.disabled=false; return; }
+    const nameLC = nameRaw.toLowerCase();
+
+    const payload = { requestId: makeRequestId(), deletesNames: [nameLC] };
     try{
       document.getElementById('saving').style.display='inline';
-      // ปิด modal CORS โดยส่งเป็น text/plain และลองโหมด cors ก่อน ถ้า fail ค่อย no-cors
-      try {
-        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
-        const t = await res.text(); let j={}; try{ j = JSON.parse(t);}catch{}
-        if(!res.ok || j.error) throw new Error(j.error||t||'delete failed');
-      } catch(e){
-        await fetch(GAS_URL, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload)});
-      }
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const gone = await verifyDeleteByName(nameLC);
+      if (!gone && !ok) throw new Error('Failed to fetch');
+
       await loadCsv();
       alert('ลบสำเร็จ');
     }catch(err){
@@ -295,40 +350,50 @@
       console.error(err);
     }finally{
       document.getElementById('saving').style.display='none';
+      inflight.del=false; delBtn.disabled=false;
     }
   }
 
-  // ====== SAVE (UPDATES + APPENDS) ======
   async function onSave(){
-    const payload={
-      updates:Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues})),
-      appends
-    };
+    if(inflight.save) return; inflight.save=true;
+    const updates = Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}));
+    if(updates.length===0){ alert('ยังไม่มีการเปลี่ยนแปลง'); inflight.save=false; return; }
+
+    const payload={ requestId: makeRequestId(), updates };
     const saving=document.getElementById('saving');
+
     try{
       saving.style.display='inline';
-      try {
-        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
-        const text=await res.text(); let json={}; try{json=JSON.parse(text);}catch{}
-        if(!res.ok||json.error) throw new Error(json.error||text||'save failed');
-      } catch(err){
-        await fetch(GAS_URL,{ method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload)});
-      }
-      edits.clear(); appends.length=0;
+      let ok=false;
+      try{
+        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const verified = await verifyUpdates(updates);
+      if (!verified && !ok) throw new Error('Failed to fetch');
+
+      edits.clear(); editedCells.clear();
       await loadCsv();
       alert('บันทึกสำเร็จ');
-    }catch(e){ alert('บันทึกไม่สำเร็จ: '+e.message); console.error(e); }
-    finally{ saving.style.display='none'; }
+    }catch(e){
+      alert('บันทึกไม่สำเร็จ: '+e.message);
+      console.error(e);
+    }finally{
+      saving.style.display='none';
+      inflight.save=false;
+    }
   }
 
-  // ====== LISTENERS ======
+  // listeners
   document.getElementById('addRowBtn').addEventListener('click',onAddRow);
   document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
   document.getElementById('saveBtn').addEventListener('click',onSave);
   window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
   filterEl.addEventListener('change',()=>{ renderBody(); requestAnimationFrame(updateStickyLefts); });
-  
-  // เริ่มโหลด
+
+  // init
   console.log('[init] CSV_URL=', CSV_URL);
   console.log('[init] GAS_URL=', GAS_URL);
   loadCsv();
