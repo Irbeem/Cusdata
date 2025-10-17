@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>YAPT Skills</title>
+  <style>
+    :root{
+      --sticky-left-0:0px;--sticky-left-1:0px; /* name, branch */
+      --sticky-left-2:0px;--sticky-left-3:0px; /* L1, L2 */
+      --head1:40px; --row-h:40px;
+      --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--c-head-bg:#111827;--c-head-fg:#ffffff;
+      --danger:#ef4444; --accent:#2563eb;
+      --edited-bg:#fff7ed; --edited-border:#fb923c;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      background:var(--c-bg);color:var(--c-fg);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;
+      min-height:100dvh; /* มือถือ: สูงเต็มจอจริง */
+    }
+    .wrap{width:100%;max-width:none;margin:0;padding:12px} /* เดิม 100vw → 100% กัน overflow ขอบขวา */
+    .bar{display:flex;gap:8px;align-items:center;justify-content:flex-start;margin:4px 0 8px;flex-wrap:wrap}
+    .bar select,.bar input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
+    .btn{height:36px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 12px;cursor:pointer}
+    .btn.danger{background:var(--danger);border-color:#dc2626}
+    .btn.secondary{background:#6b7280;border-color:#9ca3af}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    /* Grouped control boxes */
+    .group{display:flex;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:12px;padding:8px 10px;background:#ffffff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .bar .group + .group{margin-left:8px}
+    .bar label{font-size:14px;opacity:.8}
+
+    /* กรอบตาราง: ใช้ 100dvh เป็นหลัก + fallback */
+    .table-shell{
+      border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;
+      height:calc(100dvh - 160px);
+    }
+    @supports not (height: 1dvh){
+      .table-shell{ height:calc(100vh - 160px); }
+    }
+
+    /* กล่องเลื่อนหลัก: บังคับแนวนอน, รองรับสัมผัส */
+    .scroll{
+      overflow-x:auto;
+      overflow-y:auto;
+      width:100%;
+      height:calc(100% - 40px);
+      -webkit-overflow-scrolling:touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
+    }
+
+    table{border-collapse:separate;border-spacing:0;min-width:1200px;width:100%}
+    thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700}
+    thead tr:nth-child(1) th{top:0}
+    thead tr:nth-child(2) th{top:var(--head1)}
+    th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
+    tbody tr:nth-child(odd) td{background:#fafafa}
+
+    /* Sticky columns */
+    .sticky-col-0{position:sticky;left:var(--sticky-left-0);z-index:3;background:#f8fafc} /* name */
+    .sticky-col-1{position:sticky;left:var(--sticky-left-1);z-index:3;background:#f8fafc} /* branch */
+    .sticky-col-2{position:sticky;left:var(--sticky-left-2);z-index:3;background:#f1f5f9} /* L1 % */
+    .sticky-col-3{position:sticky;left:var(--sticky-left-3);z-index:3;background:#f1f5f9} /* L2 % */
+    thead .sticky-col-0, thead .sticky-col-1,
+    thead .sticky-col-2, thead .sticky-col-3 { z-index:5; background:var(--c-head-bg); }
+
+    td.edited{ background: var(--edited-bg); box-shadow: inset 0 0 0 2px var(--edited-border); }
+    td.skill-td{ text-align:center; }
+
+    /* Skill button (cycle 0→1→2) */
+    .skill-btn{ display:inline-flex; align-items:center; justify-content:center; gap:6px; width:56px; height:28px; border:1px solid #d1d5db; border-radius:14px; background:#fff; cursor:pointer; user-select:none; }
+    .skill-btn .dot{ width:12px; height:12px; border-radius:50%; display:inline-block; }
+    .skill-btn[data-skill="0"]{ background:#ffffff; color:#111827; }
+    .skill-btn[data-skill="1"]{ background:#22c55e; color:#ffffff; }
+    .skill-btn[data-skill="2"]{ background:#2563eb; color:#ffffff; }
+    .skill-btn:focus{ outline:2px solid #93c5fd; outline-offset:2px; }
+
+    /* Percent columns */
+    td.pct{ text-align:center; font-weight:600; color:#111827; }
+    td.pct .chip{display:inline-block; min-width:46px; padding:2px 8px; border-radius:999px; background:#eef2ff; border:1px solid #c7d2fe; }
+    td.pct.pct-l1 .chip{ background:#dcfce7; border-color:#86efac; }
+    td.pct.pct-l2 .chip{ background:#dbeafe; border-color:#93c5fd; }
+
+    .foot{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;height:40px;border-top:1px solid var(--c-line);background:#f9fafb}
+    .legend{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+
+    /* Stats */
+    .stats{margin:0 0 10px;font-size:14px;opacity:.8}
+    .stats strong{color:#111827}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1 style="margin:0 0 6px">YAPT Skills</h1>
+    <div id="stats" class="stats">—</div>
+
+    <!-- Controls -->
+    <div class="bar">
+      <div class="group" id="grp-filter">
+        <select id="filterBranch" title="Filter branch">
+          <option value="*">All branch</option>
+        </select>
+        <button class="btn" id="saveBtn">UPDATE SKILL</button>
+        <button class="btn secondary" id="cancelBtn">Cancel edits</button>
+      </div>
+
+      <div class="group" id="grp-crud">
+        <label>Name:</label>
+        <input id="newName" placeholder="name" />
+        <label>Branch:</label>
+        <input id="newBranch" placeholder="branch" />
+        <button class="btn" id="addRowBtn">Add new engineer</button>
+        <button class="btn danger" id="delByNameBtn">Delete name</button>
+      </div>
+
+      <span id="saving" style="color:#2563eb;margin-left:8px;display:none">Working…</span>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <label>  Description : </label>
+      <small><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fff7ed;box-shadow:inset 0 0 0 2px #fb923c;vertical-align:middle;margin-right:6px"></span>Edited cell (waiting to save)</small>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="skill-btn" data-skill="0" style="transform:scale(.9);">-</span>
+        <small>No skill</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="skill-btn" data-skill="1" style="transform:scale(.9);"><span class="dot" style="background:#ffffff"></span></span>
+        <small>Can do</small>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="skill-btn" data-skill="2" style="transform:scale(.9);"><span class="dot" style="background:#000000"></span></span>
+        <small>Can teach</small>
+      </div>
+    </div>
+
+    <div class="table-shell">
+      <div class="scroll" id="scroller">
+        <table id="grid"><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ====== CONFIG ======
+  const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
+  const GID = '0';
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyKXUiyvt_LHeRBSiWyOinkdK3w-OSlkpLwXbSwHIjWgXW9ACycZio_TTKu6nC-HUSExA/exec';
+  const CSV_PROXY_URL = `${GAS_URL}?mode=csv&sheetId=${SHEET_ID}&gid=${GID}`;
+
+  // ====== STATE ======
+  let header1=[], header2=[], rows=[], originalRows=[];
+  const edits=new Map();
+  const editedCells=new Set();
+  const thead=document.getElementById('thead');
+  const tbody=document.getElementById('tbody');
+  const filterEl=document.getElementById('filterBranch');
+  const statsEl=document.getElementById('stats');
+
+  function makeRequestId(){ return 'req_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); }
+
+  // Load CSV (direct → proxy fallback)
+  async function fetchCsvAll(){
+    try{
+      const r = await fetch(CSV_URL,{cache:'no-store'});
+      if(!r.ok) throw new Error('Direct CSV HTTP '+r.status);
+      const text = await r.text();
+      const parsed = Papa.parse(text,{skipEmptyLines:false}).data || [];
+      if(!parsed.length) throw new Error('Direct CSV empty');
+      return parsed;
+    }catch(err1){
+      console.warn('[csv] direct export failed, fallback to GAS proxy:', err1);
+      const r2 = await fetch(CSV_PROXY_URL,{cache:'no-store'});
+      if(!r2.ok) throw new Error('Proxy CSV HTTP '+r2.status);
+      const text2 = await r2.text();
+      return Papa.parse(text2,{skipEmptyLines:false}).data || [];
+    }
+  }
+  async function fetchCsvRows(){
+    const data = await fetchCsvAll();
+    return data.slice(2);
+  }
+
+  function uniqueBranches(list){
+    const seen=new Set(); const out=[];
+    list.forEach(r=>{
+      const b=String(r[1]??'').trim();
+      if(b && !seen.has(b)){ seen.add(b); out.push(b); }
+    });
+    out.sort((a,b)=>a.localeCompare(b,'en'));
+    return out;
+  }
+  function populateFilter(){
+    const cur = filterEl.value || '*';
+    const branches = uniqueBranches(rows);
+    filterEl.innerHTML = '<option value="*">All branch</option>' + branches.map(b=>`<option value="${b}">${b}</option>`).join('');
+    if([...filterEl.options].some(o=>o.value===cur)) filterEl.value = cur;
+  }
+
+  function fixHeaderTop(){
+    const tr1=thead.querySelector('tr:first-child'); if(!tr1) return;
+    const h = Math.round(tr1.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--head1', h+'px');
+  }
+
+  // Robust sticky offsets (use header widths if body is empty)
+  function updateStickyLefts(){
+    const headerRow = thead.querySelector('tr:first-child');
+    const bodyRow = tbody.querySelector('tr');
+
+    const getW = (el) => el ? el.getBoundingClientRect().width : 0;
+
+    const c0 = (bodyRow?.children[0]) || (headerRow?.children[0]);
+    const c1 = (bodyRow?.children[1]) || (headerRow?.children[1]);
+    const c2 = (bodyRow?.children[2]) || (headerRow?.children[2]);
+    const c3 = (bodyRow?.children[3]) || (headerRow?.children[3]);
+
+    const w0 = getW(c0) || 160;  // name
+    const w1 = getW(c1) || 140;  // branch
+    const w2 = getW(c2) || 90;   // L1
+    const w3 = getW(c3) || 90;   // L2
+
+    document.documentElement.style.setProperty('--sticky-left-0','0px');
+    document.documentElement.style.setProperty('--sticky-left-1', (w0) + 'px');
+    document.documentElement.style.setProperty('--sticky-left-2', (w0 + w1) + 'px');
+    document.documentElement.style.setProperty('--sticky-left-3', (w0 + w1 + w2) + 'px');
+  }
+
+  // Skill UI
+  function makeDot(color){ const s=document.createElement('span'); s.className='dot'; s.style.background=color; return s; }
+  function setSkillVisual(btn, val){
+    btn.dataset.skill = String(val);
+    btn.innerHTML='';
+    if(String(val)==='0'){ btn.textContent='-'; }
+    else if(String(val)==='1'){ btn.appendChild(makeDot('#ffffff')); }
+    else { btn.appendChild(makeDot('#000000')); }
+  }
+
+  function updateRowPercents(rIdx, tr){
+    const row = rows[rIdx] || [];
+    const maxCols = Math.max(row.length, header1.length, header2.length);
+    const skills = [];
+    for(let i=2;i<maxCols;i++){
+      const v = String(row[i] ?? '');
+      if(v==='0' || v==='1' || v==='2') skills.push(v);
+      else skills.push('0');
+    }
+    const denom = Math.max(1, skills.length);
+    const l1 = Math.round((skills.filter(v=>v==='1'||v==='2').length / denom) * 100);
+    const l2 = Math.round((skills.filter(v=>v==='2').length / denom) * 100);
+
+    const tdL1 = tr.querySelector('td.pct-l1');
+    const tdL2 = tr.querySelector('td.pct-l2');
+    if(tdL1) tdL1.innerHTML = `<span class="chip">${l1}%</span>`;
+    if(tdL2) tdL2.innerHTML = `<span class="chip">${l2}%</span>`;
+  }
+
+  function createSkillControl(val, rIdx, cIdx, td, tr){
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='skill-btn';
+    setSkillVisual(btn, val);
+    btn.addEventListener('click',()=>{
+      const cur = Number(rows[rIdx]?.[cIdx] ?? 0) || 0;
+      const next = (cur + 1) % 3;
+      const copy = (rows[rIdx] ? rows[rIdx].slice() : []);
+      copy[cIdx] = String(next);
+      rows[rIdx] = copy;
+      edits.set(rIdx+2, copy);
+      td.classList.add('edited');
+      editedCells.add(`${rIdx}|${cIdx}`);
+      setSkillVisual(btn, next);
+      updateRowPercents(rIdx, tr);
+      updateStats(); // update stats on edit
+    });
+    return btn;
+  }
+
+  // Stats
+  function getVisibleRowIndices(){
+    const val = filterEl?.value||'*';
+    if(val==='*') return rows.map((_,i)=>i);
+    const out=[]; rows.forEach((r,i)=>{ if((String(r[1]||'').trim())===val) out.push(i); });
+    return out;
+  }
+  function updateStats(){
+    if(!statsEl) return;
+    const people = getVisibleRowIndices().length;
+    const edited = editedCells.size;
+    statsEl.innerHTML = `Showing <strong>${people}</strong> people • Edited skill cells: <strong>${edited}</strong>`;
+  }
+
+  // Render
+  function renderHeader(h1,h2){
+    const tr1=document.createElement('tr');
+    const tr2=document.createElement('tr');
+    const n=Math.max(h1.length,h2.length);
+    let i=0;
+    while(i<n){
+      const title=(h1[i]??'').trim();
+      if(i===0||i===1){
+        const th=document.createElement('th');
+        th.textContent= title || (i===0?'name':'branch');
+        th.classList.add(i===0?'sticky-col-0':'sticky-col-1');
+        th.setAttribute('rowspan',2); tr1.appendChild(th); i++; continue;
+      }
+      if(!title){ const th=document.createElement('th'); th.setAttribute('rowspan',2); tr1.appendChild(th); i++; continue; }
+      let j=i+1; while(j<n && (h1[j]??'').trim()==='') j++;
+      const groupEnd=j, colspan=Math.max(1,groupEnd-i);
+      let hasSub=false; for(let k=i;k<groupEnd;k++){ if((h2[k]??'').trim()!==''){hasSub=true;break;} }
+      const thGroup=document.createElement('th'); thGroup.textContent=title;
+      if(hasSub){ thGroup.setAttribute('colspan',colspan); } else { thGroup.setAttribute('rowspan',2); }
+      tr1.appendChild(thGroup);
+      if(hasSub){ for(let k=i;k<groupEnd;k++){ const th2=document.createElement('th'); th2.textContent=(h2[k]??'').trim(); tr2.appendChild(th2);} }
+      i=groupEnd;
+    }
+    thead.innerHTML=''; thead.append(tr1,tr2);
+
+    const top=thead.querySelector('tr:first-child');
+
+    const iconL1 = document.createElement('span');
+    iconL1.className = 'skill-btn'; iconL1.dataset.skill = '1';
+    iconL1.style.transform = 'scale(.85)';
+    iconL1.innerHTML = '<span class="dot" style="background:#ffffff"></span>';
+
+    const iconL2 = document.createElement('span');
+    iconL2.className = 'skill-btn'; iconL2.dataset.skill = '2';
+    iconL2.style.transform = 'scale(.85)';
+    iconL2.innerHTML = '<span class="dot" style="background:#000000"></span>';
+
+    const thL1=document.createElement('th'); thL1.rowSpan=2; thL1.className='sticky-col-2'; thL1.appendChild(iconL1);
+    const thL2=document.createElement('th'); thL2.rowSpan=2; thL2.className='sticky-col-3'; thL2.appendChild(iconL2);
+
+    top.insertBefore(thL2, top.children[2] || null);
+    top.insertBefore(thL1, top.children[2] || null);
+  }
+
+  function renderBody(){
+    tbody.innerHTML='';
+    const visible = getVisibleRowIndices();
+    visible.forEach((rIdx)=>{
+      const row = rows[rIdx]||[];
+      const tr=document.createElement('tr');
+      tr.dataset.index = rIdx;
+
+      const maxCols = Math.max(row.length, header1.length, header2.length);
+
+      const tdName=document.createElement('td'); tdName.textContent=row[0]??''; tdName.classList.add('sticky-col-0'); tr.appendChild(tdName);
+      const tdBranch=document.createElement('td'); tdBranch.textContent=row[1]??''; tdBranch.classList.add('sticky-col-1'); tr.appendChild(tdBranch);
+
+      const tdL1=document.createElement('td'); tdL1.className='pct pct-l1 sticky-col-2'; tr.appendChild(tdL1);
+      const tdL2=document.createElement('td'); tdL2.className='pct pct-l2 sticky-col-3'; tr.appendChild(tdL2);
+
+      for(let c=2;c<maxCols;c++){
+        const td=document.createElement('td'); const val=row[c]??'';
+        td.classList.add('skill-td');
+        const ctrl = createSkillControl(val, rIdx, c, td, tr);
+        td.appendChild(ctrl);
+        if(editedCells.has(`${rIdx}|${c}`)) td.classList.add('edited');
+        tr.appendChild(td);
+      }
+
+      updateRowPercents(rIdx, tr);
+      tbody.appendChild(tr);
+    });
+    updateStats();
+  }
+
+  async function loadCsv(){
+    try{
+      const data = await fetchCsvAll();
+      if(!data || data.length<2) throw new Error('CSV format incorrect (need 2 header rows)');
+      header1=data[0]||[]; header2=data[1]||[]; rows=data.slice(2);
+      originalRows = rows.map(r=>r.slice());
+      populateFilter();
+      renderHeader(header1,header2);
+      renderBody();
+      requestAnimationFrame(()=>{updateStickyLefts();fixHeaderTop();});
+      updateStats();
+    }catch(err){
+      console.error(err);
+      alert('Load failed: '+err.message+'\nCheck Google Sheet permission or try proxy via GAS');
+      thead.innerHTML=''; tbody.innerHTML='';
+      updateStats();
+    }
+  }
+
+  // Save / Add / Delete / Cancel
+  async function onAddRow(){
+    const addBtn=document.getElementById('addRowBtn'); addBtn.disabled=true;
+    const branch=document.getElementById('newBranch').value.trim();
+    const name=document.getElementById('newName').value.trim();
+    if(!name||!branch){ alert('Please enter name and branch'); addBtn.disabled=false; return; }
+
+    const cols = Math.max(header1.length, header2.length, (rows[0]||[]).length);
+    const newRow = new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
+
+    const payload = { requestId: makeRequestId(), appends: [{ name, branch, values:newRow }] };
+    const saving=document.getElementById('saving');
+
+    try{
+      saving.style.display='inline';
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok = res.ok;
+      }catch{ ok=false; }
+
+      const appeared = await fetchCsvRows().then(rs=> rs.some(r => String(r[0]||'').trim()===name && String(r[1]||'').trim()===branch)).catch(()=>false);
+      if (!appeared && !ok) throw new Error('Failed to fetch');
+
+      document.getElementById('newBranch').value='';
+      document.getElementById('newName').value='';
+      await loadCsv();
+      alert('Added successfully');
+    }catch(err){
+      alert('Add failed: '+err.message);
+      console.error(err);
+    }finally{
+      saving.style.display='none';
+      addBtn.disabled=false;
+    }
+  }
+
+  async function onDeleteByNameImmediate(){
+    const delBtn=document.getElementById('delByNameBtn'); delBtn.disabled=true;
+    const nameRaw=document.getElementById('newName').value.trim();
+    if(!nameRaw){ alert('Type the name in the name field first'); delBtn.disabled=false; return; }
+    const nameLC = nameRaw.toLowerCase();
+
+    const payload = { requestId: makeRequestId(), deletesNames: [nameLC] };
+    try{
+      document.getElementById('saving').style.display='inline';
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const gone = await fetchCsvRows().then(rs=> !rs.some(r => String(r[0]||'').trim().toLowerCase()===nameLC)).catch(()=>false);
+      if (!gone && !ok) throw new Error('Failed to fetch');
+
+      await loadCsv();
+      alert('Deleted successfully');
+    }catch(err){
+      alert('Delete failed: '+err.message);
+      console.error(err);
+    }finally{
+      document.getElementById('saving').style.display='none';
+      delBtn.disabled=false;
+    }
+  }
+
+  async function onSave(){
+    const btn=document.getElementById('saveBtn'); btn.disabled=true;
+    const updates = Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}));
+    if(updates.length===0){ alert('No changes to save'); btn.disabled=false; return; }
+
+    const payload={ requestId: makeRequestId(), updates };
+    const saving=document.getElementById('saving');
+
+    try{
+      saving.style.display='inline';
+      let ok=false;
+      try{
+        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const verified = await (async()=>{
+        try{
+          const rowsNow = await fetchCsvRows();
+          const map = new Map();
+          rowsNow.forEach(r=>{
+            const key = (String(r[0]||'').trim().toLowerCase()+'||'+String(r[1]||'').trim().toLowerCase());
+            map.set(key, r);
+          });
+          return updates.every(u=>{
+            const vals = u.rowValues||[];
+            const key = (String(vals[0]||'').trim().toLowerCase()+'||'+String(vals[1]||'').trim().toLowerCase());
+            const actual = map.get(key);
+            if(!actual) return false;
+            for(let i=0;i<vals.length;i++){
+              if(String(actual[i]??'') !== String(vals[i]??'')) return false;
+            }
+            return true;
+          });
+        }catch{ return false; }
+      })();
+      if (!verified && !ok) throw new Error('Failed to fetch');
+
+      edits.clear(); editedCells.clear();
+      await loadCsv();
+      alert('Saved');
+    }catch(e){
+      alert('Save failed: '+e.message);
+      console.error(e);
+    }finally{
+      saving.style.display='none';
+      btn.disabled=false;
+    }
+  }
+
+  function cancelEdits(){
+    if(!originalRows || !originalRows.length){ alert('No changes'); return; }
+    rows = originalRows.map(r=>r.slice());
+    edits.clear();
+    editedCells.clear();
+    renderBody();
+    requestAnimationFrame(()=>{updateStickyLefts();});
+    updateStats();
+    alert('Edits cancelled');
+  }
+
+  // Listeners
+  document.getElementById('addRowBtn').addEventListener('click',onAddRow);
+  document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
+  document.getElementById('saveBtn').addEventListener('click',onSave);
+  document.getElementById('cancelBtn').addEventListener('click',cancelEdits);
+  window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
+  filterEl.addEventListener('change',()=>{
+    renderBody();
+    requestAnimationFrame(()=>{ updateStickyLefts(); updateStats(); });
+  });
+
+  // Init
+  console.log('[init] CSV_URL=', CSV_URL);
+  console.log('[init] GAS_URL=', GAS_URL);
+  loadCsv();
+</script>
+</body>
+</html>
