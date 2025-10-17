@@ -1,0 +1,127 @@
+    const first=tbody.querySelector('tr'); if(!first) return;
+    const w0=first.children[0]?.getBoundingClientRect().width||160;
+    document.documentElement.style.setProperty('--sticky-left-0','0px');
+    document.documentElement.style.setProperty('--sticky-left-1',w0+'px');
+  }
+
+  // ====== EDIT / ADD / DELETE & SAVE ======
+  function markEdit(rIdx,cIdx,newVal){
+    const copy = (rows[rIdx] ? rows[rIdx].slice() : []);
+    copy[cIdx]=newVal;
+    rows[rIdx]=copy;
+    edits.set(rIdx+2, copy);
+  }
+
+  async function onAddRow(){
+    const addBtn=document.getElementById('addRowBtn'); addBtn.disabled=true;
+    const branch=document.getElementById('newBranch').value.trim();
+    const name=document.getElementById('newName').value.trim();
+    if(!name||!branch){ alert('Please enter name and branch'); addBtn.disabled=false; return; }
+
+    const cols = Math.max(header1.length, header2.length, (rows[0]||[]).length);
+    const newRow = new Array(cols).fill('0'); newRow[0]=name; newRow[1]=branch;
+
+    const payload = { requestId: makeRequestId(), appends: [{ name, branch, values:newRow }] };
+    const saving=document.getElementById('saving');
+
+    try{
+      saving.style.display='inline';
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok = res.ok;
+      }catch{ ok=false; }
+
+      const appeared = await verifyAppend(name, branch);
+      if (!appeared && !ok) throw new Error('Failed to fetch');
+
+      document.getElementById('newBranch').value='';
+      document.getElementById('newName').value='';
+      await loadCsv();
+      alert('Added successfully');
+    }catch(err){
+      alert('Add failed: '+err.message);
+      console.error(err);
+    }finally{
+      saving.style.display='none';
+      addBtn.disabled=false;
+    }
+  }
+
+  async function onDeleteByNameImmediate(){
+    const delBtn=document.getElementById('delByNameBtn'); delBtn.disabled=true;
+    const nameRaw=document.getElementById('newName').value.trim();
+    if(!nameRaw){ alert('Type the name in the name field first'); delBtn.disabled=false; return; }
+    const nameLC = nameRaw.toLowerCase();
+
+    const payload = { requestId: makeRequestId(), deletesNames: [nameLC] };
+    try{
+      document.getElementById('saving').style.display='inline';
+      let ok=false;
+      try{
+        const res = await fetch(GAS_URL, { method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body: JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const gone = await verifyDeleteByName(nameLC);
+      if (!gone && !ok) throw new Error('Failed to fetch');
+
+      await loadCsv();
+      alert('Deleted successfully');
+    }catch(err){
+      alert('Delete failed: '+err.message);
+      console.error(err);
+    }finally{
+      document.getElementById('saving').style.display='none';
+      delBtn.disabled=false;
+    }
+  }
+
+  async function onSave(){
+    const btn=document.getElementById('saveBtn'); btn.disabled=true;
+    const updates = Array.from(edits.entries()).map(([sheetRowIndex,rowValues])=>({sheetRowIndex,rowValues}));
+    if(updates.length===0){ alert('No changes to save'); btn.disabled=false; return; }
+
+    const payload={ requestId: makeRequestId(), updates };
+    const saving=document.getElementById('saving');
+
+    try{
+      saving.style.display='inline';
+      let ok=false;
+      try{
+        const res=await fetch(GAS_URL,{ method:'POST', mode:'cors', headers:{'Content-Type':'text/plain;charset=UTF-8'}, body:JSON.stringify(payload) });
+        await res.text().catch(()=>null);
+        ok=res.ok;
+      }catch{ ok=false; }
+
+      const verified = await verifyUpdates(updates);
+      if (!verified && !ok) throw new Error('Failed to fetch');
+
+      edits.clear(); editedCells.clear();
+      await loadCsv();
+      alert('Saved');
+    }catch(e){
+      alert('Save failed: '+e.message);
+      console.error(e);
+    }finally{
+      saving.style.display='none';
+      btn.disabled=false;
+    }
+  }
+
+  // ====== LISTENERS ======
+  document.getElementById('addRowBtn').addEventListener('click',onAddRow);
+  document.getElementById('delByNameBtn').addEventListener('click',onDeleteByNameImmediate);
+  document.getElementById('saveBtn').addEventListener('click',onSave);
+  window.addEventListener('resize',()=>{updateStickyLefts();fixHeaderTop();});
+  filterEl.addEventListener('change',()=>{ renderBody(); requestAnimationFrame(updateStickyLefts); });
+
+  // init
+  console.log('[init] CSV_URL=', CSV_URL);
+  console.log('[init] GAS_URL=', GAS_URL);
+  loadCsv();
+</script>
+</body>
+</html>
