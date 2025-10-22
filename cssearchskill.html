@@ -3,11 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม & หัวตาราง 2 ชั้น) - YAPT</title>
+  <title>ค้นหาคนตามสกิล (หัว 2 ชั้น + คอลัมน์ซ้ายตรึง) - YAPT</title>
   <style>
     :root{
       --c-bg:#ffffff; --c-fg:#0f172a; --c-line:#e5e7eb; --accent:#2563eb;
-      --thead-row1-h: 42px; /* ความสูงแถวหัวบน (จะถูกอัปเดตด้วย JS ให้ตรงจริง) */
+      --thead-row1-h: 42px;          /* ความสูงหัวแถวบน (อัปเดตด้วย JS) */
+      --sticky-left-0:0px;           /* Name  */
+      --sticky-left-1:0px;           /* Branch */
+      --sticky-left-2:0px;           /* Match % */
     }
     html,body{height:100%;margin:0}
     body{ background:var(--c-bg); color:var(--c-fg);
@@ -36,7 +39,7 @@
     .muted{ opacity:.75 }
     .stats{ font-size:14px; margin:6px 0 0 }
 
-    /* กล่องสกิลแบบกลุ่ม — เปิดโชว์ทั้งหมด */
+    /* กล่องสกิลแบบกลุ่ม (เปิดทุกกลุ่ม) */
     .skill-groups{ border:1px solid var(--c-line); border-radius:12px; padding:8px; }
     details.group{ border:1px solid var(--c-line); border-radius:10px; margin:6px 0; background:#fff; }
     details.group[open]{ box-shadow:0 1px 2px rgba(0,0,0,.04); }
@@ -47,43 +50,52 @@
     .skill-grid{ display:grid; grid-template-columns:repeat(1, minmax(0,1fr)); gap:6px; }
     .skill-item{ display:flex; align-items:center; gap:8px; min-width:0; }
     .skill-item input{ accent-color:#2563eb; }
-
     @media (min-width:640px){ .skill-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
     @media (min-width:1000px){ .skill-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
 
-    /* พื้นที่ผลลัพธ์เต็มความสูงที่เหลือ */
+    /* พื้นที่ผลลัพธ์ */
     .results-shell{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:12px; }
     .results-card{ flex:1; display:flex; flex-direction:column; min-height:0; }
     .results-card .bd{ flex:1; min-height:0; display:flex; flex-direction:column; }
     .results-scroll{
-      flex:1; min-height:0; overflow:auto;
-      -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; overscroll-behavior:contain;
+      flex:1; min-height:0; overflow:auto;               /* ต้องให้กล่องนี้ scroll */
+      -webkit-overflow-scrolling:touch; overscroll-behavior:contain;
       border:1px solid var(--c-line); border-radius:10px;
+      background:#fff;
     }
 
-    /* ตาราง: หัว 2 ชั้น sticky ทั้งคู่ */
-    table{ border-collapse:separate; border-spacing:0; width:100%; }
-    thead th{ position:sticky; background:#111827; color:#fff; z-index:2; }
-    thead tr:nth-child(1) th{ top:0; }                       /* Group row (Head1) */
-    thead tr:nth-child(2) th{ top:var(--thead-row1-h); }     /* Skills row (Head2) */
-    th,td{ padding:10px 12px; border-bottom:1px solid var(--c-line); white-space:nowrap; }
-    tr:hover td{ background:#f9fafb; }
+    /* ตาราง: หัว 2 ชั้น sticky + คอลัมน์ซ้ายตรึง */
+    table{ border-collapse:separate; border-spacing:0; width:100%; min-width:720px; }
+    thead th{ position:sticky; background:#111827; color:#fff; z-index:3; }
+    thead tr:nth-child(1) th{ top:0; }                            /* ชั้นบน: Head1 */
+    thead tr:nth-child(2) th{ top:var(--thead-row1-h); z-index:2; }/* ชั้นล่าง: Head2 */
 
-    /* ชิปเปอร์เซ็นต์ */
+    th,td{ padding:10px 12px; border-bottom:1px solid #e5e7eb; white-space:nowrap; }
+    tr:hover td{ background:#f9fafb }
+
+    /* คอลัมน์ซ้ายตรึง: ใช้ทั้งหัวและตัวตาราง */
+    .sticky-col-0{ position:sticky; left:var(--sticky-left-0); z-index:4; background:#0b1220; color:#fff; } /* thead */
+    .sticky-col-1{ position:sticky; left:var(--sticky-left-1); z-index:4; background:#0b1220; color:#fff; }
+    .sticky-col-2{ position:sticky; left:var(--sticky-left-2); z-index:4; background:#0b1220; color:#fff; }
+
+    tbody .sticky-col-0, tbody .sticky-col-1, tbody .sticky-col-2{
+      background:#ffffff; color:#0f172a;             /* body cells ขาว */
+    }
+
+    /* ชิปเปอร์เซ็นต์ + สีตามเกณฑ์ */
     .chip{ display:inline-block; min-width:46px; text-align:center;
            padding:2px 8px; border-radius:999px; border:1px solid #c7d2fe; background:#dbeafe; font-weight:600; }
-    .sub{ font-size:12px; opacity:.8; margin-left:6px; }
-    /* สีของ Match % ตามเกณฑ์ */
     .chip.green  { background:#dcfce7; border-color:#86efac; } /* ≥80% */
     .chip.yellow { background:#fef9c3; border-color:#fde047; } /* 50–79% */
     .chip.orange { background:#ffedd5; border-color:#fdba74; } /* <50% */
+    .sub{ font-size:12px; opacity:.8; margin-left:6px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 <div class="page">
   <div class="wrap">
-    <h1>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม & หัวตาราง 2 ชั้น) – YAPT</h1>
+    <h1>ค้นหาคนตามสกิล (หัว 2 ชั้น + คอลัมน์ซ้ายตรึง) – YAPT</h1>
 
     <!-- ฟิลเตอร์ -->
     <div class="card">
@@ -103,8 +115,8 @@
 
           <div class="group">
             <label>โหมดจับคู่:</label>
-            <label title="ต้องผ่านทุกสกิลที่เลือก"><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
-            <label title="ผ่านอย่างน้อย 1 สกิลที่เลือก"><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
+            <label><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
+            <label><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
           </div>
 
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
@@ -129,10 +141,14 @@
       <div class="card results-card">
         <div class="hd">ผลลัพธ์</div>
         <div class="bd">
-          <div class="results-scroll">
+          <div class="results-scroll" id="resultScroll">
             <table id="resultTable">
               <thead id="thead">
-                <tr id="theadRowTop"><th>Name</th><th>Branch</th></tr>
+                <tr id="theadRowTop">
+                  <th class="sticky-col-0">Name</th>
+                  <th class="sticky-col-1">Branch</th>
+                  <!-- โหมด OR จะเพิ่ม Match % (sticky-col-2) อัตโนมัติ -->
+                </tr>
                 <tr id="theadRowBottom"></tr>
               </thead>
               <tbody id="tbody"></tbody>
@@ -195,7 +211,7 @@
       const groupName = lastGroup || 'Other';
       if (!sRaw) continue; // คอลัมน์หัวกลุ่ม/คั่น
 
-      const head2 = sRaw;         // แสดงเฉพาะ Head2 ในตัวเลือก
+      const head2 = sRaw;         // ใช้เฉพาะ Head2 ในตัวเลือก
       const short = toShortLabel(head2);
       if(!groups.has(groupName)) groups.set(groupName, []);
       groups.get(groupName).push({ idx:i, head2, short });
@@ -249,12 +265,12 @@
     return el ? el.value : 'AND';
   }
 
-  // =========== Header 2 ชั้น (บน=Head1, ล่าง=Head2) ==============
+  // =========== Header 2 ชั้น + เพิ่ม Match% ถ้าเป็น OR ============
   function renderHeaderCols(selected, showMatchPercent){
     // เรียงตาม index จริง เพื่อให้ group ต่อเนื่อง
     const ordered = selected.slice().sort((a,b)=>a-b);
 
-    // สร้าง run ของกลุ่ม (ชื่อ + จำนวนคอลัมน์ต่อเนื่อง)
+    // สร้าง run ของกลุ่ม
     const runs = [];
     let cur=null, cnt=0;
     ordered.forEach(idx=>{
@@ -265,15 +281,11 @@
     if(cur!==null) runs.push({name:cur,count:cnt});
 
     // แถวบน
-    theadRowTop.innerHTML = '';
-    const thName = document.createElement('th'); thName.textContent='Name'; thName.rowSpan=2; theadRowTop.appendChild(thName);
-    const thBranch = document.createElement('th'); thBranch.textContent='Branch'; thBranch.rowSpan=2; theadRowTop.appendChild(thBranch);
-
-    // โหมด OR: เพิ่มหัว "Match %" (rowspan=2)
-    if(showMatchPercent){
-      const thMatch = document.createElement('th'); thMatch.textContent='Match %'; thMatch.rowSpan=2; theadRowTop.appendChild(thMatch);
-    }
-
+    theadRowTop.innerHTML = `
+      <th class="sticky-col-0">Name</th>
+      <th class="sticky-col-1">Branch</th>
+      ${showMatchPercent ? '<th class="sticky-col-2">Match %</th>' : ''}
+    `;
     runs.forEach(r=>{
       const th = document.createElement('th');
       th.textContent = r.name;
@@ -291,13 +303,42 @@
       theadRowBottom.appendChild(th);
     });
 
-    // อัปเดตความสูงแถวบนจริง -> ใช้เป็น offset sticky ของแถวล่าง
+    // ปรับ offset sticky ของหัวแถวล่างให้ตรงความสูงจริงของแถวบน
     requestAnimationFrame(()=>{
       const h = theadRowTop.getBoundingClientRect().height;
       document.documentElement.style.setProperty('--thead-row1-h', Math.round(h)+'px');
+      updateStickyLefts(); // อัปเดต offset ตรึงซ้าย
     });
 
     return ordered;
+  }
+
+  // =========== คำนวณ offset สำหรับคอลัมน์ที่ตรึงซ้าย ===========
+  function updateStickyLefts(){
+    // เอาความกว้างจริงของคอลัมน์แรกๆ จาก thead แถวล่าง (ถ้ามี) หรือแถวบน
+    const t = document.getElementById('resultTable');
+    const headTop = t.tHead ? t.tHead.rows[0] : null;
+    const headBottom = t.tHead && t.tHead.rows[1] ? t.tHead.rows[1] : null;
+
+    function cellW(row, idx){ return row && row.cells[idx] ? row.cells[idx].getBoundingClientRect().width : 0; }
+
+    const w0 = cellW(headTop,0) || cellW(headBottom,0) || 160; // Name
+    const w1 = cellW(headTop,1) || cellW(headBottom,1) || 140; // Branch
+    // ถ้ามีคอลัมน์ Match %
+    const hasMatch = !!document.querySelector('.sticky-col-2');
+    const w2 = hasMatch ? (cellW(headTop,2) || 110) : 0;
+
+    document.documentElement.style.setProperty('--sticky-left-0','0px');
+    document.documentElement.style.setProperty('--sticky-left-1', w0 + 'px');
+    document.documentElement.style.setProperty('--sticky-left-2', (w0 + w1) + 'px');
+
+    // ใส่คลาส sticky ให้ body cells คอลัมน์ที่ 0,1,2
+    const rows = document.querySelectorAll('#resultTable tbody tr');
+    rows.forEach(tr=>{
+      if(tr.cells[0]) tr.cells[0].classList.add('sticky-col-0');
+      if(tr.cells[1]) tr.cells[1].classList.add('sticky-col-1');
+      if(hasMatch && tr.cells[2]) tr.cells[2].classList.add('sticky-col-2');
+    });
   }
 
   function okVal(v, level){ return level===2 ? (v===2) : (v>=1); }
@@ -308,8 +349,9 @@
     if(selected.length===0){
       infoEl.innerHTML = `กรุณาเลือกสกิลอย่างน้อย 1 รายการ`;
       tbody.innerHTML = '';
-      theadRowTop.innerHTML = '<th>Name</th><th>Branch</th>';
+      theadRowTop.innerHTML = '<th class="sticky-col-0">Name</th><th class="sticky-col-1">Branch</th>';
       theadRowBottom.innerHTML = '';
+      updateStickyLefts();
       return;
     }
     const level = getSelectedLevel();      // 1: v>=1, 2: v===2
@@ -329,21 +371,17 @@
     matches.forEach(r=>{
       const tr = document.createElement('tr');
       const cells = [
-        `<td>${escapeHtml(r[0]??'')}</td>`,
-        `<td>${escapeHtml(r[1]??'')}</td>`
+        `<td class="sticky-col-0">${escapeHtml(r[0]??'')}</td>`,
+        `<td class="sticky-col-1">${escapeHtml(r[1]??'')}</td>`
       ];
 
       if(showMatchPercent){
         const pass = ordered.reduce((acc,idx)=> acc + (okVal(Number(r[idx]??0)||0, level) ? 1 : 0), 0);
         const pct  = Math.round((pass/ordered.length)*100);
         const cls  = (pct >= 80) ? 'green' : (pct >= 50 ? 'yellow' : 'orange');
-        cells.push(
-          `<td><span class="chip ${cls}">${pct}%</span>` +
-          `<span class="sub">${pass}/${ordered.length}</span></td>`
-        );
+        cells.push(`<td class="sticky-col-2"><span class="chip ${cls}">${pct}%</span><span class="sub">${pass}/${ordered.length}</span></td>`);
       }
 
-      // ค่าของสกิลแต่ละตัว
       ordered.forEach(idx=>{
         cells.push(`<td>${escapeHtml(String(r[idx]??'0'))}</td>`);
       });
@@ -354,6 +392,9 @@
 
     const labels = ordered.map(i=> escapeHtml(idxMeta[i]?.short || ('@'+(i+1)))).join(', ');
     infoEl.innerHTML = `ผลลัพธ์: พบ <strong>${matches.length}</strong> คน | โหมด <strong>${mode}</strong> | ระดับ <strong>${level===2?'Can teach (=2)':'Can do (≥1)'}</strong>${branch!=='*'?' | Branch: <strong>'+escapeHtml(branch)+'</strong>':''}<br><span class="muted">สกิลที่เลือก: ${labels}</span>`;
+
+    // อัปเดต offset ตรึงซ้ายหลังวาดบอดี้เสร็จ
+    requestAnimationFrame(updateStickyLefts);
   }
 
   // ====== ปุ่มเลือกทั้งหมด/ล้างทั้งหมด และรายกลุ่ม ======
@@ -363,6 +404,9 @@
   document.getElementById('selectNone').addEventListener('click', ()=>{
     document.querySelectorAll('input[name="skill"]').forEach(el=> el.checked = false);
   });
+  document.getElementById('resultScroll').addEventListener('scroll', ()=>{/* ให้ thead sticky ทำงานในกล่องนี้ */});
+
+  // รายกลุ่ม
   skillGroupsEl.addEventListener('click', (e)=>{
     const btn = e.target.closest('button[data-act]');
     if(!btn) return;
@@ -374,6 +418,7 @@
   });
 
   document.getElementById('searchBtn').addEventListener('click', search);
+  window.addEventListener('resize', ()=> requestAnimationFrame(updateStickyLefts));
 
   // ====== Init ======
   async function init(){
@@ -385,9 +430,10 @@
       header2 = data[1]||[];
       rows = data.slice(2);
 
-      buildGroupedSkills();   // ทำกลุ่ม + ตัวเลือกสกิล (ใช้ Head2)
+      buildGroupedSkills();   // ทำกลุ่ม + ตัวเลือกสกิล (Head2)
       populateBranch();
       infoEl.textContent = 'พร้อมค้นหาแล้ว';
+      updateStickyLefts();    // ตั้งค่าตรึงซ้ายครั้งแรก
     }catch(err){
       console.error(err);
       infoEl.textContent = 'โหลดข้อมูลล้มเหลว: '+err.message;
