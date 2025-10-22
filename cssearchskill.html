@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ค้นหาคนตามสกิล - YAPT</title>
+  <title>ค้นหาคนตามสกิล (หลายรายการ) - YAPT</title>
   <style>
     :root{
       --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--accent:#2563eb;
@@ -12,51 +12,84 @@
     body{
       background:var(--c-bg);color:var(--c-fg);
       font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;
-      min-height:100dvh;
     }
-    .wrap{max-width:960px;margin:0 auto;padding:16px}
+
+    /* เต็มหน้าจอจริง ๆ และจัด layout แบบคอลัมน์ */
+    .page{
+      min-height:100dvh; /* บนมือถือสูงพอดีจอ */
+      display:flex; flex-direction:column;
+    }
+    @supports not (height: 1dvh){
+      .page{ min-height:100vh; }
+    }
+
+    .wrap{width:100%;max-width:1100px;margin:0 auto;padding:14px}
     h1{margin:0 0 8px}
+
     .card{border:1px solid var(--c-line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
     .card .hd{padding:12px 14px;border-bottom:1px solid var(--c-line);font-weight:700}
     .card .bd{padding:14px}
-    .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-    .row > *{flex:0 1 auto}
-    .group{display:flex;gap:8px;align-items:center;border:1px solid var(--c-line);border-radius:12px;padding:8px 10px;background:#fff}
-    label{font-size:14px;opacity:.85}
+
+    .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+    label{font-size:14px;opacity:.9}
     select,button{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
     button.btn{background:var(--accent);color:#fff;border-color:#1e40af;cursor:pointer}
     button.btn:disabled{opacity:.6;cursor:not-allowed}
-    fieldset{border:none;padding:0;margin:0}
-    .skill-list{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:6px;max-height:260px;overflow:auto;border:1px solid var(--c-line);border-radius:10px;padding:8px}
-    .skill-item{display:flex;align-items:center;gap:8px}
+    .group{display:flex;gap:8px;align-items:center;border:1px solid var(--c-line);border-radius:12px;padding:8px 10px;background:#fff}
+
+    fieldset{border:none;margin:0;padding:0}
+    .skill-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+    .skill-list{
+      display:grid; gap:6px;
+      grid-template-columns:repeat(1,minmax(0,1fr));
+      max-height:36vh; overflow:auto; /* กล่องสกิลสูงตามจอ */
+      border:1px solid var(--c-line); border-radius:10px; padding:8px;
+    }
+    .skill-item{display:flex;align-items:center;gap:8px;min-width:0}
     .skill-item input{accent-color:#2563eb}
-    .stack-sm{display:flex;flex-direction:column;gap:6px}
     .muted{opacity:.75}
-    .stats{font-size:14px;margin:8px 0}
-    .results{border:1px solid var(--c-line);border-radius:10px;overflow:auto}
-    table{border-collapse:separate;border-spacing:0;width:100%;min-width:420px}
+    .stats{font-size:14px;margin:6px 0 0}
+
+    /* พื้นที่ผลลัพธ์ กินความสูงที่เหลือของหน้า */
+    .results-shell{
+      flex:1; display:flex; flex-direction:column; min-height:0; /* สำคัญมาก */
+      margin-top:12px;
+    }
+    .results-card{flex:1; display:flex; flex-direction:column; min-height:0}
+    .results-card .bd{flex:1; min-height:0; display:flex; flex-direction:column}
+    .results-scroll{
+      flex:1; min-height:0; overflow:auto; /* ตารางเลื่อนเต็มจอ */
+      -webkit-overflow-scrolling:touch; touch-action: pan-x pan-y; overscroll-behavior:contain;
+      border:1px solid var(--c-line); border-radius:10px;
+    }
+
+    table{border-collapse:separate;border-spacing:0;width:max(700px,100%); /* ถ้าเลือกหลายสกิลจะกว้างขึ้น */ }
+    thead th{position:sticky;top:0;background:#111827;color:#fff;z-index:1}
     th,td{padding:10px 12px;border-bottom:1px solid var(--c-line);white-space:nowrap}
-    thead th{background:#111827;color:#fff;text-align:left;position:sticky;top:0;z-index:1}
     tr:hover td{background:#f9fafb}
-    .help{font-size:13px;opacity:.75}
+
+    .pill{display:inline-block;border:1px solid #d1d5db;border-radius:999px;padding:2px 8px;font-size:12px}
+    .controls-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+
     @media (min-width:640px){
       .skill-list{grid-template-columns:repeat(2,minmax(0,1fr))}
     }
-    @media (min-width:840px){
+    @media (min-width:900px){
       .skill-list{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
+<div class="page">
   <div class="wrap">
-    <h1>ค้นหาคนตามสกิล (YAPT)</h1>
-    <p class="help">เลือก “สกิล” ที่ต้องการและระดับสกิล จากนั้นกดค้นหาเพื่อดูรายชื่อ</p>
+    <h1>ค้นหาคนตามสกิล (เลือกหลายรายการ) – YAPT</h1>
 
-    <div class="card" style="margin-bottom:12px">
+    <!-- ฟิลเตอร์ -->
+    <div class="card">
       <div class="hd">ตัวกรอง</div>
-      <div class="bd stack-sm">
-        <div class="row">
+      <div class="bd">
+        <div class="row" style="margin-bottom:10px">
           <div class="group">
             <label for="branch">Branch:</label>
             <select id="branch">
@@ -70,51 +103,67 @@
             <label><input type="radio" name="level" value="2"> Can teach (= 2)</label>
           </div>
 
-          <button class="btn" id="searchBtn">ค้นหา</button>
+          <div class="group">
+            <label>โหมดจับคู่:</label>
+            <label title="ต้องผ่านทุกสกิลที่เลือก"><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
+            <label title="ผ่านอย่างน้อย 1 สกิลที่เลือก"><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
+          </div>
+
+          <div class="controls-right">
+            <button class="btn" id="searchBtn">ค้นหา</button>
+          </div>
         </div>
 
         <fieldset>
-          <legend class="muted" style="margin-bottom:6px">เลือกสกิล (เลือกได้ 1 รายการ)</legend>
+          <div class="skill-toolbar">
+            <span class="muted">เลือกสกิล (หลายรายการ):</span>
+            <button type="button" id="selectAll" class="pill">เลือกทั้งหมด</button>
+            <button type="button" id="selectNone" class="pill">ล้างที่เลือก</button>
+          </div>
           <div id="skills" class="skill-list">
             <!-- เติมรายการสกิลอัตโนมัติ -->
           </div>
         </fieldset>
 
-        <div id="info" class="stats muted">กำลังโหลดสกิล…</div>
+        <div id="info" class="stats muted">กำลังโหลดข้อมูล…</div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="hd">ผลลัพธ์</div>
-      <div class="bd">
-        <div class="results">
-          <table>
-            <thead>
-              <tr><th>Name</th><th>Branch</th><th>Skill value</th></tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
+    <!-- ผลลัพธ์เต็มหน้าจอ -->
+    <div class="results-shell">
+      <div class="card results-card">
+        <div class="hd">ผลลัพธ์</div>
+        <div class="bd">
+          <div class="results-scroll">
+            <table>
+              <thead id="thead">
+                <tr id="theadRow"><th>Name</th><th>Branch</th></tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+
   </div>
+</div>
 
 <script>
-  // ====== CONFIG (แก้ได้) ======
+  // ====== CONFIG ======
   const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
   const GID = '0';
   const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  // map of skillIndex -> label
-  let skills = []; // [{idx: number, label: string}]
-  const tbody = document.getElementById('tbody');
+  let skills = []; // [{idx, label, short}]
   const skillsBox = document.getElementById('skills');
   const infoEl = document.getElementById('info');
   const branchEl = document.getElementById('branch');
+  const theadRow = document.getElementById('theadRow');
+  const tbody = document.getElementById('tbody');
 
-  // ====== LOAD CSV ======
   async function fetchCsvAll(){
     const r = await fetch(CSV_URL,{cache:'no-store'});
     if(!r.ok) throw new Error('CSV HTTP '+r.status);
@@ -126,21 +175,31 @@
     list.forEach(r=>{ const b=(r[1]??'').trim(); if(b) set.add(b); });
     return Array.from(set).sort((a,b)=>a.localeCompare(b,'en'));
   }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // แยก label สั้นเพื่อทำหัวตารางอ่านง่าย
+  function toShortLabel(label){
+    const parts = String(label).split('›').map(s=>s.trim()).filter(Boolean);
+    const tail = parts[parts.length-1] || label;
+    return tail.length>16 ? tail.slice(0,16)+'…' : tail;
+  }
 
   function buildSkillList(){
     skills = [];
     const n = Math.max(header1.length, header2.length);
-    for(let i=2;i<n;i++){ // เริ่มที่คอลัมน์ที่ 3 = index 2
+    for(let i=2;i<n;i++){
       const g = String(header1[i]??'').trim();
       const s = String(header2[i]??'').trim();
       if(!g && !s) continue;
-      const label = s ? `${g ? g+' › ' : ''}${s}` : g;
-      skills.push({ idx:i, label });
+      const full = s ? `${g ? g+' › ' : ''}${s}` : g;
+      skills.push({ idx:i, label:full, short:toShortLabel(full) });
     }
-    // render radios
-    skillsBox.innerHTML = skills.map((o,ix)=>(
-      `<label class="skill-item"><input type="radio" name="skill" value="${o.idx}" ${ix===0?'checked':''}> ${escapeHtml(o.label)}</label>`
-    )).join('') || '<div class="muted">ไม่พบสกิลจากหัวตาราง</div>';
+    skillsBox.innerHTML = skills.map(o =>
+      `<label class="skill-item" title="${escapeHtml(o.label)}">
+         <input type="checkbox" name="skill" value="${o.idx}">
+         <span>${escapeHtml(o.label)}</span>
+       </label>`
+    ).join('') || '<div class="muted">ไม่พบสกิลจากหัวตาราง</div>';
     infoEl.textContent = `โหลดสกิลสำเร็จ: ${skills.length} รายการ`;
   }
   function populateBranch(){
@@ -148,41 +207,77 @@
     branchEl.innerHTML = '<option value="*">All branch</option>' + items.map(b=>`<option value="${b}">${b}</option>`).join('');
   }
 
-  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  function getSelectedSkillIndex(){
-    const r = document.querySelector('input[name="skill"]:checked');
-    return r ? Number(r.value) : -1;
+  function getSelectedSkillIndices(){
+    return Array.from(document.querySelectorAll('input[name="skill"]:checked')).map(el=>Number(el.value));
   }
   function getSelectedLevel(){
-    const r = document.querySelector('input[name="level"]:checked');
-    return r ? Number(r.value) : 1;
+    const el = document.querySelector('input[name="level"]:checked');
+    return el ? Number(el.value) : 1;
+  }
+  function getMode(){
+    const el = document.querySelector('input[name="mode"]:checked');
+    return el ? el.value : 'AND';
+  }
+
+  function renderHeaderCols(selected){
+    // รีเฟรชหัวตารางให้มีคอลัมน์สกิลตามที่เลือก
+    theadRow.innerHTML = '<th>Name</th><th>Branch</th>' +
+      selected.map(sIdx=>{
+        const meta = skills.find(x=>x.idx===sIdx);
+        const title = meta ? meta.label : `Skill @${sIdx+1}`;
+        const text = meta ? meta.short : title;
+        return `<th title="${escapeHtml(title)}">${escapeHtml(text)}</th>`;
+      }).join('');
   }
 
   function search(){
-    const sIdx = getSelectedSkillIndex();
-    const level = getSelectedLevel();
-    const branch = branchEl.value || '*';
+    const selected = getSelectedSkillIndices();
+    if(selected.length===0){
+      infoEl.innerHTML = `กรุณาเลือกสกิลอย่างน้อย 1 รายการ`;
+      tbody.innerHTML = '';
+      renderHeaderCols([]);
+      return;
+    }
+    const level = getSelectedLevel();      // 1: v>=1, 2: v===2
+    const mode  = getMode();               // AND / OR
+    const branch= branchEl.value || '*';
+
+    renderHeaderCols(selected);
+
+    const okVal = (v) => level===2 ? (v===2) : (v>=1);
 
     const matches = rows.filter(r=>{
       if(branch!=='*' && String(r[1]||'').trim()!==branch) return false;
-      const v = Number(r[sIdx] ?? 0) || 0;
-      if(level===2) return v===2;          // ต้องสอนได้
-      return v>=1;                          // ทำได้หรือสอนได้
+      const checks = selected.map(idx => okVal(Number(r[idx]??0)||0));
+      return mode==='AND' ? checks.every(Boolean) : checks.some(Boolean);
     });
 
-    // render
+    // เรนเดอร์ผลลัพธ์: Name, Branch, แล้วคอลัมน์สกิลแต่ละตัว
     tbody.innerHTML = '';
     matches.forEach(r=>{
       const tr = document.createElement('tr');
-      const v = String(r[sIdx] ?? '0');
-      tr.innerHTML = `<td>${escapeHtml(r[0]??'')}</td><td>${escapeHtml(r[1]??'')}</td><td>${v}</td>`;
+      const cells = [
+        `<td>${escapeHtml(r[0]??'')}</td>`,
+        `<td>${escapeHtml(r[1]??'')}</td>`,
+        ...selected.map(idx=>`<td>${escapeHtml(String(r[idx]??'0'))}</td>`)
+      ];
+      tr.innerHTML = cells.join('');
       tbody.appendChild(tr);
     });
 
-    const label = (skills.find(o=>o.idx===sIdx)?.label)||`Skill @col ${sIdx+1}`;
-    infoEl.innerHTML = `ผลลัพธ์: พบ <strong>${matches.length}</strong> คน สำหรับสกิล <strong>${escapeHtml(label)}</strong> (ระดับ: ${level===2?'Can teach (=2)':'Can do (≥1)'}${branch!=='*'?', Branch: '+escapeHtml(branch):''})`;
+    const labels = selected.map(i => escapeHtml(skills.find(x=>x.idx===i)?.short || `@${i+1}`)).join(', ');
+    infoEl.innerHTML = `ผลลัพธ์: พบ <strong>${matches.length}</strong> คน | โหมด <strong>${mode}</strong> | ระดับ <strong>${level===2?'Can teach (=2)':'Can do (≥1)'}</strong>${branch!=='*'?' | Branch: <strong>'+escapeHtml(branch)+'</strong>':''}<br><span class="muted">สกิลที่เลือก: ${labels}</span>`;
   }
+
+  // ปุ่มเลือกทั้งหมด / ล้างทั้งหมด
+  document.getElementById('selectAll').addEventListener('click', ()=>{
+    document.querySelectorAll('input[name="skill"]').forEach(el=> el.checked=true);
+  });
+  document.getElementById('selectNone').addEventListener('click', ()=>{
+    document.querySelectorAll('input[name="skill"]').forEach(el=> el.checked=false);
+  });
+
+  document.getElementById('searchBtn').addEventListener('click', search);
 
   async function init(){
     try{
@@ -201,8 +296,6 @@
       infoEl.textContent = 'โหลดข้อมูลล้มเหลว: '+err.message;
     }
   }
-
-  document.getElementById('searchBtn').addEventListener('click', search);
   window.addEventListener('load', init);
 </script>
 </body>
