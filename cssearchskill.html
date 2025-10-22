@@ -3,14 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม) - YAPT</title>
+  <title>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม & หัวตาราง 2 ชั้น) - YAPT</title>
   <style>
-    :root{ --c-bg:#ffffff; --c-fg:#0f172a; --c-line:#e5e7eb; --accent:#2563eb; }
-    html,body{height:100%;margin:0}
-    body{
-      background:var(--c-bg); color:var(--c-fg);
-      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;
+    :root{
+      --c-bg:#ffffff; --c-fg:#0f172a; --c-line:#e5e7eb; --accent:#2563eb;
+      --thead-row1-h: 42px; /* ความสูงแถวหัวบน (จะถูกอัปเดตด้วย JS ให้ตรงจริง) */
     }
+    html,body{height:100%;margin:0}
+    body{ background:var(--c-bg); color:var(--c-fg);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial; }
 
     .page{ min-height:100dvh; display:flex; flex-direction:column; }
     @supports not (height: 1dvh){ .page{ min-height:100vh; } }
@@ -19,61 +20,66 @@
     h1{ margin:0 0 8px; }
 
     .card{ border:1px solid var(--c-line); border-radius:12px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.04); }
-    .card .hd{ padding:12px 14px; border-bottom:1px solid var(--c-line); font-weight:700 }
-    .card .bd{ padding:14px }
+    .card .hd{ padding:12px 14px; border-bottom:1px solid var(--c-line); font-weight:700; }
+    .card .bd{ padding:14px; }
 
-    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+    .row{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
     label{ font-size:14px; opacity:.9 }
-    select,button{ height:40px; border:1px solid #d1d5db; border-radius:10px; padding:0 12px; background:#fff; color:#0f172a }
+    select,button{ height:40px; border:1px solid #d1d5db; border-radius:10px; padding:0 12px; background:#fff; color:#0f172a; }
     button.btn{ background:var(--accent); color:#fff; border-color:#1e40af; cursor:pointer }
     button.btn:disabled{ opacity:.6; cursor:not-allowed }
     .group{ display:flex; gap:8px; align-items:center; border:1px solid var(--c-line); border-radius:12px; padding:8px 10px; background:#fff }
 
-    .pill{ display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:6px 10px; font-size:13px; background:#fff; cursor:pointer }
-    .pill:hover{ background:#f3f4f6 }
+    .pill{ display:inline-block; border:1px solid #d1d5db; border-radius:999px; padding:6px 10px; font-size:13px; background:#fff; cursor:pointer; }
+    .pill:hover{ background:#f3f4f6; }
 
     .muted{ opacity:.75 }
     .stats{ font-size:14px; margin:6px 0 0 }
 
-    /* กล่องสกิล: เอา scroll ย่อยออก ให้หน้าเว็บยาวแทน */
-    .skill-groups{
-      border:1px solid var(--c-line); border-radius:12px; padding:8px;
-      max-height:none; overflow:visible;
-    }
+    /* กล่องสกิลแบบกลุ่ม — เปิดโชว์ทั้งหมด */
+    .skill-groups{ border:1px solid var(--c-line); border-radius:12px; padding:8px; }
+    details.group{ border:1px solid var(--c-line); border-radius:10px; margin:6px 0; background:#fff; }
+    details.group[open]{ box-shadow:0 1px 2px rgba(0,0,0,.04); }
+    .group-head{ display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer; }
+    .group-title{ font-weight:600; }
+    .group-tools{ margin-left:auto; display:flex; gap:6px; }
+    .group-body{ padding:8px 12px 12px; }
+    .skill-grid{ display:grid; grid-template-columns:repeat(1, minmax(0,1fr)); gap:6px; }
+    .skill-item{ display:flex; align-items:center; gap:8px; min-width:0; }
+    .skill-item input{ accent-color:#2563eb; }
 
-    details.group{ border:1px solid var(--c-line); border-radius:10px; margin:6px 0; background:#fff }
-    details.group[open]{ box-shadow:0 1px 2px rgba(0,0,0,.04) }
-    .group-head{ display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer }
-    .group-title{ font-weight:600 }
-    .group-tools{ margin-left:auto; display:flex; gap:6px }
-    .group-body{ padding:8px 12px 12px }
-    .skill-grid{ display:grid; grid-template-columns:repeat(1, minmax(0,1fr)); gap:6px }
-    .skill-item{ display:flex; align-items:center; gap:8px; min-width:0 }
-    .skill-item input{ accent-color:#2563eb }
+    @media (min-width:640px){ .skill-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
+    @media (min-width:1000px){ .skill-grid{ grid-template-columns:repeat(3, minmax(0,1fr)); } }
 
-    @media (min-width:640px){ .skill-grid{ grid-template-columns:repeat(2, minmax(0,1fr)) } }
-    @media (min-width:1000px){ .skill-grid{ grid-template-columns:repeat(3, minmax(0,1fr)) } }
-
-    .results-shell{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:12px }
-    .results-card{ flex:1; display:flex; flex-direction:column; min-height:0 }
-    .results-card .bd{ flex:1; min-height:0; display:flex; flex-direction:column }
+    /* พื้นที่ผลลัพธ์เต็มความสูงที่เหลือ */
+    .results-shell{ flex:1; display:flex; flex-direction:column; min-height:0; margin-top:12px; }
+    .results-card{ flex:1; display:flex; flex-direction:column; min-height:0; }
+    .results-card .bd{ flex:1; min-height:0; display:flex; flex-direction:column; }
     .results-scroll{
       flex:1; min-height:0; overflow:auto;
       -webkit-overflow-scrolling:touch; touch-action:pan-x pan-y; overscroll-behavior:contain;
-      border:1px solid var(--c-line); border-radius:10px
+      border:1px solid var(--c-line); border-radius:10px;
     }
 
-    table{ border-collapse:separate; border-spacing:0; width:100% }
-    thead th{ position:sticky; top:0; background:#111827; color:#fff; z-index:1 }
-    th,td{ padding:10px 12px; border-bottom:1px solid var(--c-line); white-space:nowrap }
-    tr:hover td{ background:#f9fafb }
+    /* ตาราง: หัว 2 ชั้น sticky ทั้งคู่ */
+    table{ border-collapse:separate; border-spacing:0; width:100%; }
+    thead th{ position:sticky; background:#111827; color:#fff; z-index:2; }
+    thead tr:nth-child(1) th{ top:0; }                       /* Group row (Head1) */
+    thead tr:nth-child(2) th{ top:var(--thead-row1-h); }     /* Skills row (Head2) */
+    th,td{ padding:10px 12px; border-bottom:1px solid var(--c-line); white-space:nowrap; }
+    tr:hover td{ background:#f9fafb; }
+
+    /* ชิปเปอร์เซ็นต์ */
+    .chip{ display:inline-block; min-width:46px; text-align:center;
+           padding:2px 8px; border-radius:999px; border:1px solid #c7d2fe; background:#dbeafe; font-weight:600; }
+    .sub{ font-size:12px; opacity:.8; margin-left:6px; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
 <body>
 <div class="page">
   <div class="wrap">
-    <h1>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม Head 1) – YAPT</h1>
+    <h1>ค้นหาคนตามสกิล (หลายรายการ แบ่งตามกลุ่ม & หัวตาราง 2 ชั้น) – YAPT</h1>
 
     <!-- ฟิลเตอร์ -->
     <div class="card">
@@ -82,9 +88,7 @@
         <div class="row" style="margin-bottom:10px">
           <div class="group">
             <label for="branch">Branch:</label>
-            <select id="branch">
-              <option value="*">All branch</option>
-            </select>
+            <select id="branch"><option value="*">All branch</option></select>
           </div>
 
           <div class="group">
@@ -95,8 +99,8 @@
 
           <div class="group">
             <label>โหมดจับคู่:</label>
-            <label><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
-            <label><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
+            <label title="ต้องผ่านทุกสกิลที่เลือก"><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
+            <label title="ผ่านอย่างน้อย 1 สกิลที่เลือก"><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
           </div>
 
           <div style="margin-left:auto; display:flex; gap:8px; align-items:center;">
@@ -110,8 +114,8 @@
           <button type="button" id="selectNone" class="pill">ล้างที่เลือก</button>
           <span class="muted" id="skillCount" style="margin-left:auto"></span>
         </div>
-        <div id="skillGroups" class="skill-groups"></div>
 
+        <div id="skillGroups" class="skill-groups"></div>
         <div id="info" class="stats muted">กำลังโหลดข้อมูล…</div>
       </div>
     </div>
@@ -122,8 +126,11 @@
         <div class="hd">ผลลัพธ์</div>
         <div class="bd">
           <div class="results-scroll">
-            <table>
-              <thead><tr id="theadRow"><th>Name</th><th>Branch</th></tr></thead>
+            <table id="resultTable">
+              <thead id="thead">
+                <tr id="theadRowTop"><th>Name</th><th>Branch</th></tr>
+                <tr id="theadRowBottom"></tr>
+              </thead>
               <tbody id="tbody"></tbody>
             </table>
           </div>
@@ -142,11 +149,16 @@
 
   // ====== STATE ======
   let header1=[], header2=[], rows=[];
-  // groups: Map<Head1 -> [{idx, labelFull(=Head2), short}]>
+  // groups: Map<Head1 -> [{idx, head2, short}]>
   let groups = new Map();
+  // metaสำหรับคอลัมน์: { [colIndex]: { group: string, head2: string, short: string } }
+  let idxMeta = {};
+
   const infoEl = document.getElementById('info');
   const branchEl = document.getElementById('branch');
-  const theadRow = document.getElementById('theadRow');
+  const thead = document.getElementById('thead');
+  const theadRowTop = document.getElementById('theadRowTop');
+  const theadRowBottom = document.getElementById('theadRowBottom');
   const tbody = document.getElementById('tbody');
   const skillGroupsEl = document.getElementById('skillGroups');
   const skillCountEl = document.getElementById('skillCount');
@@ -163,39 +175,33 @@
     return Array.from(set).sort((a,b)=>a.localeCompare(b,'en'));
   }
   function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-  function toShortLabel(label){
-    const tail = String(label).trim();
-    return tail.length>16 ? tail.slice(0,16)+'…' : tail;
-  }
+  function toShortLabel(label){ const tail=String(label).trim(); return tail.length>16 ? tail.slice(0,16)+'…' : tail; }
 
   // ====== Build grouped skills (forward-fill merge) ======
   function buildGroupedSkills(){
     groups = new Map();
+    idxMeta = {};
     const n = Math.max(header1.length, header2.length);
     let lastGroup = '';
-    for(let i=2; i<n; i++){
+    for(let i=2;i<n;i++){
       const gRaw = String(header1[i] ?? '').trim();
       const sRaw = String(header2[i] ?? '').trim();
 
       if (gRaw) lastGroup = gRaw;
       const groupName = lastGroup || 'Other';
+      if (!sRaw) continue; // คอลัมน์หัวกลุ่ม/คั่น
 
-      // ถ้า head2 ว่าง = หัวกลุ่ม/ตัวคั่น -> ข้าม
-      if (!sRaw) continue;
-
-      // ✅ label ใช้เฉพาะ Head2 ตามที่ขอ
-      const full  = sRaw;
-      const short = toShortLabel(full);
-
+      const head2 = sRaw;         // แสดงเฉพาะ Head2 ในตัวเลือก
+      const short = toShortLabel(head2);
       if(!groups.has(groupName)) groups.set(groupName, []);
-      groups.get(groupName).push({ idx:i, labelFull: full, short });
+      groups.get(groupName).push({ idx:i, head2, short });
+      idxMeta[i] = { group: groupName, head2, short };
     }
 
     const totalSkills = [...groups.values()].reduce((a,arr)=>a+arr.length,0);
     skillCountEl.textContent = `รวมสกิลทั้งหมด: ${totalSkills} รายการ / กลุ่ม: ${groups.size}`;
 
-    // ✅ เปิดทุกกลุ่มตั้งแต่แรก (open) และแสดงรายการทันที
+    // เรนเดอร์รายการกลุ่ม เปิดทุกกลุ่ม
     const html = [...groups.entries()].map(([gName, arr])=>`
       <details class="group" open>
         <summary class="group-head">
@@ -209,9 +215,9 @@
         <div class="group-body">
           <div class="skill-grid">
             ${arr.map(o => `
-              <label class="skill-item" title="${escapeHtml(o.labelFull)}">
+              <label class="skill-item" title="${escapeHtml(o.head2)}">
                 <input type="checkbox" name="skill" value="${o.idx}" data-group="${escapeHtml(gName)}">
-                <span>${escapeHtml(o.labelFull)}</span>
+                <span>${escapeHtml(o.head2)}</span>
               </label>
             `).join('')}
           </div>
@@ -239,36 +245,79 @@
     return el ? el.value : 'AND';
   }
 
-  function renderHeaderCols(selected){
-    const cells = ['<th>Name</th>','<th>Branch</th>'];
-    selected.forEach(sIdx=>{
-      let metaShort = `@${sIdx+1}`;
-      outer: for (const arr of groups.values()){
-        for(const o of arr){ if(o.idx===sIdx){ metaShort = o.short; break outer; } }
-      }
-      cells.push(`<th>${escapeHtml(metaShort)}</th>`);
+  // =========== Header 2 ชั้น (บน=Head1, ล่าง=Head2) ==============
+  function renderHeaderCols(selected, showMatchPercent){
+    // เรียงตาม index จริง เพื่อให้ group ต่อเนื่อง
+    const ordered = selected.slice().sort((a,b)=>a-b);
+
+    // สร้าง run ของกลุ่ม (ชื่อ + จำนวนคอลัมน์ต่อเนื่อง)
+    const runs = [];
+    let cur=null, cnt=0;
+    ordered.forEach(idx=>{
+      const g = (idxMeta[idx]?.group) || 'Other';
+      if(g!==cur){ if(cur!==null) runs.push({name:cur,count:cnt}); cur=g; cnt=1; }
+      else cnt++;
     });
-    theadRow.innerHTML = cells.join('');
+    if(cur!==null) runs.push({name:cur,count:cnt});
+
+    // แถวบน
+    theadRowTop.innerHTML = '';
+    const thName = document.createElement('th'); thName.textContent='Name'; thName.rowSpan=2; theadRowTop.appendChild(thName);
+    const thBranch = document.createElement('th'); thBranch.textContent='Branch'; thBranch.rowSpan=2; theadRowTop.appendChild(thBranch);
+
+    // โหมด OR: เพิ่มหัว "Match %" (rowspan=2)
+    if(showMatchPercent){
+      const thMatch = document.createElement('th'); thMatch.textContent='Match %'; thMatch.rowSpan=2; theadRowTop.appendChild(thMatch);
+    }
+
+    runs.forEach(r=>{
+      const th = document.createElement('th');
+      th.textContent = r.name;
+      th.colSpan = r.count;
+      theadRowTop.appendChild(th);
+    });
+
+    // แถวล่าง
+    theadRowBottom.innerHTML = '';
+    ordered.forEach(idx=>{
+      const meta = idxMeta[idx];
+      const th = document.createElement('th');
+      th.textContent = meta ? meta.short : ('@'+(idx+1));
+      th.title = meta ? meta.head2 : '';
+      theadRowBottom.appendChild(th);
+    });
+
+    // อัปเดตความสูงแถวบนจริง -> ใช้เป็น offset sticky ของแถวล่าง
+    requestAnimationFrame(()=>{
+      const h = theadRowTop.getBoundingClientRect().height;
+      document.documentElement.style.setProperty('--thead-row1-h', Math.round(h)+'px');
+    });
+
+    return ordered;
   }
 
+  function okVal(v, level){ return level===2 ? (v===2) : (v>=1); }
+
+  // ========================= SEARCH ===============================
   function search(){
     const selected = getSelectedSkillIndices();
     if(selected.length===0){
       infoEl.innerHTML = `กรุณาเลือกสกิลอย่างน้อย 1 รายการ`;
       tbody.innerHTML = '';
-      renderHeaderCols([]);
+      theadRowTop.innerHTML = '<th>Name</th><th>Branch</th>';
+      theadRowBottom.innerHTML = '';
       return;
     }
     const level = getSelectedLevel();      // 1: v>=1, 2: v===2
     const mode  = getMode();               // AND / OR
     const branch= branchEl.value || '*';
 
-    renderHeaderCols(selected);
-    const okVal = (v) => level===2 ? (v===2) : (v>=1);
+    const showMatchPercent = (mode==='OR');
+    const ordered = renderHeaderCols(selected, showMatchPercent);
 
     const matches = rows.filter(r=>{
       if(branch!=='*' && String(r[1]||'').trim()!==branch) return false;
-      const checks = selected.map(idx => okVal(Number(r[idx]??0)||0));
+      const checks = ordered.map(idx => okVal(Number(r[idx]??0)||0, level));
       return mode==='AND' ? checks.every(Boolean) : checks.some(Boolean);
     });
 
@@ -277,29 +326,35 @@
       const tr = document.createElement('tr');
       const cells = [
         `<td>${escapeHtml(r[0]??'')}</td>`,
-        `<td>${escapeHtml(r[1]??'')}</td>`,
-        ...selected.map(idx=>`<td>${escapeHtml(String(r[idx]??'0'))}</td>`)
+        `<td>${escapeHtml(r[1]??'')}</td>`
       ];
+
+      if(showMatchPercent){
+        const pass = ordered.reduce((acc,idx)=> acc + (okVal(Number(r[idx]??0)||0, level) ? 1 : 0), 0);
+        const pct = Math.round((pass/ordered.length)*100);
+        cells.push(`<td><span class="chip">${pct}%</span><span class="sub">${pass}/${ordered.length}</span></td>`);
+      }
+
+      // ค่าของสกิลแต่ละตัว
+      ordered.forEach(idx=>{
+        cells.push(`<td>${escapeHtml(String(r[idx]??'0'))}</td>`);
+      });
+
       tr.innerHTML = cells.join('');
       tbody.appendChild(tr);
     });
 
-    const labels = selected.map(i=>{
-      for (const arr of groups.values()){ const f = arr.find(o=>o.idx===i); if(f) return escapeHtml(f.short); }
-      return '@'+(i+1);
-    }).join(', ');
+    const labels = ordered.map(i=> escapeHtml(idxMeta[i]?.short || ('@'+(i+1)))).join(', ');
     infoEl.innerHTML = `ผลลัพธ์: พบ <strong>${matches.length}</strong> คน | โหมด <strong>${mode}</strong> | ระดับ <strong>${level===2?'Can teach (=2)':'Can do (≥1)'}</strong>${branch!=='*'?' | Branch: <strong>'+escapeHtml(branch)+'</strong>':''}<br><span class="muted">สกิลที่เลือก: ${labels}</span>`;
   }
 
-  // ปุ่มรวม / รายกลุ่ม
+  // ====== ปุ่มเลือกทั้งหมด/ล้างทั้งหมด และรายกลุ่ม ======
   document.getElementById('selectAll').addEventListener('click', ()=>{
     document.querySelectorAll('input[name="skill"]').forEach(el=> el.checked = true);
   });
   document.getElementById('selectNone').addEventListener('click', ()=>{
     document.querySelectorAll('input[name="skill"]').forEach(el=> el.checked = false);
   });
-  document.getElementById('searchBtn').addEventListener('click', search);
-
   skillGroupsEl.addEventListener('click', (e)=>{
     const btn = e.target.closest('button[data-act]');
     if(!btn) return;
@@ -310,6 +365,9 @@
     if(act==='group-none') boxes.forEach(b=> b.checked = false);
   });
 
+  document.getElementById('searchBtn').addEventListener('click', search);
+
+  // ====== Init ======
   async function init(){
     try{
       infoEl.textContent = 'กำลังโหลดข้อมูล…';
@@ -319,7 +377,7 @@
       header2 = data[1]||[];
       rows = data.slice(2);
 
-      buildGroupedSkills();    // ✅ label = head2 และเปิดทุกกลุ่ม
+      buildGroupedSkills();   // ทำกลุ่ม + ตัวเลือกสกิล (ใช้ Head2)
       populateBranch();
       infoEl.textContent = 'พร้อมค้นหาแล้ว';
     }catch(err){
