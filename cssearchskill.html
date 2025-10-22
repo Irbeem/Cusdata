@@ -73,6 +73,10 @@
     .chip{ display:inline-block; min-width:46px; text-align:center;
            padding:2px 8px; border-radius:999px; border:1px solid #c7d2fe; background:#dbeafe; font-weight:600; }
     .sub{ font-size:12px; opacity:.8; margin-left:6px; }
+    /* สีของ Match % ตามเกณฑ์ */
+    .chip.green  { background:#dcfce7; border-color:#86efac; } /* ≥80% */
+    .chip.yellow { background:#fef9c3; border-color:#fde047; } /* 50–79% */
+    .chip.orange { background:#ffedd5; border-color:#fdba74; } /* <50% */
   </style>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -331,8 +335,12 @@
 
       if(showMatchPercent){
         const pass = ordered.reduce((acc,idx)=> acc + (okVal(Number(r[idx]??0)||0, level) ? 1 : 0), 0);
-        const pct = Math.round((pass/ordered.length)*100);
-        cells.push(`<td><span class="chip">${pct}%</span><span class="sub">${pass}/${ordered.length}</span></td>`);
+        const pct  = Math.round((pass/ordered.length)*100);
+        const cls  = (pct >= 80) ? 'green' : (pct >= 50 ? 'yellow' : 'orange');
+        cells.push(
+          `<td><span class="chip ${cls}">${pct}%</span>` +
+          `<span class="sub">${pass}/${ordered.length}</span></td>`
+        );
       }
 
       // ค่าของสกิลแต่ละตัว
