@@ -4,13 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ค้นหาคนตามสกิล + เช็ควันว่าง (YAPT)</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <style>
   :root{
     --row-h: 40px;
     --c-bg:#ffffff; --c-fg:#0f172a; --c-line:#e5e7eb; --c-head-bg:#111827; --c-head-fg:#ffffff;
-    --accent:#2563eb; --ok:#16a34a; --warn:#f59e0b; --bad:#ea580c;
-    --chip-bg:#eef2ff; --chip-border:#c7d2fe;
+    --accent:#2563eb;
     --sticky-w-name: 180px; --sticky-w-branch: 120px; --sticky-w-match: 110px; --sticky-w-status: 120px;
   }
   html,body{height:100%;margin:0}
@@ -24,6 +22,7 @@
   .btn{height:40px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .radio{display:flex;gap:10px;align-items:center}
+  small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;opacity:.75}
 
   .skills{display:flex;flex-direction:column;gap:10px;margin:10px 0}
   details.skillgrp{border:1px solid var(--c-line);border-radius:12px;background:#fff}
@@ -44,29 +43,29 @@
   .sticky-branch{position:sticky;left:var(--sticky-w-name);z-index:3;background:#f8fafc;min-width:var(--sticky-w-branch)}
   .sticky-match{position:sticky;left:calc(var(--sticky-w-name) + var(--sticky-w-branch));z-index:3;background:#f1f5f9;min-width:var(--sticky-w-match);text-align:center}
   .sticky-status{position:sticky;left:calc(var(--sticky-w-name) + var(--sticky-w-branch) + var(--sticky-w-match));z-index:3;background:#f1f5f9;min-width:var(--sticky-w-status);text-align:center}
-
   thead .sticky-name, thead .sticky-branch, thead .sticky-match, thead .sticky-status { z-index:5; background:var(--c-head-bg);}
 
-  .chip{display:inline-block;min-width:52px;padding:2px 10px;border-radius:999px;border:1px solid var(--chip-border);background:var(--chip-bg);font-weight:700}
+  /* Match % chips + สีตามเกณฑ์ */
+  .chip{display:inline-block;min-width:52px;padding:2px 10px;border-radius:999px;border:1px solid #c7d2fe;background:#dbeafe;font-weight:700}
   .pct-good{background:#dcfce7;border-color:#86efac}
   .pct-mid{background:#fef9c3;border-color:#fde68a}
   .pct-low{background:#ffedd5;border-color:#fed7aa}
 
   .stat-free{background:#dcfce7;border:1px solid #86efac}
   .stat-busy{background:#fee2e2;border:1px solid #fecaca}
+  .stat-na{background:#f3f4f6;border:1px solid #e5e7eb}
 
-  /* ตัวบอกระดับสกิลแบบปุ่ม */
-  .skill-dot{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:56px;height:28px;border:1px solid #d1d5db;border-radius:14px;background:#fff}
-  .dot{width:12px;height:12px;border-radius:50%;display:inline-block}
-  .lv1{background:#22c55e;color:#fff}.lv1 .dot{background:#fff}
-  .lv2{background:#2563eb;color:#fff}.lv2 .dot{background:#000}
-  .lv0{background:#ffffff;color:#111}
-
-  small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;opacity:.75}
-  @media (max-width:900px){
-    .wrap{padding:10px}
-    .table-shell{height:calc(100vh - 260px)}
+  /* ไอคอนสกิล */
+  td.skill { text-align:center; }
+  .skill-pill{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    width:48px; height:26px; border:1px solid #d1d5db; border-radius:14px; background:#fff; user-select:none;
   }
+  .skill-pill .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .skill-pill[data-skill="1"]{ background:#22c55e; color:#ffffff; }   /* เขียว */
+  .skill-pill[data-skill="1"] .dot{ background:#ffffff; }
+  .skill-pill[data-skill="2"]{ background:#2563eb; color:#ffffff; }   /* น้ำเงิน */
+  .skill-pill[data-skill="2"] .dot{ background:#000000; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 </head>
@@ -80,8 +79,8 @@
       <label>Branch:</label>
       <select id="filterBranch"><option value="*">All branch</option></select>
       <span class="radio" style="margin-left:8px">
-        <label class="skill-dot lv1"><span class="dot"></span></label><small>= Can do (≥1)</small>
-        <label class="skill-dot lv2" style="margin-left:8px"><span class="dot"></span></label><small>= Can teach (=2)</small>
+        <label class="skill-pill" data-skill="1" title="Can do"><span class="dot"></span></label><small>= Can do (≥1)</small>
+        <label class="skill-pill" data-skill="2" style="margin-left:8px" title="Can teach"><span class="dot"></span></label><small>= Can teach (=2)</small>
       </span>
     </div>
 
@@ -97,7 +96,7 @@
       </label>
     </div>
 
-    <!-- วันที่ (วัน/เดือน/ปี) + ปฏิทินที่จะเช็ค -->
+    <!-- วันที่ + ปฏิทินที่จะเช็ค -->
     <div class="group">
       <label>วันที่:</label>
       <input id="dDay"   type="number" min="1" max="31" placeholder="วัน" style="width:80px">
@@ -128,22 +127,17 @@
 <script>
 /* ===================== CONFIG ===================== */
 // --- YAPT Skills Sheet (อ่านสกิล) ---
-const SKILL_SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k'; // ของคุณเดิม
+const SKILL_SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k'; // YAPT skills
 const SKILL_GID = '0';
 const SKILL_CSV = `https://docs.google.com/spreadsheets/d/${SKILL_SHEET_ID}/export?format=csv&gid=${SKILL_GID}`;
 
 // --- Calendar Sheets (เช็ควันว่าง) ---
-// BKK: ใช้ค่าเดียวกับหน้า BKK Calendar เดิมของคุณ
-const BKK_SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';   // จาก config เดิมของคุณ :contentReference[oaicite:2]{index=2}
+const BKK_SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';   // แก้ได้หากไม่ตรง
+const CBI_SHEET_ID = '1Yv7-SwI9Iuv9QcEaqFVCEejEe3_8Ja77NNwrM61x-oA';     // จากลิงก์ที่ให้มา
 const BKK_CALENDAR_SHEET = 'Carlendar';
-const BKK_NAMES_SHEET = 'Names';
-
-// CBI: ใส่ไอดีชีตปฏิทิน CBI จริงของคุณที่นี่
-const CBI_SHEET_ID = 'PUT_CBI_SHEET_ID_HERE';               // <-- แทนที่ด้วยไอดีจริง
 const CBI_CALENDAR_SHEET = 'Carlendar';
-const CBI_NAMES_SHEET = 'Names';
 
-// helper for gviz
+// gviz helper
 const gviz = (id, sheet) => `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}`;
 
 /* ===================== STATE ===================== */
@@ -161,7 +155,7 @@ async function loadSkills(){
   renderSkillGroups();
 }
 
-// จัดกลุ่ม Head1 -> รายการ Head2 (ไม่พรีฟิกซ์ชื่อด้วย Head1 ตามที่ขอมาก่อนหน้า)
+// จัดกลุ่ม Head1 -> รายการ Head2
 function buildGroups(){
   const n = Math.max(header1.length, header2.length);
   groups = [];
@@ -203,9 +197,9 @@ function populateBranch(){
 function renderSkillGroups(){
   const host=document.getElementById('skillGroups');
   host.innerHTML='';
-  groups.forEach((g,gi)=>{
+  groups.forEach((g)=>{
     const det=document.createElement('details');
-    det.className='skillgrp'; det.open=true;  // ให้แสดงออกมาเลยทุกกลุ่ม
+    det.className='skillgrp'; det.open=true; // แสดงออกมาทุกกลุ่ม
     det.innerHTML=`<summary>${g.title} <small class="mono">(${g.items.length})</small> <button type="button" class="btn-mini" data-act="all" style="margin-left:8px;border:1px solid #e5e7eb;background:#e5e7eb;border-radius:8px;padding:4px 8px;cursor:pointer">เลือกทั้งหมด</button> <button type="button" class="btn-mini" data-act="clear" style="margin-left:6px;border:1px solid #e5e7eb;background:#fff;border-radius:8px;padding:4px 8px;cursor:pointer">ล้าง</button></summary>`;
     const box=document.createElement('div');
     box.className='skillbox';
@@ -222,7 +216,6 @@ function renderSkillGroups(){
     det.querySelector('.btn-mini[data-act="clear"]').onclick=()=>{
       box.querySelectorAll('input[type="checkbox"]').forEach(ch=>{ch.checked=false; selectedSkillIdx.delete(Number(ch.dataset.idx));});
     };
-    // track change
     box.addEventListener('change',(e)=>{
       const ch=e.target.closest('input[type="checkbox"]'); if(!ch) return;
       const idx=Number(ch.dataset.idx);
@@ -257,48 +250,40 @@ function getVisibleRows(){
   return visible;
 }
 
-// match % (สีตามเกณฑ์ ≥80 เขียว, 50–79 เหลือง, ต่ำกว่า ส้ม — เหมือนหน้าที่คุณสั่งไว้)
 function calcMatchPercent(item, totalSelected){
   if(totalSelected===0) return 0;
   return Math.round((item.matchedCols.length / totalSelected) * 100);
 }
 function pctClass(p){ if(p>=80) return 'pct-good'; if(p>=50) return 'pct-mid'; return 'pct-low'; }
 
-// โหลดรายชื่อ “คนไม่ว่าง” จากปฏิทินในวันนั้น ๆ (รวมหลายชีตตามที่ติ๊ก)
-async function fetchBusyNameSet(y,m,d, useBKK, useCBI){
-  const fetchSet = async (sheetId, calSheet) => {
-    const txt = await fetch(gviz(sheetId, calSheet), {cache:'no-store'}).then(r=>r.text());
+// อ่านรายชื่อคน "ไม่ว่าง" จากชีต Carlendar (คอลัมน์ Year/Month/Date/Name)
+async function fetchBusyNameSet(y,m,d, ids){
+  const fetchOne = async (sheetId) => {
+    const txt = await fetch(gviz(sheetId, 'Carlendar'), {cache:'no-store'}).then(r=>r.text());
     const json = JSON.parse(txt.substring(47).slice(0,-2));
+    // หา column index ตาม header
     const cols = json.table.cols.map(c=>c.label);
-    // อ้างโครงสร้าง Year/Month/Date/Name จากหน้า Calendar เดิมของคุณ :contentReference[oaicite:3]{index=3}
-    const Y = cols.indexOf('Year'), M = cols.indexOf('Month'), D = cols.indexOf('Date'), N = cols.indexOf('Name');
+    const Y = cols.findIndex(x=>/^year$/i.test(x));
+    const M = cols.findIndex(x=>/^month$/i.test(x));
+    const D = cols.findIndex(x=>/^date$/i.test(x));
+    const N = cols.findIndex(x=>/^name$/i.test(x));
     const set=new Set();
     json.table.rows.forEach(row=>{
       const c=row.c;
-      const yy = c[Y]?.v || c[Y]?.f || c[Y] || '';
-      const mm = c[M]?.v || c[M]?.f || c[M] || '';
-      const dd = c[D]?.v || c[D]?.f || c[D] || '';
-      const nm = (c[N]?.v || '').toString();
+      const yy = c[Y]?.v ?? c[Y]?.f ?? c[Y];
+      const mm = c[M]?.v ?? c[M]?.f ?? c[M];
+      const dd = c[D]?.v ?? c[D]?.f ?? c[D];
+      const nm = (c[N]?.v ?? '').toString().trim();
       if(Number(yy)===Number(y) && Number(mm)===Number(m) && Number(dd)===Number(d) && nm){ set.add(nm); }
     });
     return set;
   };
 
-  const allSets=[];
-  if(useBKK && BKK_SHEET_ID!=='PUT_BKK_SHEET_ID_HERE'){
-    allSets.push( fetchSet(BKK_SHEET_ID, BKK_CALENDAR_SHEET) );
-  }
-  if(useCBI && CBI_SHEET_ID!=='PUT_CBI_SHEET_ID_HERE'){
-    allSets.push( fetchSet(CBI_SHEET_ID, CBI_CALENDAR_SHEET) );
-  }
-  if(allSets.length===0) return new Set();
-
-  const results = await Promise.allSettled(allSets);
+  if(!ids.length) return new Set();
+  const results = await Promise.allSettled(ids.map(fetchOne));
   const busy = new Set();
   results.forEach(res=>{
-    if(res.status==='fulfilled'){
-      res.value.forEach(n=>busy.add(n));
-    }
+    if(res.status==='fulfilled'){ res.value.forEach(n=>busy.add(n)); }
   });
   return busy;
 }
@@ -306,10 +291,10 @@ async function fetchBusyNameSet(y,m,d, useBKK, useCBI){
 /* ===================== RENDER RESULT ===================== */
 function renderResultHeader(){
   const thead=document.querySelector('#result thead');
-  // แถวหัวตาราง 2 ชั้น: ชั้นบนคือ Head1, ชั้นล่างคือ Head2 (เฉพาะคอลัมน์ที่ผู้ใช้เลือก)
   const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
-  // ตัดต่อคอลัมน์ L/R sticky ก่อน
-  const stickyRowTop = `
+
+  // ชั้นบน = Head1 (รวม Name/Branch/Match%/Status เป็นหัวแถวเดียว)
+  let head1 = `
     <tr>
       <th class="sticky-name">Name</th>
       <th class="sticky-branch">Branch</th>
@@ -317,7 +302,8 @@ function renderResultHeader(){
       <th class="sticky-status">Status</th>
       ${buildHead1Cells(selected)}
     </tr>`;
-  const second = `
+  // ชั้นล่าง = ชื่อสกิล (Head2)
+  let head2 = `
     <tr>
       <th class="sticky-name"></th>
       <th class="sticky-branch"></th>
@@ -325,15 +311,13 @@ function renderResultHeader(){
       <th class="sticky-status"></th>
       ${buildHead2Cells(selected)}
     </tr>`;
-  thead.innerHTML = stickyRowTop + second;
+  thead.innerHTML = head1 + head2;
 }
 function buildHead1Cells(selected){
-  let html='';
-  let i=0;
+  let html=''; let i=0;
   while(i<selected.length){
     const start = selected[i];
     const title = (header1[start]||'').trim() || (header2[start]||'').trim();
-    // นับ colspan ต่อเนื่องภายใต้ head1 เดียวกัน
     let j=i+1;
     while(j<selected.length && (header1[selected[j]]||'').trim()===(header1[start]||'').trim()) j++;
     const colspan = j-i;
@@ -346,7 +330,7 @@ function buildHead2Cells(selected){
   return selected.map(ci=>`<th>${escapeHtml((header2[ci]||'').trim() || (header1[ci]||'').trim())}</th>`).join('');
 }
 
-function renderResultBody(items, totalSelected, busySet){
+function renderResultBody(items, totalSelected, busySet, dateGiven){
   const tbody=document.querySelector('#result tbody');
   const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
 
@@ -356,14 +340,17 @@ function renderResultBody(items, totalSelected, busySet){
     const pct = calcMatchPercent(it, totalSelected);
     const pctCls = pctClass(pct);
 
-    const busy = busySet?.has(name);
-    const statChip = busy ? `<span class="chip stat-busy">Busy</span>` : `<span class="chip stat-free">Free</span>`;
+    let statChip = `<span class="chip stat-na">-</span>`;
+    if(dateGiven){
+      const busy = busySet?.has(name);
+      statChip = busy ? `<span class="chip stat-busy">Busy</span>` : `<span class="chip stat-free">Free</span>`;
+    }
 
     const skillCells = selected.map(ci=>{
       const v = String(it.r[ci]||'0');
-      if(v==='2') return `<td style="text-align:center"><span class="skill-dot lv2"><span class="dot"></span></span></td>`;
-      if(v==='1') return `<td style="text-align:center"><span class="skill-dot lv1"><span class="dot"></span></span></td>`;
-      return `<td style="text-align:center"><span class="skill-dot lv0">-</span></td>`;
+      if(v==='2') return `<td class="skill"><span class="skill-pill" data-skill="2"><span class="dot"></span></span></td>`;
+      if(v==='1') return `<td class="skill"><span class="skill-pill" data-skill="1"><span class="dot"></span></span></td>`;
+      return `<td class="skill"><span class="skill-pill" data-skill="0">-</span></td>`;
     }).join('');
 
     return `
@@ -385,33 +372,36 @@ document.getElementById('btnSearch').addEventListener('click', async ()=>{
   const day = Number(document.getElementById('dDay').value||0);
   const mon = Number(document.getElementById('dMonth').value||0);
   const yr  = Number(document.getElementById('dYear').value||0);
-  const useBKK = document.getElementById('chkBKK').checked;
-  const useCBI = document.getElementById('chkCBI').checked;
+  const chkBKK = document.getElementById('chkBKK').checked;
+  const chkCBI = document.getElementById('chkCBI').checked;
 
   const items = getVisibleRows();
-  // เรียง “Free มาก่อน” จาก busySet ภายหลัง
-  let busySet = new Set();
-  const dateGiven = (day>0 && mon>0 && yr>0);
 
+  // เตรียมอ่านวันว่าง ถ้าระบุวันที่
+  const dateGiven = (day>0 && mon>0 && yr>0);
+  let busySet = new Set();
   if(dateGiven){
+    const ids = [];
+    if(chkBKK) ids.push(BKK_SHEET_ID);
+    if(chkCBI) ids.push(CBI_SHEET_ID);
     try{
-      busySet = await fetchBusyNameSet(yr, mon, day, useBKK, useCBI);
+      busySet = await fetchBusyNameSet(yr, mon, day, ids);
     }catch(e){ console.warn('availability error', e); }
+    // เรียง Free ก่อน
+    items.sort((a,b)=>{
+      const an = String(a.r[0]||''), bn = String(b.r[0]||'');
+      const af = busySet.has(an)?1:0, bf = busySet.has(bn)?1:0;
+      if(af!==bf) return af-bf;
+      return an.localeCompare(bn,'en');
+    });
   }
 
-  // sort: Free ก่อน, จากนั้นตามชื่อ
-  items.sort((a,b)=>{
-    const an = String(a.r[0]||''), bn = String(b.r[0]||'');
-    const af = busySet.has(an)?1:0, bf = busySet.has(bn)?1:0;
-    if(af!==bf) return af-bf;
-    return an.localeCompare(bn,'en');
-  });
-
   renderResultHeader();
-  renderResultBody(items, selectedSkillIdx.size, busySet);
+  renderResultBody(items, selectedSkillIdx.size, busySet, dateGiven);
 
   const took = Math.round(performance.now()-t0);
-  document.getElementById('meta').textContent = `พบ ${items.length} คน | ใช้เวลา ${took} ms` + (dateGiven?` | ตรวจว่างวันที่ ${day}/${mon}/${yr}`:'');
+  document.getElementById('meta').textContent =
+    `พบ ${items.length} คน | ใช้เวลา ${took} ms` + (dateGiven?` | ตรวจว่างวันที่ ${day}/${mon}/${yr}${chkBKK?' | BKK':''}${chkCBI?' | CBI':''}`:'');
 });
 
 /* ===================== INIT ===================== */
