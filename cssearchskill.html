@@ -46,4 +46,164 @@
       .skill-list{grid-template-columns:repeat(3,minmax(0,1fr))}
     }
   </style>
-  <script src="https://c
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>ค้นหาคนตามสกิล (YAPT)</h1>
+    <p class="help">เลือก “สกิล” ที่ต้องการและระดับสกิล จากนั้นกดค้นหาเพื่อดูรายชื่อ</p>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="hd">ตัวกรอง</div>
+      <div class="bd stack-sm">
+        <div class="row">
+          <div class="group">
+            <label for="branch">Branch:</label>
+            <select id="branch">
+              <option value="*">All branch</option>
+            </select>
+          </div>
+
+          <div class="group">
+            <label>ระดับสกิล:</label>
+            <label><input type="radio" name="level" value="1" checked> Can do (≥ 1)</label>
+            <label><input type="radio" name="level" value="2"> Can teach (= 2)</label>
+          </div>
+
+          <button class="btn" id="searchBtn">ค้นหา</button>
+        </div>
+
+        <fieldset>
+          <legend class="muted" style="margin-bottom:6px">เลือกสกิล (เลือกได้ 1 รายการ)</legend>
+          <div id="skills" class="skill-list">
+            <!-- เติมรายการสกิลอัตโนมัติ -->
+          </div>
+        </fieldset>
+
+        <div id="info" class="stats muted">กำลังโหลดสกิล…</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">ผลลัพธ์</div>
+      <div class="bd">
+        <div class="results">
+          <table>
+            <thead>
+              <tr><th>Name</th><th>Branch</th><th>Skill value</th></tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // ====== CONFIG (แก้ได้) ======
+  const SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
+  const GID = '0';
+  const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+
+  // ====== STATE ======
+  let header1=[], header2=[], rows=[];
+  // map of skillIndex -> label
+  let skills = []; // [{idx: number, label: string}]
+  const tbody = document.getElementById('tbody');
+  const skillsBox = document.getElementById('skills');
+  const infoEl = document.getElementById('info');
+  const branchEl = document.getElementById('branch');
+
+  // ====== LOAD CSV ======
+  async function fetchCsvAll(){
+    const r = await fetch(CSV_URL,{cache:'no-store'});
+    if(!r.ok) throw new Error('CSV HTTP '+r.status);
+    const text = await r.text();
+    return Papa.parse(text,{skipEmptyLines:false}).data || [];
+  }
+  function uniqueBranches(list){
+    const set=new Set();
+    list.forEach(r=>{ const b=(r[1]??'').trim(); if(b) set.add(b); });
+    return Array.from(set).sort((a,b)=>a.localeCompare(b,'en'));
+  }
+
+  function buildSkillList(){
+    skills = [];
+    const n = Math.max(header1.length, header2.length);
+    for(let i=2;i<n;i++){ // เริ่มที่คอลัมน์ที่ 3 = index 2
+      const g = String(header1[i]??'').trim();
+      const s = String(header2[i]??'').trim();
+      if(!g && !s) continue;
+      const label = s ? `${g ? g+' › ' : ''}${s}` : g;
+      skills.push({ idx:i, label });
+    }
+    // render radios
+    skillsBox.innerHTML = skills.map((o,ix)=>(
+      `<label class="skill-item"><input type="radio" name="skill" value="${o.idx}" ${ix===0?'checked':''}> ${escapeHtml(o.label)}</label>`
+    )).join('') || '<div class="muted">ไม่พบสกิลจากหัวตาราง</div>';
+    infoEl.textContent = `โหลดสกิลสำเร็จ: ${skills.length} รายการ`;
+  }
+  function populateBranch(){
+    const items = uniqueBranches(rows);
+    branchEl.innerHTML = '<option value="*">All branch</option>' + items.map(b=>`<option value="${b}">${b}</option>`).join('');
+  }
+
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  function getSelectedSkillIndex(){
+    const r = document.querySelector('input[name="skill"]:checked');
+    return r ? Number(r.value) : -1;
+  }
+  function getSelectedLevel(){
+    const r = document.querySelector('input[name="level"]:checked');
+    return r ? Number(r.value) : 1;
+  }
+
+  function search(){
+    const sIdx = getSelectedSkillIndex();
+    const level = getSelectedLevel();
+    const branch = branchEl.value || '*';
+
+    const matches = rows.filter(r=>{
+      if(branch!=='*' && String(r[1]||'').trim()!==branch) return false;
+      const v = Number(r[sIdx] ?? 0) || 0;
+      if(level===2) return v===2;          // ต้องสอนได้
+      return v>=1;                          // ทำได้หรือสอนได้
+    });
+
+    // render
+    tbody.innerHTML = '';
+    matches.forEach(r=>{
+      const tr = document.createElement('tr');
+      const v = String(r[sIdx] ?? '0');
+      tr.innerHTML = `<td>${escapeHtml(r[0]??'')}</td><td>${escapeHtml(r[1]??'')}</td><td>${v}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    const label = (skills.find(o=>o.idx===sIdx)?.label)||`Skill @col ${sIdx+1}`;
+    infoEl.innerHTML = `ผลลัพธ์: พบ <strong>${matches.length}</strong> คน สำหรับสกิล <strong>${escapeHtml(label)}</strong> (ระดับ: ${level===2?'Can teach (=2)':'Can do (≥1)'}${branch!=='*'?', Branch: '+escapeHtml(branch):''})`;
+  }
+
+  async function init(){
+    try{
+      infoEl.textContent = 'กำลังโหลดข้อมูล…';
+      const data = await fetchCsvAll();
+      if(!data || data.length<3) throw new Error('CSV format not matched (ต้องมี 2 header + อย่างน้อย 1 แถวข้อมูล)');
+      header1 = data[0]||[];
+      header2 = data[1]||[];
+      rows = data.slice(2);
+
+      buildSkillList();
+      populateBranch();
+      infoEl.textContent = 'พร้อมค้นหาแล้ว';
+    }catch(err){
+      console.error(err);
+      infoEl.textContent = 'โหลดข้อมูลล้มเหลว: '+err.message;
+    }
+  }
+
+  document.getElementById('searchBtn').addEventListener('click', search);
+  window.addEventListener('load', init);
+</script>
+</body>
+</html>
