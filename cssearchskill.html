@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ค้นหาคนตามสกิล - YAPT</title>
+  <style>
+    :root{
+      --c-bg:#ffffff;--c-fg:#0f172a;--c-line:#e5e7eb;--accent:#2563eb;
+    }
+    html,body{height:100%;margin:0}
+    body{
+      background:var(--c-bg);color:var(--c-fg);
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial;
+      min-height:100dvh;
+    }
+    .wrap{max-width:960px;margin:0 auto;padding:16px}
+    h1{margin:0 0 8px}
+    .card{border:1px solid var(--c-line);border-radius:12px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .card .hd{padding:12px 14px;border-bottom:1px solid var(--c-line);font-weight:700}
+    .card .bd{padding:14px}
+    .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+    .row > *{flex:0 1 auto}
+    .group{display:flex;gap:8px;align-items:center;border:1px solid var(--c-line);border-radius:12px;padding:8px 10px;background:#fff}
+    label{font-size:14px;opacity:.85}
+    select,button{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
+    button.btn{background:var(--accent);color:#fff;border-color:#1e40af;cursor:pointer}
+    button.btn:disabled{opacity:.6;cursor:not-allowed}
+    fieldset{border:none;padding:0;margin:0}
+    .skill-list{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:6px;max-height:260px;overflow:auto;border:1px solid var(--c-line);border-radius:10px;padding:8px}
+    .skill-item{display:flex;align-items:center;gap:8px}
+    .skill-item input{accent-color:#2563eb}
+    .stack-sm{display:flex;flex-direction:column;gap:6px}
+    .muted{opacity:.75}
+    .stats{font-size:14px;margin:8px 0}
+    .results{border:1px solid var(--c-line);border-radius:10px;overflow:auto}
+    table{border-collapse:separate;border-spacing:0;width:100%;min-width:420px}
+    th,td{padding:10px 12px;border-bottom:1px solid var(--c-line);white-space:nowrap}
+    thead th{background:#111827;color:#fff;text-align:left;position:sticky;top:0;z-index:1}
+    tr:hover td{background:#f9fafb}
+    .help{font-size:13px;opacity:.75}
+    @media (min-width:640px){
+      .skill-list{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media (min-width:840px){
+      .skill-list{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+  </style>
+  <script src="https://c
