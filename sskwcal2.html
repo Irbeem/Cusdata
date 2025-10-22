@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Search Skill YAPT + Availability</title>
+<style>
+  :root{
+    --row-h: 40px;
+    --c-bg:#ffffff; --c-fg:#0f172a; --c-line:#e5e7eb; --c-head-bg:#111827; --c-head-fg:#ffffff;
+    --accent:#2563eb;
+    --sticky-w-name: 180px; --sticky-w-branch: 120px; --sticky-w-match: 110px; --sticky-w-status: 120px;
+  }
+  html,body{height:100%;margin:0}
+  body{background:var(--c-bg);color:var(--c-fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Helvetica,Arial}
+  .wrap{max-width:1400px;margin:0 auto;padding:12px}
+  h1{margin:0 0 10px}
+
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0 12px}
+  .group{display:flex;gap:8px;align-items:center;border:1px solid var(--c-line);border-radius:12px;padding:8px 10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .bar select,.bar input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
+  .btn{height:40px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .pill{display:inline-block;border:1px solid #d1d5db;border-radius:999px;padding:6px 10px;background:#fff;cursor:pointer}
+  .pill:hover{background:#f3f4f6}
+  .radio{display:flex;gap:10px;align-items:center}
+  small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;opacity:.75}
+
+  /* ส่วนเลือกสกิล */
+  .skills-toolbar{display:flex;gap:8px;align-items:center;margin:6px 0}
+  .skills-toolbar .title{opacity:.8}
+  details.skillgrp{border:1px solid var(--c-line);border-radius:12px;background:#fff;margin:10px 0}
+  details.skillgrp summary{cursor:pointer;padding:10px 12px;font-weight:700;background:#f8fafc;border-bottom:1px solid #e5e7eb;list-style:none;display:flex;align-items:center;gap:8px}
+  details.skillgrp[open] summary{border-bottom-color:#e5e7eb}
+  .grp-tools{margin-left:auto;display:flex;gap:6px}
+  .skillbox{padding:10px 12px}
+  /* จัดเป็นกริดให้เรียงสวยงามเท่ากัน */
+  .skill-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap:10px;
+  }
+  .skill-item{display:flex;gap:8px;align-items:center;border:1px solid #e5e7eb;border-radius:999px;padding:6px 10px;background:#fff;white-space:nowrap}
+
+  /* ตารางผลลัพธ์ */
+  .table-shell{border:1px solid var(--c-line);border-radius:12px;overflow:hidden;background:#fff;height:calc(100vh - 240px);min-height:360px}
+  .scroll{overflow:auto;width:100%;height:100%}
+  table{border-collapse:separate;border-spacing:0;min-width:1200px;width:max-content}
+  thead th{position:sticky;top:0;background:var(--c-head-bg);color:var(--c-head-fg);z-index:4;border-bottom:1px solid var(--c-line);font-weight:700;height:42px;white-space:nowrap}
+  th,td{padding:8px 10px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;height:var(--row-h);white-space:nowrap}
+  tbody tr:nth-child(odd) td{background:#fafafa}
+
+  /* Sticky columns */
+  .sticky-name{position:sticky;left:0;z-index:3;background:#f8fafc;min-width:var(--sticky-w-name)}
+  .sticky-branch{position:sticky;left:var(--sticky-w-name);z-index:3;background:#f8fafc;min-width:var(--sticky-w-branch)}
+  .sticky-match{position:sticky;left:calc(var(--sticky-w-name) + var(--sticky-w-branch));z-index:3;background:#f1f5f9;min-width:var(--sticky-w-match);text-align:center}
+  .sticky-status{position:sticky;left:calc(var(--sticky-w-name) + var(--sticky-w-branch) + var(--sticky-w-match));z-index:3;background:#f1f5f9;min-width:var(--sticky-w-status);text-align:center}
+  thead .sticky-name, thead .sticky-branch, thead .sticky-match, thead .sticky-status { z-index:5; background:var(--c-head-bg);}
+
+  /* Match % chips + สีตามเกณฑ์ */
+  .chip{display:inline-block;min-width:52px;padding:2px 10px;border-radius:999px;border:1px solid #c7d2fe;background:#dbeafe;font-weight:700}
+  .pct-good{background:#dcfce7;border-color:#86efac}
+  .pct-mid{background:#fef9c3;border-color:#fde68a}
+  .pct-low{background:#ffedd5;border-color:#fed7aa}
+
+  .stat-free{background:#dcfce7;border:1px solid #86efac}
+  .stat-busy{background:#fee2e2;border:1px solid #fecaca}
+  .stat-na{background:#f3f4f6;border:1px solid #e5e7eb}
+
+  /* ไอคอนสกิล */
+  td.skill { text-align:center; }
+  .skill-pill{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    width:48px; height:26px; border:1px solid #d1d5db; border-radius:14px; background:#fff; user-select:none;
+  }
+  .skill-pill .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; }
+  .skill-pill[data-skill="1"]{ background:#22c55e; color:#ffffff; }
+  .skill-pill[data-skill="1"] .dot{ background:#ffffff; }
+  .skill-pill[data-skill="2"]{ background:#2563eb; color:#ffffff; }
+  .skill-pill[data-skill="2"] .dot{ background:#000000; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Search Skill YAPT</h1>
+
+  <!-- Controls -->
+  <div class="bar">
+    <div class="group">
+      <label>Branch:</label>
+      <select id="filterBranch"><option value="*">All branch</option></select>
+    </div>
+
+    <div class="group">
+      <label>ระดับขั้นต่ำ:</label>
+      <select id="minLevel">
+        <option value="1" selected>Can do (≥1)</option>
+        <option value="2">Can teach (=2)</option>
+      </select>
+      <label style="margin-left:10px">โหมดจับคู่:</label>
+      <label><input type="radio" name="mode" value="AND" checked> AND (ต้องครบทุกสกิล)</label>
+      <label><input type="radio" name="mode" value="OR"> OR (อย่างน้อยหนึ่ง)</label>
+    </div>
+
+    <!-- วันที่ + ปฏิทินที่จะเช็ค -->
+    <div class="group">
+      <label><input type="checkbox" id="useDate" checked> ใช้วันที่นี้:</label>
+      <input id="dDay"   type="number" min="1" max="31" placeholder="วัน" style="width:80px">
+      <input id="dMonth" type="number" min="1" max="12" placeholder="เดือน" style="width:90px">
+      <input id="dYear"  type="number" min="2020" max="2100" placeholder="ปี" style="width:100px">
+      <label style="margin-left:8px"><input type="checkbox" id="chkBKK" checked> เช็ค BKK</label>
+      <label><input type="checkbox" id="chkCBI" checked> เช็ค CBI</label>
+    </div>
+
+    <button class="btn" id="btnSearch">ค้นหา</button>
+    <small id="meta" class="mono"></small>
+  </div>
+
+  <!-- GLOBAL: เลือกสกิล (หลายรายการ) -->
+  <div class="skills-toolbar">
+    <span class="title">เลือกสกิล (หลายรายการ):</span>
+    <button type="button" id="selectAllGlobal" class="pill">เลือกทั้งหมด</button>
+    <button type="button" id="clearAllGlobal"  class="pill">ล้างที่เลือก</button>
+  </div>
+
+  <!-- กลุ่มสกิล (Head1 -> รายการ Head2) -->
+  <div id="skillGroups"></div>
+
+  <!-- ผลลัพธ์ -->
+  <div class="table-shell">
+    <div class="scroll" id="scroller">
+      <table id="result">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG ===================== */
+// YAPT Skills
+const SKILL_SHEET_ID = '1dXM6Coiuj4KKdAjoi-5L7oErf2T6EFZW6xDpy5GCs8k';
+const SKILL_GID = '0';
+const SKILL_CSV = `https://docs.google.com/spreadsheets/d/${SKILL_SHEET_ID}/export?format=csv&gid=${SKILL_GID}`;
+
+// Calendar
+const BKK_SHEET_ID = '1ySiuPMVyrNOpNxx5fR0olf2Dbaq84zKVlVaVo6mFBi8';
+const CBI_SHEET_ID = '1Yv7-SwI9Iuv9QcEaqFVCEejEe3_8Ja77NNwrM61x-oA';
+const gviz = (id, sheet='Carlendar') => `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheet)}`;
+
+/* ===================== STATE ===================== */
+let header1=[], header2=[], rows=[];
+let groups=[];
+let selectedSkillIdx = new Set();
+
+/* ===================== LOAD SKILLS ===================== */
+async function loadSkills(){
+  const text = await fetch(SKILL_CSV, {cache:'no-store'}).then(r=>r.text());
+  const data = Papa.parse(text, {skipEmptyLines:false}).data || [];
+  header1 = data[0]||[]; header2=data[1]||[]; rows = data.slice(2);
+  buildGroups();
+  populateBranch();
+  renderSkillGroups();
+  setToday();
+}
+
+function buildGroups(){
+  const n = Math.max(header1.length, header2.length);
+  groups=[]; let i=0;
+  while(i<n){
+    const h1=(header1[i]||'').trim();
+    if(i<2){ i++; continue; }
+    if(!h1){ i++; continue; }
+    let j=i+1; while(j<n && (header1[j]||'').trim()==='') j++;
+    const items=[];
+    for(let k=i;k<j;k++){
+      const name=(header2[k]||'').trim() || (header1[k]||'').trim() || `Skill ${k}`;
+      items.push({idx:k, name});
+    }
+    groups.push({title:h1, items});
+    i=j;
+  }
+}
+
+function uniqueBranches(){
+  const seen=new Set(), out=[];
+  rows.forEach(r=>{ const b=String(r[1]??'').trim(); if(b && !seen.has(b)){ seen.add(b); out.push(b);} });
+  out.sort((a,b)=>a.localeCompare(b,'en')); return out;
+}
+function populateBranch(){
+  const sel=document.getElementById('filterBranch');
+  const cur=sel.value||'*';
+  const list=uniqueBranches();
+  sel.innerHTML='<option value="*">All branch</option>'+list.map(b=>`<option value="${b}">${b}</option>`).join('');
+  if([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+
+/* ========== Render skill groups (สวยงาม + ปุ่มต่อกลุ่ม) ========== */
+function renderSkillGroups(){
+  const host=document.getElementById('skillGroups');
+  host.innerHTML='';
+  groups.forEach(g=>{
+    const det=document.createElement('details');
+    det.className='skillgrp'; det.open=true;
+    det.innerHTML=`
+      <summary>
+        <span>${escapeHtml(g.title)}</span>
+        <small class="mono">(${g.items.length})</small>
+        <span class="grp-tools">
+          <button class="pill" data-act="all">เลือกทั้งหมด</button>
+          <button class="pill" data-act="clear">ล้าง</button>
+        </span>
+      </summary>
+      <div class="skillbox"><div class="skill-grid"></div></div>`;
+    const grid=det.querySelector('.skill-grid');
+    g.items.forEach(it=>{
+      const id=`sk_${it.idx}`;
+      const el=document.createElement('label');
+      el.className='skill-item';
+      el.innerHTML=`<input type="checkbox" id="${id}" data-idx="${it.idx}"> ${escapeHtml(it.name)}`;
+      grid.appendChild(el);
+    });
+    det.querySelector('[data-act="all"]').onclick=()=>{
+      grid.querySelectorAll('input[type="checkbox"]').forEach(ch=>{ ch.checked=true; selectedSkillIdx.add(Number(ch.dataset.idx)); });
+    };
+    det.querySelector('[data-act="clear"]').onclick=()=>{
+      grid.querySelectorAll('input[type="checkbox"]').forEach(ch=>{ ch.checked=false; selectedSkillIdx.delete(Number(ch.dataset.idx)); });
+    };
+    grid.addEventListener('change', e=>{
+      const ch=e.target.closest('input[type="checkbox"]'); if(!ch) return;
+      const idx=Number(ch.dataset.idx);
+      if(ch.checked) selectedSkillIdx.add(idx); else selectedSkillIdx.delete(idx);
+    });
+    host.appendChild(det);
+  });
+}
+
+/* ========== Global select/clear ========== */
+document.getElementById('selectAllGlobal').addEventListener('click',()=>{
+  document.querySelectorAll('#skillGroups input[type="checkbox"]').forEach(ch=>{ ch.checked=true; selectedSkillIdx.add(Number(ch.dataset.idx)); });
+});
+document.getElementById('clearAllGlobal').addEventListener('click',()=>{
+  document.querySelectorAll('#skillGroups input[type="checkbox"]').forEach(ch=>{ ch.checked=false; selectedSkillIdx.delete(Number(ch.dataset.idx)); });
+});
+
+/* ===================== Helpers ===================== */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+function setToday(){
+  const t=new Date();
+  document.getElementById('dDay').value   = t.getDate();
+  document.getElementById('dMonth').value = t.getMonth()+1;
+  document.getElementById('dYear').value  = t.getFullYear();
+}
+
+/* ===================== Search + Availability ===================== */
+function getVisibleRows(){
+  const branch=document.getElementById('filterBranch').value||'*';
+  const indices=[...selectedSkillIdx];
+  const minLv=Number(document.getElementById('minLevel').value||1);
+  const mode=document.querySelector('input[name="mode"]:checked')?.value||'AND';
+
+  const visible=[];
+  rows.forEach((r,ri)=>{
+    if(branch!=='*' && String(r[1]||'').trim()!==branch) return;
+    if(indices.length===0){ visible.push({ri, r, matchedCols:[]}); return; }
+    const vals = indices.map(ci => Number(r[ci]||0) );
+    const pass = (mode==='AND') ? vals.every(v => v>=minLv) : vals.some(v => v>=minLv);
+    if(pass){
+      const matchedCols = indices.filter(ci => Number(r[ci]||0)>=minLv);
+      visible.push({ri,r,matchedCols});
+    }
+  });
+  return visible;
+}
+
+function calcMatchPercent(item, totalSelected){
+  if(totalSelected===0) return 0;
+  return Math.round((item.matchedCols.length / totalSelected) * 100);
+}
+function pctClass(p){ if(p>=80) return 'pct-good'; if(p>=50) return 'pct-mid'; return 'pct-low'; }
+
+async function fetchBusyNameSet(y,m,d, ids){
+  const fetchOne = async (sheetId) => {
+    const txt = await fetch(gviz(sheetId), {cache:'no-store'}).then(r=>r.text());
+    const json = JSON.parse(txt.substring(47).slice(0,-2));
+    const cols = json.table.cols.map(c=>c.label);
+    const Y = cols.findIndex(x=>/^year$/i.test(x));
+    const M = cols.findIndex(x=>/^month$/i.test(x));
+    const D = cols.findIndex(x=>/^date$/i.test(x));
+    const N = cols.findIndex(x=>/^name$/i.test(x));
+    const set=new Set();
+    json.table.rows.forEach(row=>{
+      const c=row.c;
+      const yy = c[Y]?.v ?? c[Y]?.f ?? c[Y];
+      const mm = c[M]?.v ?? c[M]?.f ?? c[M];
+      const dd = c[D]?.v ?? c[D]?.f ?? c[D];
+      const nm = (c[N]?.v ?? '').toString().trim();
+      if(Number(yy)===Number(y) && Number(mm)===Number(m) && Number(dd)===Number(d) && nm){ set.add(nm); }
+    });
+    return set;
+  };
+
+  if(!ids.length) return new Set();
+  const results = await Promise.allSettled(ids.map(fetchOne));
+  const busy = new Set();
+  results.forEach(res=>{
+    if(res.status==='fulfilled'){ res.value.forEach(n=>busy.add(n)); }
+  });
+  return busy;
+}
+
+/* ===================== Render Table ===================== */
+function renderHeader(){
+  const thead=document.querySelector('#result thead');
+  const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
+
+  let head1 = `
+    <tr>
+      <th class="sticky-name">Name</th>
+      <th class="sticky-branch">Branch</th>
+      <th class="sticky-match">Match %</th>
+      <th class="sticky-status">Status</th>
+      ${buildHead1Cells(selected)}
+    </tr>`;
+  let head2 = `
+    <tr>
+      <th class="sticky-name"></th>
+      <th class="sticky-branch"></th>
+      <th class="sticky-match"></th>
+      <th class="sticky-status"></th>
+      ${buildHead2Cells(selected)}
+    </tr>`;
+  thead.innerHTML = head1 + head2;
+}
+function buildHead1Cells(selected){
+  let html=''; let i=0;
+  while(i<selected.length){
+    const start = selected[i];
+    const title = (header1[start]||'').trim() || (header2[start]||'').trim();
+    let j=i+1;
+    while(j<selected.length && (header1[selected[j]]||'').trim()===(header1[start]||'').trim()) j++;
+    const colspan = j-i;
+    html += `<th ${colspan>1?`colspan="${colspan}"`:''}>${escapeHtml(title)}</th>`;
+    i=j;
+  }
+  return html;
+}
+function buildHead2Cells(selected){
+  return selected.map(ci=>`<th>${escapeHtml((header2[ci]||'').trim() || (header1[ci]||'').trim())}</th>`).join('');
+}
+
+function renderBody(items, totalSelected, busySet, dateGiven){
+  const tbody=document.querySelector('#result tbody');
+  const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
+
+  const rowsHtml = items.map(it=>{
+    const name = String(it.r[0]||'');
+    const branch = String(it.r[1]||'');
+    const pct = calcMatchPercent(it, totalSelected);
+    const pctCls = pctClass(pct);
+
+    let statChip = `<span class="chip stat-na">-</span>`;
+    if(dateGiven){
+      const busy = busySet?.has(name);
+      statChip = busy ? `<span class="chip stat-busy">Busy</span>` : `<span class="chip stat-free">Free</span>`;
+    }
+
+    const skillCells = selected.map(ci=>{
+      const v = String(it.r[ci]||'0');
+      if(v==='2') return `<td class="skill"><span class="skill-pill" data-skill="2"><span class="dot"></span></span></td>`;
+      if(v==='1') return `<td class="skill"><span class="skill-pill" data-skill="1"><span class="dot"></span></span></td>`;
+      return `<td class="skill"><span class="skill-pill" data-skill="0">-</span></td>`;
+    }).join('');
+
+    return `
+      <tr>
+        <td class="sticky-name">${escapeHtml(name)}</td>
+        <td class="sticky-branch">${escapeHtml(branch)}</td>
+        <td class="sticky-match"><span class="chip ${pctCls}">${pct}%</span></td>
+        <td class="sticky-status">${statChip}</td>
+        ${skillCells}
+      </tr>`;
+  }).join('');
+
+  tbody.innerHTML = rowsHtml || `<tr><td class="sticky-name" colspan="${4 + selected.length}">ไม่พบผลลัพธ์</td></tr>`;
+}
+
+/* ===================== Events ===================== */
+document.getElementById('btnSearch').addEventListener('click', async ()=>{
+  const t0 = performance.now();
+  const useDate = document.getElementById('useDate').checked;
+  const day = Number(document.getElementById('dDay').value||0);
+  const mon = Number(document.getElementById('dMonth').value||0);
+  const yr  = Number(document.getElementById('dYear').value||0);
+  const chkBKK = document.getElementById('chkBKK').checked;
+  const chkCBI = document.getElementById('chkCBI').checked;
+
+  const items = getVisibleRows();
+
+  let busySet = new Set();
+  const dateGiven = useDate && day>0 && mon>0 && yr>0;
+  if(dateGiven){
+    const ids=[]; if(chkBKK) ids.push(BKK_SHEET_ID); if(chkCBI) ids.push(CBI_SHEET_ID);
+    busySet = await fetchBusyNameSet(yr, mon, day, ids).catch(()=>new Set());
+    items.sort((a,b)=>{
+      const an = String(a.r[0]||''), bn = String(b.r[0]||'');
+      const af = busySet.has(an)?1:0, bf = busySet.has(bn)?1:0;
+      if(af!==bf) return af-bf; return an.localeCompare(bn,'en');
+    });
+  }
+
+  renderHeader();
+  renderBody(items, selectedSkillIdx.size, busySet, dateGiven);
+
+  const took=Math.round(performance.now()-t0);
+  document.getElementById('meta').textContent = `พบ ${items.length} คน | ใช้เวลา ${took} ms` + (dateGiven?` | ตรวจว่าง ${day}/${mon}/${yr}${chkBKK?' | BKK':''}${chkCBI?' | CBI':''}`:'');
+});
+
+/* ===================== Init ===================== */
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
+loadSkills().catch(()=>alert('โหลดข้อมูลสกิลไม่สำเร็จ'));
+</script>
+</body>
+</html>
