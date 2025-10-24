@@ -20,10 +20,8 @@
   .group{display:flex;gap:8px;align-items:center;border:1px solid var(--c-line);border-radius:12px;padding:8px 10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
   .bar select,.bar input{height:40px;border:1px solid #d1d5db;border-radius:10px;padding:0 12px;background:#fff;color:#0f172a}
   .btn{height:40px;border:1px solid #d1d5db;background:var(--accent);color:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
-  .btn:disabled{opacity:.6;cursor:not-allowed}
   .pill{display:inline-block;border:1px solid #d1d5db;border-radius:999px;padding:6px 10px;background:#fff;cursor:pointer}
   .pill:hover{background:#f3f4f6}
-  .radio{display:flex;gap:10px;align-items:center}
   small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;opacity:.75}
 
   /* ส่วนเลือกสกิล */
@@ -96,7 +94,7 @@
 
     <!-- วันที่ + ปฏิทินที่จะเช็ค -->
     <div class="group">
-      <label><input type="checkbox" id="useDate" checked> ใช้วันที่นี้:</label>
+      <label><input type="checkbox" id="useDate"> ใช้วันที่นี้:</label>
       <input id="dDay"   type="number" min="1" max="31" placeholder="วัน" style="width:80px">
       <input id="dMonth" type="number" min="1" max="12" placeholder="เดือน" style="width:90px">
       <input id="dYear"  type="number" min="2020" max="2100" placeholder="ปี" style="width:100px">
@@ -154,7 +152,7 @@ async function loadSkills(){
   buildGroups();
   populateBranch();
   renderSkillGroups();
-  setToday();
+  setToday(); // เติมค่าวันนี้ แต่ไม่ติ๊กใช้วันที่
 }
 
 function buildGroups(){
@@ -177,7 +175,7 @@ function buildGroups(){
 
 function uniqueBranches(){
   const seen=new Set(), out=[];
-  rows.forEach(r=>{ const b=String(r[1]??'').trim(); if(b && !seen.has(b)){ seen.add(b); out.push(b);} });
+  rows.forEach((r,ri)=>{ const b=String(r[1]??'').trim(); if(b && !seen.has(b)){ seen.add(b); out.push(b);} });
   out.sort((a,b)=>a.localeCompare(b,'en')); return out;
 }
 function populateBranch(){
@@ -255,30 +253,20 @@ function getVisibleRows(){
   const visible=[];
   rows.forEach((r,ri)=>{
     if(branch!=='*' && String(r[1]||'').trim()!==branch) return;
-    if(indices.length===0){ visible.push({ri, r, matchedCols:[]}); return; }
+    if(indices.length===0){ visible.push({ri, r, matchedCols:[], pct:0}); return; }
     const vals = indices.map(ci => Number(r[ci]||0) );
     const pass = (mode==='AND') ? vals.every(v => v>=minLv) : vals.some(v => v>=minLv);
     if(pass){
       const matchedCols = indices.filter(ci => Number(r[ci]||0)>=minLv);
-      visible.push({ri,r,matchedCols});
+      visible.push({ri,r,matchedCols, pct: Math.round((matchedCols.length / indices.length)*100)});
     }
   });
   return visible;
 }
 
-function calcMatchPercent(item, totalSelected){
-  if(totalSelected===0) return 0;
-  return Math.round((item.matchedCols.length / totalSelected) * 100);
-}
 function pctClass(p){ if(p>=80) return 'pct-good'; if(p>=50) return 'pct-mid'; return 'pct-low'; }
 
-/* ---- อ่านสถานะใน Carlendar: Free / Busy / Standby ----
-   columns: Year / Month / Date / Name / Type (ไม่สนตัวพิมพ์)
-   ถ้าชื่อเดียวกันมีหลายบรรทัด:
-     - ถ้าเจอ standby สักบรรทัด => สรุป Standby
-     - ไม่เจอ standby แต่มีรายการอื่น => Busy
-     - ไม่เจอเลย => Free
-*/
+/* อ่านสถานะ: Free / Busy / Standby (Type) */
 async function fetchStatusMap(y,m,d, ids){
   const fetchOne = async (sheetId) => {
     const txt = await fetch(gviz(sheetId), {cache:'no-store'}).then(r=>r.text());
@@ -329,24 +317,32 @@ function renderHeader(){
   const thead=document.querySelector('#result thead');
   const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
 
-  let head1 = `
-    <tr>
-      <th class="sticky-name">Name</th>
-      <th class="sticky-branch">Branch</th>
-      <th class="sticky-match">Match %</th>
-      <th class="sticky-status">Status</th>
-      ${buildHead1Cells(selected)}
-    </tr>`;
-  let head2 = `
-    <tr>
-      <th class="sticky-name"></th>
-      <th class="sticky-branch"></th>
-      <th class="sticky-match"></th>
-      <th class="sticky-status"></th>
-      ${buildHead2Cells(selected)}
-    </tr>`;
-  thead.innerHTML = head1 + head2;
+  if(selected.length===0){
+    thead.innerHTML = `
+      <tr>
+        <th class="sticky-name">Name</th>
+        <th class="sticky-branch">Branch</th>
+        <th class="sticky-match">Match %</th>
+        <th class="sticky-status">Status</th>
+      </tr>`;
+    return;
+  }
+
+  // แถวบน: sticky 4 ช่องใช้ rowspan=2 + group Head1
+  let head1Sticky = `
+    <th class="sticky-name" rowspan="2">Name</th>
+    <th class="sticky-branch" rowspan="2">Branch</th>
+    <th class="sticky-match" rowspan="2">Match %</th>
+    <th class="sticky-status" rowspan="2">Status</th>`;
+
+  let head1Groups = buildHead1Cells(selected);
+  let head2 = buildHead2Cells(selected);
+
+  thead.innerHTML = `
+    <tr>${head1Sticky}${head1Groups}</tr>
+    <tr>${head2}</tr>`;
 }
+
 function buildHead1Cells(selected){
   let html=''; let i=0;
   while(i<selected.length){
@@ -364,16 +360,16 @@ function buildHead2Cells(selected){
   return selected.map(ci=>`<th>${escapeHtml((header2[ci]||'').trim() || (header1[ci]||'').trim())}</th>`).join('');
 }
 
-function renderBody(items, totalSelected, statusMap, dateGiven){
+function renderBody(items, statusMap, dateGiven){
   const tbody=document.querySelector('#result tbody');
   const selected=[...selectedSkillIdx].sort((a,b)=>a-b);
-
   const rowsHtml = items.map(it=>{
     const name = String(it.r[0]||'');
     const branch = String(it.r[1]||'');
-    const pct = calcMatchPercent(it, totalSelected);
+    const pct = it.pct ?? 0;
     const pctCls = pctClass(pct);
 
+    // สถานะ
     let statChip = `<span class="chip">-</span>`;
     if(dateGiven){
       const st = statusMap.get(name); // 'busy' | 'standby' | undefined
@@ -399,7 +395,8 @@ function renderBody(items, totalSelected, statusMap, dateGiven){
       </tr>`;
   }).join('');
 
-  tbody.innerHTML = rowsHtml || `<tr><td class="sticky-name" colspan="${4 + selected.length}">ไม่พบผลลัพธ์</td></tr>`;
+  const colSpan = 4 + selected.length;
+  tbody.innerHTML = rowsHtml || `<tr><td class="sticky-name" colspan="${colSpan}">ไม่พบผลลัพธ์</td></tr>`;
 }
 
 /* ===================== Events ===================== */
@@ -419,31 +416,37 @@ document.getElementById('btnSearch').addEventListener('click', async ()=>{
   const chkBKK = document.getElementById('chkBKK').checked;
   const chkCBI = document.getElementById('chkCBI').checked;
 
+  // 1) คัดกรองตามสกิลและคำนวณ % (เก็บ index เดิม ri ไว้ใช้ตัดสินลำดับตอน tie)
   const items = getVisibleRows();
 
+  // 2) อ่านสถานะจากปฏิทินถ้าติ๊ก "ใช้วันที่นี้"
   let statusMap = new Map();
   const dateGiven = useDate && day>0 && mon>0 && yr>0;
   if(dateGiven){
     const ids=[]; if(chkBKK) ids.push(BKK_SHEET_ID); if(chkCBI) ids.push(CBI_SHEET_ID);
     statusMap = await fetchStatusMap(yr, mon, day, ids).catch(()=>new Map());
-    // เรียงลำดับ: Standby -> Free -> Busy ? หรือ Free ก่อน?
-    // เอา "Free ก่อน, จากนั้น Standby, สุดท้าย Busy"
-    const rank = (nm)=>{
-      const st = statusMap.get(nm);
-      if(st==='busy') return 2;
-      if(st==='standby') return 1;
-      return 0; // free
-    };
-    items.sort((a,b)=>{
-      const an = String(a.r[0]||''), bn = String(b.r[0]||'');
-      const ra = rank(an), rb = rank(bn);
-      if(ra!==rb) return ra-rb;
-      return an.localeCompare(bn,'en');
-    });
   }
 
+  // 3) จัดเรียง: Free -> Standby -> Busy, จากนั้น Match% มากก่อน, tie-break ตามลำดับเดิมในชีต (ri)
+  const rank = (nm)=>{
+    if(!dateGiven) return 0; // ไม่ใช้วันที่ => ไม่จัดลำดับสถานะ
+    const st = statusMap.get(nm);
+    if(st==='busy') return 2;
+    if(st==='standby') return 1;
+    return 0; // free
+  };
+  items.sort((a,b)=>{
+    const an = String(a.r[0]||''), bn = String(b.r[0]||'');
+    const ra = rank(an), rb = rank(bn);
+    if(ra!==rb) return ra-rb;            // Free(0) < Standby(1) < Busy(2)
+    const pa = a.pct||0, pb = b.pct||0;
+    if(pa!==pb) return pb-pa;            // % มากก่อน
+    return a.ri - b.ri;                  // ลำดับเดิมในชีต
+  });
+
+  // 4) วาดหัวตารางและบอดี้
   renderHeader();
-  renderBody(items, selectedSkillIdx.size, statusMap, dateGiven);
+  renderBody(items, statusMap, dateGiven);
 
   const took=Math.round(performance.now()-t0);
   document.getElementById('meta').textContent =
@@ -451,7 +454,6 @@ document.getElementById('btnSearch').addEventListener('click', async ()=>{
 });
 
 /* ===================== Init ===================== */
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[m])); }
 loadSkills().catch(()=>alert('โหลดข้อมูลสกิลไม่สำเร็จ'));
 </script>
 </body>
