@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Multi-Customer Visit Plan - FINAL FULL PRINTABLE</title>
+
+  <!-- Tom Select -->
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <!-- Leaflet + OSM -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet Routing Machine (ใช้ OSRM demo server) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"/>
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    .container { display: flex; }
+    .left-panel { width: 50%; padding-right: 20px; }
+    .right-panel { width: 50%; page-break-before: always; }
+    .customer-container { display: flex; flex-wrap: wrap; gap: 20px; }
+    .customer-card { border: 1px solid #ccc; padding: 15px; border-radius: 8px; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); width: 100%; max-width: 100%; position: relative; margin: auto; }
+    .remove-btn {
+      position: absolute; top: 8px; right: 8px; background: red; color: white; border: none; border-radius: 50%;
+      width: 24px; height: 24px; font-weight: bold; font-size: 40px; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+    }
+    input, select { padding: 6px; margin: 4px 0; border-radius: 4px; border: 1px solid #ccc; width: 100%; }
+    textarea { padding: 8px; margin: 5px 0; border: 1px solid #ccc; border-radius: 4px; width: 95%; resize: none; overflow: hidden; }
+    button { padding: 8px 16px; border-radius: 4px; border: none; cursor: pointer; margin-top: 10px; }
+    .green { background-color: #28a745; color: white; }
+    label { background-color: #007bff; color: white; padding: 4px 8px; border-radius: 4px; display: inline-block; margin-top: 8px; }
+    #map { height: 500px; margin-top: 20px; }
+    .summary-container { display: block; }
+    .summary-block { border: 2px solid #2c3e50; border-radius: 6px; padding: 10px; background-color: #ecf0f1; margin-bottom: 20px; }
+    .summary-block h4 { background-color: #2980b9; color: white; padding: 6px; border-radius: 4px; text-align: center; }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    .compact-input { width: 160px; display: inline-block; }
+    #routeSummary { page-break-before: always; }
+
+    .leaflet-routing-container { display: none; } /* ซ่อนวิดเจ็ต LRM เราสรุปเอง */
+
+    @media print {
+      .container { display: block; }
+      .left-panel, .right-panel { width: 100%; }
+      button, .remove-btn { display: none; }
+      .customer-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; }
+      .customer-card { page-break-inside: avoid; width: 80%; }
+      .summary-block:not(:first-child) { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+<h2>Customer Visit Plan : <span id="loginNameDisplay"></span></h2>
+
+<div class="container">
+  <div class="left-panel">
+    <label>Visit Date:</label>
+    <input type="date" id="visitDateInput"><br>
+
+    <label>Start From:</label>
+    <select id="originSelect">
+      <option value="13.784431483421942,100.58041213808076">Yaskawa BKK</option>
+      <option value="13.092777336086302,101.06298540923027">Yaskawa Chonburi</option>
+    </select><br>
+
+    <div id="customerContainer" class="customer-container"></div>
+
+    <button id="addCustomerBtn" class="green">+ Add Customer</button>
+    <button id="generateBtn" class="green">Generate Map</button>
+    <button id="saveBtn" class="green">Save Plan</button>
+    <button id="printBtn" class="green">Print PDF</button>
+  </div>
+
+  <div class="right-panel">
+    <h3>Summary</h3>
+    <div id="summaryContainer"></div>
+  </div>
+</div>
+
+<div id="routeSummary"></div>
+<div id="map"></div>
+
+<script>
+/* ---------------- Firebase ---------------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyCWTkIN4dKaRI1ZlyHxxhxovhoMGF_8wPc",
+  authDomain: "cusdata-51e4f.firebaseapp.com",
+  databaseURL: "https://cusdata-51e4f-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cusdata-51e4f"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let allData = [], allCustomers = [], customers = [], partData = [], userData = null;
+
+/* ---------------- Auth + Load Data ---------------- */
+firebase.auth().onAuthStateChanged(user => {
+  if (!user) return;
+
+  db.ref("users/" + user.uid).once("value", snap => {
+    userData = snap.val();
+    document.getElementById("loginNameDisplay").textContent = userData?.name || "Unknown";
+  });
+
+  Promise.all([
+    db.ref("robot_data").once("value"),
+    db.ref("part").once("value")
+  ]).then(([robotSnap, partSnap]) => {
+    allData = Object.values(robotSnap.val() || {});
+    allCustomers = [...new Set(allData.map(d => d["Customer name"]).filter(Boolean))].sort();
+    partData = Object.values(partSnap.val() || {});
+    if (customers.length === 0) customers.push(createEmptyCustomer());
+    renderCustomerCards();
+    initMap();
+  });
+});
+
+/* ---------------- UI Events ---------------- */
+document.getElementById("addCustomerBtn").onclick = () => { customers.push(createEmptyCustomer()); renderCustomerCards(); }
+
+document.getElementById("generateBtn").onclick = () => {
+  if (!validateTime()) return;
+  customers.sort((a, b) => a.timeIn.localeCompare(b.timeIn));
+  renderSummaries();
+  generateMap(); // LRM + OSRM legs
+}
+
+document.getElementById("saveBtn").onclick = () => {
+  if (!validateTime()) return;
+  const visitDate = document.getElementById("visitDateInput").value;
+  if (!visitDate || customers.length === 0) { alert("Please input date and customers"); return; }
+
+  const originMap = {
+    "13.784431483421942,100.58041213808076": "Yaskawa BKK",
+    "13.092777336086302,101.06298540923027": "Yaskawa Chonburi"
+  };
+  const originValue = document.getElementById("originSelect").value;
+
+  const plan = {
+    timestamp: Date.now(),
+    visitDate,
+    startFrom: originMap[originValue] || originValue,
+    loginName: userData?.name || "-",
+    loginEmail: firebase.auth().currentUser?.email || "-",
+    customers
+  };
+
+  db.ref("visit_plan").push(plan, e => { if (e) alert("Error"); else alert("Saved!"); });
+}
+
+document.getElementById("printBtn").onclick = () => {
+  if (!validateTime()) return;
+  customers.sort((a, b) => a.timeIn.localeCompare(b.timeIn));
+  prepareMapForPrint();
+}
+
+/* ---------------- Helpers: Customers UI ---------------- */
+function createEmptyCustomer() {
+  return { name: "", timeIn: "08:00", timeOut: "09:00", companion: "", contactName: "", situation: "", visitDetail: "", opinion: "" };
+}
+
+function genTimeOpts(sel) {
+  let h = "";
+  for (let i = 8; i <= 23; i++) {
+    ["00", "30"].forEach(m => {
+      let t = `${i.toString().padStart(2, '0')}:${m}`;
+      h += `<option ${t == sel ? "selected" : ""}>${t}</option>`;
+    });
+  }
+  h += `<option ${sel == "24:00" ? "selected" : ""}>24:00</option>`;
+  return h;
+}
+
+function removeCustomer(i) { customers.splice(i, 1); renderCustomerCards(); }
+
+function renderCustomerCards() {
+  const c = document.getElementById("customerContainer"); c.innerHTML = "";
+  customers.forEach((cust, idx) => {
+    const div = document.createElement("div"); div.className = "customer-card";
+    div.innerHTML = `
+      <button class="remove-btn" onclick="removeCustomer(${idx})">&times;</button>
+      <label>Customer:</label><input type="text" id="customerInput${idx}" value="${cust.name}">
+      <div style="display:flex; justify-content:space-between; gap:10px;">
+        <div style="flex:0 0 40%;">
+          <label>Time In:</label>
+          <select class="timeIn compact-input" style="width: 80px;">${genTimeOpts(cust.timeIn)}</select>
+        </div>
+        <div style="flex:0 0 40%;">
+          <label>Time Out:</label>
+          <select class="timeOut compact-input" style="width: 80px;">${genTimeOpts(cust.timeOut)}</select>
+        </div>
+      </div>
+      <label>Companion:</label><textarea class="companion">${cust.companion}</textarea>
+      <label>Contact Name:</label><textarea class="contactName">${cust.contactName}</textarea>
+      <label>Situation:</label><textarea class="situation">${cust.situation}</textarea>
+      <label>Visit Detail:</label><textarea class="visitDetail">${cust.visitDetail}</textarea>
+      <label>Opinion:</label><textarea class="opinion">${cust.opinion}</textarea>
+    `;
+    c.appendChild(div);
+
+    new TomSelect(`#customerInput${idx}`, {
+      options: allCustomers.map(c => ({ value: c, text: c })),
+      items: cust.name ? [cust.name] : [],
+      create: false,
+      maxItems: 1,
+      maxOptions: 10000,
+      persist: false,
+      placeholder: "--Select--",
+      plugins: [],
+      closeAfterSelect: true,
+      onChange: val => { customers[idx].name = val; renderSummaries(); }
+    });
+
+    div.querySelector(".timeIn").onchange = e => { customers[idx].timeIn = e.target.value; }
+    div.querySelector(".timeOut").onchange = e => { customers[idx].timeOut = e.target.value; }
+    div.querySelector(".companion").oninput = e => { customers[idx].companion = e.target.value; }
+    div.querySelector(".contactName").oninput = e => { customers[idx].contactName = e.target.value; }
+    div.querySelector(".situation").oninput = e => { customers[idx].situation = e.target.value; }
+    div.querySelector(".visitDetail").oninput = e => { customers[idx].visitDetail = e.target.value; }
+    div.querySelector(".opinion").oninput = e => { customers[idx].opinion = e.target.value; }
+  });
+  renderSummaries();
+}
+
+function renderSummaries() {
+  const s = document.getElementById("summaryContainer"); s.innerHTML = "";
+  customers.forEach(cust => {
+    if (!cust.name) return;
+    const filtered = allData.filter(d => d["Customer name"] === cust.name);
+    const models = {}, controllers = {}, parts = {};
+    filtered.forEach(d => {
+      models[d["Robot type"] || "Unknown"] = (models[d["Robot type"] || "Unknown"] || 0) + 1;
+      controllers[d["Controller"] || "Unknown"] = (controllers[d["Controller"] || "Unknown"] || 0) + 1;
+    });
+    partData
+      .filter(p => p.Customer && cust.name && p.Customer.toLowerCase().includes(cust.name.toLowerCase()))
+      .forEach(p => {
+        const y = p.Year || "-";
+        parts[y] = parts[y] || { qty: 0, price: 0 };
+        parts[y].qty += parseFloat(p.Qt || 0);
+        parts[y].price += parseFloat((p.Price || "0").replace(/,/g, ''));
+      });
+
+    let html = `<div class="summary-block"><h4>${cust.name}</h4><table><tr><th>Model</th><th>Qty</th></tr>`;
+    for (let [m, q] of Object.entries(models)) html += `<tr><td>${m}</td><td>${q}</td></tr>`;
+    html += `</table><table><tr><th>Controller</th><th>Qty</th></tr>`;
+    for (let [c, q] of Object.entries(controllers)) html += `<tr><td>${c}</td><td>${q}</td></tr>`;
+    html += `</table>`;
+    if (Object.keys(parts).length > 0) {
+      html += `<table><tr><th>Year</th><th>Qty</th><th>Total Price</th></tr>`;
+      for (let [y, d] of Object.entries(parts)) html += `<tr><td>${y}</td><td>${d.qty}</td><td>${d.price.toLocaleString()}</td></tr>`;
+      html += `</table>`;
+    }
+    html += `</div>`;
+    s.innerHTML += html;
+  });
+}
+
+function validateTime() {
+  for (let i = 0; i < customers.length; i++) {
+    let c = customers[i];
+    if (!c.timeIn || !c.timeOut) { alert("Time missing at customer " + (i + 1)); return false; }
+    if (c.timeIn >= c.timeOut) { alert("Time In must be before Time Out at " + c.name); return false; }
+    if (i > 0 && c.timeIn < customers[i - 1].timeOut) { alert("Time overlap at " + c.name); return false; }
+  }
+  return true;
+}
+
+/* ---------------- Leaflet Map + Routing ---------------- */
+let map, routingControl, mapMarkers = [];
+const geocodeCache = new Map(); // cache ชื่อ→latlng
+
+const gmapPin = (url) => L.icon({
+  iconUrl: url, iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35]
+});
+const redPin = gmapPin("https://maps.google.com/mapfiles/ms/icons/red-dot.png");
+const bluePin = gmapPin("https://maps.google.com/mapfiles/ms/icons/blue-dot.png");
+const greenPin = gmapPin("https://maps.google.com/mapfiles/ms/icons/green-dot.png");
+
+function clearMapMarkers() {
+  mapMarkers.forEach(m => map.removeLayer(m));
+  mapMarkers = [];
+}
+
+function initMap() {
+  map = L.map('map', { center: [13.736717, 100.523186], zoom: 6 });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  }).addTo(map);
+}
+
+/* ---- แปลงชื่อลูกค้า → พิกัด: ใช้ Address (lat,lng) ก่อน, ถ้าไม่มี/ซ้ำเยอะ ใช้ mode, ถ้าไม่มีเลย → Nominatim ---- */
+function parseLatLng(str) {
+  const parts = (str || "").split(",").map(s => s.trim());
+  if (parts.length === 2) {
+    const lat = parseFloat(parts[0]), lng = parseFloat(parts[1]);
+    if (!isNaN(lat) && !isNaN(lng)) return L.latLng(lat, lng);
+  }
+  return null;
+}
+
+async function geocodeByNominatim(name) {
+  if (geocodeCache.has(name)) return geocodeCache.get(name);
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(name + ", Thailand")}&limit=1&addressdetails=0&email=irbeem@gmail.com`;
+  const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  let latlng = null;
+  if (resp.ok) {
+    const data = await resp.json();
+    if (Array.isArray(data) && data.length > 0) {
+      latlng = L.latLng(parseFloat(data[0].lat), parseFloat(data[0].lon));
+    }
+  }
+  geocodeCache.set(name, latlng);
+  return latlng;
+}
+
+async function getLatLngForCustomer(custName) {
+  // 1) ดูข้อมูลทั้งหมดที่ชื่อเท่ากัน
+  const rows = allData.filter(d => d["Customer name"] === custName);
+  // 2) เก็บ address ที่เป็น lat,lng
+  const counter = new Map();
+  for (const r of rows) {
+    const ll = parseLatLng(r?.Address || "");
+    if (ll) {
+      const key = `${ll.lat.toFixed(6)},${ll.lng.toFixed(6)}`;
+      counter.set(key, (counter.get(key) || 0) + 1);
+    }
+  }
+  // 3) ถ้ามีหลายพิกัด เลือก "พิกัดที่พบบ่อยสุด"
+  if (counter.size > 0) {
+    let bestKey = null, bestCount = -1;
+    for (const [k, c] of counter.entries()) {
+      if (c > bestCount) { bestCount = c; bestKey = k; }
+    }
+    const [lat, lng] = bestKey.split(",").map(Number);
+    return L.latLng(lat, lng);
+  }
+  // 4) ถ้าไม่พบเลย → geocode จากชื่อบริษัท
+  await new Promise(res => setTimeout(res, 300)); // กันยิงถี่
+  return await geocodeByNominatim(custName);
+}
+
+/* ---- OSRM: multi-waypoint เพื่อได้ legs ทั้งหมดครั้งเดียว ---- */
+function metersToKM(m) { return (m / 1000).toFixed(1) + " km"; }
+function secondsToHMS(sec) {
+  const m = Math.round(sec / 60);
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const mm = m % 60;
+  return `${h} h ${mm} min`;
+}
+
+async function osrmMultiLegRoute(waypoints) {
+  // waypoints: อาร์เรย์ของ L.latLng [origin, stop1, stop2, ...]
+  const coords = waypoints.map(ll => `${ll.lng},${ll.lat}`).join(";");
+  const url = `https://router.project-osrm.org/route/v1/driving/${coords}` +
+              `?overview=false&alternatives=false&steps=false&annotations=distance,duration`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error("OSRM multi-leg routing failed");
+  const data = await resp.json();
+  const route = data?.routes?.[0];
+  if (!route) throw new Error("No route");
+  return {
+    totalDistance: route.distance,
+    totalDuration: route.duration,
+    legs: route.legs.map(l => ({ distance: l.distance, duration: l.duration }))
+  };
+}
+
+/* ---- Generate Map + ตารางสรุปแบบต่อช่วง ---- */
+async function generateMap() {
+  // 1) origin
+  const origin = document.getElementById("originSelect").value.split(",").map(Number);
+  const originLatLng = L.latLng(origin[0], origin[1]);
+
+  // 2) หา latlng ของลูกค้าตามลำดับเวลา (address → mode → geocode)
+  const stops = [];
+  for (const c of customers) {
+    if (!c.name) continue;
+    const ll = await getLatLngForCustomer(c.name);
+    if (ll) stops.push({ name: c.name, latlng: ll });
+  }
+  if (stops.length === 0) { alert("No valid addresses"); return; }
+
+  const waypoints = [originLatLng, ...stops.map(s => s.latlng)];
+
+  // 3) ล้าง routing/markers เดิม
+  if (routingControl) { map.removeControl(routingControl); routingControl = null; }
+  clearMapMarkers();
+
+  // 4) ปักหมุด
+  const originMarker = L.marker(originLatLng, { icon: greenPin }).addTo(map).bindPopup("Start: Origin");
+  mapMarkers.push(originMarker);
+  stops.forEach((s, i) => {
+    const m = L.marker(s.latlng, { icon: i === stops.length - 1 ? bluePin : redPin })
+      .addTo(map).bindPopup(`<strong>${s.name}</strong>`);
+    mapMarkers.push(m);
+  });
+
+  // 5) วาดเส้นรวมด้วย LRM
+  routingControl = L.Routing.control({
+    waypoints,
+    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
+    lineOptions: { addWaypoints: false },
+    show: false,
+    collapsible: false,
+    fitSelectedRoutes: true
+  }).addTo(map);
+
+  // 6) คำนวณ legs ทั้งหมดครั้งเดียว
+  try {
+    const res = await osrmMultiLegRoute(waypoints);
+    const legs = res.legs; // ความยาว = waypoints.length - 1
+
+    // ตาราง: origin→stop1, stop1→stop2, ...
+    let html = `<h3>Route Summary</h3>
+      <table>
+        <tr><th>#</th><th>To</th><th>Distance</th><th>Time</th><th>Status</th></tr>`;
+
+    let totalDist = 0, totalTime = 0;
+    legs.forEach((leg, idx) => {
+      totalDist += leg.distance;
+      totalTime += leg.duration;
+      const toName = stops[idx]?.name || "-"; // idx 0→stop1, 1→stop2, ...
+      html += `<tr>
+        <td>${idx + 1}</td>
+        <td>${toName}</td>
+        <td>${metersToKM(leg.distance)}</td>
+        <td>${secondsToHMS(leg.duration)}</td>
+        <td>${(leg.distance > 0 && leg.duration > 0) ? "OK" : "No route"}</td>
+      </tr>`;
+    });
+
+    html += `</table>
+      <h4>Total: ${metersToKM(totalDist)}, ${secondsToHMS(totalTime)}</h4>`;
+
+    document.getElementById("routeSummary").innerHTML = html;
+  } catch (e) {
+    alert("Routing error (OSRM multi-leg): " + e.message);
+  }
+}
+
+function prepareMapForPrint() {
+  const group = L.featureGroup(mapMarkers);
+  if (group.getLayers().length > 0) {
+    map.fitBounds(group.getBounds(), { padding: [30, 30] });
+    setTimeout(() => { window.print(); }, 800);
+  } else {
+    window.print();
+  }
+}
+
+/* ---------------- Print Pointer Events ---------------- */
+window.onbeforeprint = () => {
+  document.getElementById("map").style.pointerEvents = "none";
+};
+window.onafterprint = () => {
+  document.getElementById("map").style.pointerEvents = "auto";
+};
+</script>
+</body>
+</html>
