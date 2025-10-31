@@ -270,14 +270,22 @@ function addCircleMarker(lat, lng, customer, models, color) {
     .map(([m, q]) => `${m}: ${q}`)
     .join("<br>");
 
-  const marker = L.circleMarker([lat, lng], {
-    radius: 10,
-    color: color,
-    fillColor: color,
-    fillOpacity: 0.8
-  }).addTo(map);
+  // สีหมุดแบบ Google Maps (ใช้ URL เดิมของ Google)
+  let iconUrl = "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+  if (color === "green") iconUrl = "https://maps.google.com/mapfiles/ms/icons/green-dot.png";
+  else if (color === "blue") iconUrl = "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+  else if (color === "gold") iconUrl = "https://maps.google.com/mapfiles/ms/icons/yellow-dot.png";
 
-  marker.bindPopup(`<strong>${customer}</strong><br>${modelInfo}`, { closeButton: false });
+  const customIcon = L.icon({
+    iconUrl: iconUrl,
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+    popupAnchor: [0, -35]
+  });
+
+  const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+  marker.bindPopup(`<strong>${customer}</strong><br>${modelInfo}`);
+
   marker.on('mouseover', () => marker.openPopup());
   marker.on('mouseout', () => marker.closePopup());
 
