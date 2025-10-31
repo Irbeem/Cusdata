@@ -5,7 +5,7 @@
   <meta name="google" content="notranslate">
   <title>YAPT Robot Viewer</title>
 
-  <!-- Tom Select (คงไว้ตามต้นฉบับ เผื่อใช้งานภายหลัง) -->
+  <!-- Tom Select (คงไว้ตามต้นฉบับ) -->
   <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 
@@ -17,20 +17,12 @@
   <!-- Utilities -->
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 
-  <!-- แทน Google Maps ด้วย Leaflet + OSM (ฟรี) -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-sA+e2atE7N3ZbW3kKk8R5rHfYkW9nE2bE3r3G3LrA1w="
-    crossorigin=""
-  />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-o9N1j6KfGZ70M9U4nXo2m3T6E4iYt8C5wQ1bYQwYf3s="
-    crossorigin=""
-  ></script>
+  <!-- Leaflet + OSM (ฟรี) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
+    html, body { height: 100%; }
     body { margin: 0; font-family: sans-serif; }
     .container { display: flex; flex-direction: row; height: 100vh; }
     .right-panel {
@@ -48,7 +40,7 @@
       overflow-y: auto;
       height: 100vh;
     }
-    #map { height: 100%; width: 100%; }
+    #map { height: 100%; min-height: 300px; width: 100%; }
 
     table {
       width: 100%;
@@ -231,6 +223,7 @@ let allData = [];
 
 /* ---------------- Leaflet Map Init ---------------- */
 function initMap() {
+  console.log('initMap() called');
   map = L.map('map', {
     center: [13.736717, 100.523186],
     zoom: 6
@@ -243,9 +236,6 @@ function initMap() {
       '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(map);
 }
-
-// โหลดแผนที่ทันทีเมื่อ DOM พร้อม (map div มีอยู่แล้ว แม้ panel จะ hidden)
-window.addEventListener('DOMContentLoaded', initMap);
 
 /* ---------------- Marker Helpers ---------------- */
 function clearMarkers() {
@@ -301,8 +291,21 @@ auth.onAuthStateChanged(async user => {
     window.location.href = "index.html";
     return;
   }
-  document.getElementById("mainPanel").classList.remove("hidden");
-  // map ถูก init แล้วตั้งแต่ DOMContentLoaded
+
+  // โชว์หน้าหลักก่อน
+  const panel = document.getElementById("mainPanel");
+  panel.classList.remove("hidden");
+
+  // ค่อย init แผนที่หลัง panel โชว์แล้ว
+  if (!map) {
+    initMap();
+  }
+
+  // ให้ Leaflet คำนวณขนาดใหม่เผื่อ container เพิ่งถูกเปิด
+  setTimeout(() => {
+    try { map.invalidateSize(true); } catch(e) {}
+  }, 50);
+
   loadData();
 });
 
