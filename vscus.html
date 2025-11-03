@@ -280,6 +280,9 @@ function validateTime() {
 let map, routingControl, mapMarkers = [];
 const geocodeCache = new Map(); // cache ชื่อ→latlng
 
+// base layers (ถนน / ดาวเทียม / ขาวดำ)
+let baseLayers; // จะ set ใน initMap()
+
 const gmapPin = (url) => L.icon({
   iconUrl: url, iconSize: [40, 40], iconAnchor: [20, 40], popupAnchor: [0, -35]
 });
@@ -294,11 +297,35 @@ function clearMapMarkers() {
 
 function initMap() {
   map = L.map('map', { center: [13.736717, 100.523186], zoom: 6 });
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+  // ถนน (OSM Standard)
+  const road = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  }).addTo(map);
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+
+  // ดาวเทียม (Esri World Imagery)
+  const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles &copy; Esri'
+  });
+
+  // ขาวดำ (BW Mapnik)
+  const grayscale = L.tileLayer('https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  });
+
+  // ตั้งค่า baseLayers และใส่ default เป็น "ถนน"
+  baseLayers = {
+    "ถนน (OSM)": road,
+    "ดาวเทียม (Esri)": satellite,
+    "ขาวดำ (BW)": grayscale
+  };
+  road.addTo(map);
+
+  // ปุ่มเลือกสไตล์แผนที่
+  L.control.layers(baseLayers, null, { position: 'topright', collapsed: false }).addTo(map);
 }
 
 /* ---- แปลงชื่อลูกค้า → พิกัด: ใช้ Address (lat,lng) ก่อน, ถ้าไม่มี/ซ้ำเยอะ ใช้ mode, ถ้าไม่มีเลย → Nominatim ---- */
@@ -409,11 +436,16 @@ async function generateMap() {
     mapMarkers.push(m);
   });
 
-  // 5) วาดเส้นรวมด้วย LRM
+  // 5) วาดเส้นรวมด้วย LRM (เส้นสีน้ำเงิน)
   routingControl = L.Routing.control({
     waypoints,
     router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
-    lineOptions: { addWaypoints: false },
+    lineOptions: {
+      addWaypoints: false,
+      styles: [
+        { color: 'blue', weight: 5, opacity: 0.85 }  // เปลี่ยนเส้นเป็นสีน้ำเงิน
+      ]
+    },
     show: false,
     collapsible: false,
     fitSelectedRoutes: true
